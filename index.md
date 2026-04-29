@@ -44,3 +44,4 @@ If you are new to the project, use this order:
 4. [CLI Guide](cli.md)
 5. [Runtime Architecture](runtime-architecture.md)
 6. [Reliability Guide](reliability.md)
+7. [Testing](testing.md)
