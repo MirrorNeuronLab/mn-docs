@@ -31,6 +31,7 @@ The `manifest.json` is a JSON document that defines the execution graph.
 | `graph_id` | String | **Required.** A unique identifier for the agent graph. |
 | `job_name` | String | Optional. A human-readable name for the job. Defaults to `graph_id` if missing. |
 | `daemon` | Boolean | Optional. Set to `true` for workflows intended to run until manually stopped. Defaults to `false`. |
+| `requiredContextEngine` | Boolean | Optional. Set to `true` when the workflow requires the Context Engine. The runtime checks `CONTEXT_ENGINE_ADDR` or port `50052` and rejects the run before scheduling agents if the service is unavailable. Defaults to `false`. |
 | `metadata` | Object | Optional. Custom metadata tags for the job. |
 | `entrypoints` | Array | **Required.** A list of `node_id` strings where initial inputs will be injected to start the graph. |
 | `initial_inputs` | Object | Optional. A map where the keys are `node_id`s (from `entrypoints`) and values are arrays of message payloads to seed the job. |
@@ -97,6 +98,7 @@ Here is a simple example of a complete `manifest.json` for a Map-Reduce style wo
   "manifest_version": "1.0",
   "graph_id": "document_summarizer",
   "daemon": false,
+  "requiredContextEngine": false,
   "entrypoints": ["dispatcher"],
   "initial_inputs": {
     "dispatcher": [
