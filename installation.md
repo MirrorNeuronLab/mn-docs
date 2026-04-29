@@ -9,7 +9,7 @@ You can quickly install MirrorNeuron using our automated script. This will downl
 **Prerequisites:** You must have `git` and `mix` (Elixir) installed.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MirrorNeuronLab/MirrorNeuron/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/MirrorNeuronLab/mn-deploy/main/install.sh | bash
 ```
 
 ### Uninstallation
