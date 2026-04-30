@@ -26,7 +26,7 @@ Example:
 MN_RUN_DETACH_LOG_SECONDS=10 \
 MN_RUN_LOG_LEVEL=DEBUG \
 MN_RUN_EVENT_LOG_MAX_BYTES=5242880 \
-mn run mn-blueprints/general_stream_live_backpressure
+mn run mn-blueprints/general_stream_live_backpressure_deamon
 ```
 
 ## CLI and SDK connectivity
@@ -135,7 +135,7 @@ These variables are used by runtime preflight checks and context-aware blueprint
 
 ## Context view logging
 
-These variables are currently used by `finance_compliance_audit_with_context_memory`.
+These variables are currently used by `general_context_memory`.
 
 | Variable | Default | Usage |
 | --- | --- | --- |

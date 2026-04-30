@@ -148,30 +148,29 @@ bash scripts/test_cluster_llm_codegen_e2e.sh \
   --box2-ip 192.168.4.35
 ```
 
-## 6. Streaming peak detection demo
+## 6. General stream basic daemon
 
 Path:
 
-- [mirrorneuron-blueprints/streaming_peak_demo](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/streaming_peak_demo)
+- `mn-blueprints/general_stream_basic_deamon`
 
 Purpose:
 
-- demonstrates runtime-level streaming messages
+- demonstrates live runtime-level streaming messages between agents
 - uses gzipped NDJSON chunks as the wire payload
-- shows one agent producing a stream and another consuming it incrementally
-- detects abnormal peaks and reports the largest anomaly
+- shows one agent continuously producing a stream and another consuming it incrementally
+- detects abnormal peaks until the daemon job is manually cancelled
 
 Key files:
 
-- [generate_bundle.py](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/streaming_peak_demo/generate_bundle.py)
-- [run_streaming_e2e.sh](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/streaming_peak_demo/run_streaming_e2e.sh)
-- [summarize_result.py](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/streaming_peak_demo/summarize_result.py)
+- `mn-blueprints/general_stream_basic_deamon/generate_bundle.py`
+- `mn-blueprints/general_stream_basic_deamon/summarize_result.py`
 - [test_cluster_streaming_e2e.sh](../scripts/test_cluster_streaming_e2e.sh)
 
 Run locally:
 
 ```bash
-bash streaming_peak_demo/run_streaming_e2e.sh
+mn run mn-blueprints/general_stream_basic_deamon
 ```
 
 Run on cluster:
@@ -259,7 +258,7 @@ Use this order:
 2. `openshell_worker_demo`
 3. `divisibility_monitor`
 4. `prime_sweep_scale`
-5. `streaming_peak_demo`
+5. `general_stream_basic_deamon`
 6. `mpe_simple_push_visualization`
 7. `llm_codegen_review`
 8. `ecosystem_simulation`
