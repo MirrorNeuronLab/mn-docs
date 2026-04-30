@@ -101,6 +101,37 @@ RUN_MN_SYSTEM_TESTS=1 \
 python3 -m pytest mn-system-tests/integration mn-system-tests/e2e
 ```
 
+## Redis HA Tests
+
+MirrorNeuron includes Redis Sentinel smoke tests for the runtime's durable state store.
+
+Local Docker test:
+
+```bash
+cd MirrorNeuron
+bash scripts/test_redis_sentinel_ha.sh
+```
+
+Two-box Docker test:
+
+```bash
+cd MirrorNeuron
+
+bash scripts/test_redis_sentinel_two_box_ha.sh \
+  --remote-host 192.168.4.173 \
+  --local-ip 192.168.4.25 \
+  --remote-ip 192.168.4.173
+```
+
+Expected success markers:
+
+```text
+two_box_initial_write_ok=...
+two_box_post_failover_write_read_ok
+```
+
+The two-box test starts Redis and Sentinel on both machines, writes MirrorNeuron state, kills the local Redis primary, waits for Sentinel failover, then writes and reads again through the remote-promoted primary.
+
 ## Environment Rules
 
 All runtime/config overrides must use `MIRROR_NEURON_`.

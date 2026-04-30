@@ -7,7 +7,7 @@ MirrorNeuron supports horizontal scaling by seamlessly clustering multiple Elixi
 For two nodes (e.g. `192.168.4.25` as the Leader and `192.168.4.173` as a Follower) to communicate successfully:
 - **Erlang Port Mapper Daemon (EPMD):** Port `4369` must be open and reachable.
 - **Erlang Distribution Ports:** A predefined range of ports (e.g. `9000-9010`) must be explicitly published by the Docker container and reachable across the network.
-- **Redis:** The Leader node typically hosts the central Redis store on port `6379`. The remote node must be able to reach this port.
+- **Redis:** Development clusters can use one shared Redis on port `6379`. Multi-box reliability should use Redis Sentinel HA so each box has a replicated Redis and MirrorNeuron reconnects to the Sentinel-elected primary.
 
 ## 2. Docker Configuration
 
@@ -33,14 +33,14 @@ This ensures that workflows can seamlessly map/reduce completely agnostic to the
 ```bash
 mn start
 ```
-*Starts Redis, the API, and sets itself up as the coordinating node. Ensure your firewall permits access to 4369, 6379, and 9000-9010.*
+*Starts Redis, the API, and sets itself up as the coordinating node. Ensure your firewall permits access to 4369, Redis/Sentinel ports, and the configured Erlang distribution ports.*
 
 ### On Node 2 (The Follower)
 ```bash
 mn join <LEADER_IP>
 # e.g., mn join 192.168.4.25
 ```
-*Will launch an attached worker node that links back to the Leader's Redis and Elixir swarm.*
+*Will launch an attached worker node that links back to Redis or Sentinel and the Elixir swarm.*
 
 ### Verifying Connection
 ```bash

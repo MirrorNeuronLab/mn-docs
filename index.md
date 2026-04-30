@@ -15,6 +15,7 @@ Use this directory as the main documentation entry point.
 
 - [Runtime Architecture](runtime-architecture.md)
 - [Cluster Guide](cluster.md)
+- [Redis High Availability](redis-ha.md)
 - [Reliability Guide](reliability.md)
 - [Troubleshooting](troubleshooting.md)
 
@@ -43,5 +44,7 @@ If you are new to the project, use this order:
 3. [Examples Guide](examples.md)
 4. [CLI Guide](cli.md)
 5. [Runtime Architecture](runtime-architecture.md)
-6. [Reliability Guide](reliability.md)
-7. [Testing](testing.md)
+6. [Cluster Guide](cluster.md)
+7. [Redis High Availability](redis-ha.md)
+8. [Reliability Guide](reliability.md)
+9. [Testing](testing.md)

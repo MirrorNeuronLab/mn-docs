@@ -10,7 +10,7 @@ The cluster state is built on:
 - **BEAM node distribution**: For transparent messaging
 - **`libcluster`**: For discovering and joining peer nodes
 - **`Horde`**: For distributed supervision of agents and jobs
-- **Shared Redis**: For durable state, leader election, and job leasing
+- **Redis**: For durable state, leader election, and job leasing. Single Redis is supported for development; Redis Sentinel HA is recommended for multi-box reliability.
 
 ### Dynamic Leader Election
 
@@ -19,7 +19,7 @@ Critical cluster coordination, such as sweeping orphaned jobs, is handled by a d
 2. It refreshes this lease periodically.
 3. If the leader node crashes or becomes unresponsive, the lease expires and another node immediately takes over leadership.
 
-This failover-safe design ensures cluster coordination without tying the system to a single point of failure.
+With Redis Sentinel HA, this keeps cluster coordination available when either a runtime box or the current Redis primary goes down.
 
 ### Job Lease & Ownership
 
@@ -34,7 +34,7 @@ All runtime boxes must agree on:
 
 - `MIRROR_NEURON_COOKIE`
 - `MIRROR_NEURON_CLUSTER_NODES`
-- Redis location
+- Redis location, or Redis Sentinel endpoints when Redis HA is enabled
 
 Typical values:
 
@@ -43,6 +43,17 @@ export MIRROR_NEURON_COOKIE="mirrorneuron"
 export MIRROR_NEURON_CLUSTER_NODES="mn1@192.168.4.29,mn2@192.168.4.35"
 export MIRROR_NEURON_REDIS_URL="redis://192.168.4.29:6379/0"
 ```
+
+Redis Sentinel HA values:
+
+```bash
+export MIRROR_NEURON_REDIS_HA_MODE="sentinel"
+export MIRROR_NEURON_REDIS_SENTINELS="192.168.4.29:26379,192.168.4.35:26379"
+export MIRROR_NEURON_REDIS_SENTINEL_MASTER="mirror-neuron"
+export MIRROR_NEURON_REDIS_DB="0"
+```
+
+See [Redis High Availability](redis-ha.md) for setup, leave, and failover testing details.
 
 ## Recommended dev-mode networking
 
@@ -70,6 +81,20 @@ Box 2:
 cd MirrorNeuron
 bash scripts/start_cluster_node.sh --box1-ip 192.168.4.29 --box2-ip 192.168.4.35 --box 2 --redis-host 192.168.4.29
 ```
+
+With Redis Sentinel HA:
+
+```bash
+bash scripts/start_cluster_node.sh \
+  --box1-ip 192.168.4.29 \
+  --box2-ip 192.168.4.35 \
+  --box 1 \
+  --redis-ha-mode sentinel \
+  --redis-sentinels 192.168.4.29:26379,192.168.4.35:26379 \
+  --redis-wait-replicas 1
+```
+
+Run the same command on box 2 with `--box 2`.
 
 ## Inspect the cluster
 
@@ -125,12 +150,15 @@ Usually means:
 - a runtime node is already running on that machine
 - a previous CLI node still exists with the same name
 
-### split-brain
+### Redis and split-brain
 
-Redis acts as the ultimate arbiter via lease locks. Therefore, a split-brain condition is averted by design. If network partitions occur, the partition that can communicate with Redis maintains leadership and job ownership.
+Redis acts as the arbiter for leader and job leases. In single Redis mode, the partition that can communicate with Redis maintains leadership and job ownership. In Sentinel mode, the Sentinel-elected primary is the only write target.
+
+For production Redis HA, use at least three Sentinel voters. A two-box Sentinel quorum of `1` is useful for development smoke tests, but it can split-brain during network partitions.
 
 ## Related docs
 
 - [Reliability Guide](reliability.md)
+- [Redis High Availability](redis-ha.md)
 - [Troubleshooting](troubleshooting.md)
 - [Monitor Guide](monitor.md)

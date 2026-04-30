@@ -23,8 +23,8 @@ The current design aims for:
 It does not yet aim for:
 
 - exactly-once delivery
-- leader election or quorum-based control
-- Redis failover built into the runtime
+- consensus-based workflow history replay
+- multi-master Redis writes or conflict merging
 
 ## Mechanisms in use today
 
@@ -83,10 +83,28 @@ This is the first line of defense before cross-node recovery is needed.
 Redis operations now recover more gracefully from broken long-lived connections:
 
 - reconnect the managed Redix client
-- retry on connection failures
+- retry on connection failures with bounded backoff
 - fall back to a one-shot Redis connection when needed
+- reconnect to the Sentinel-elected primary after failover
+- retry `READONLY` errors that can occur during Redis promotion
 
 This reduces cases where a single wedged Redis client would make an otherwise healthy node unusable.
+
+### Redis Sentinel HA
+
+MirrorNeuron supports Redis Sentinel mode for replicated durable state.
+
+In Sentinel mode:
+
+- every box can run a local Redis copy
+- one Redis is the Sentinel-elected primary
+- MirrorNeuron writes job state, events, snapshots, and leases only to the primary
+- if the primary dies, Sentinel promotes a replica
+- MirrorNeuron re-resolves the primary and reconnects
+
+Optional `MIRROR_NEURON_REDIS_WAIT_REPLICAS` adds Redis `WAIT` acknowledgement after durable writes when reliability is more important than write latency.
+
+See [Redis High Availability](redis-ha.md).
 
 ### Distributed Coordinator with Lease
 
@@ -175,6 +193,30 @@ bash scripts/test_cluster_prime_failover_e2e.sh \
 
 That test now completes successfully and emits recovery events.
 
+### Redis Sentinel failover tests
+
+Redis HA has dedicated smoke tests.
+
+Local Docker Sentinel:
+
+```bash
+cd MirrorNeuron
+bash scripts/test_redis_sentinel_ha.sh
+```
+
+Two physical boxes:
+
+```bash
+cd MirrorNeuron
+
+bash scripts/test_redis_sentinel_two_box_ha.sh \
+  --remote-host 192.168.4.173 \
+  --local-ip 192.168.4.25 \
+  --remote-ip 192.168.4.173
+```
+
+The two-box test starts Redis and Sentinel on both boxes, writes state through MirrorNeuron, kills the local Redis primary, waits for Sentinel to promote the remote Redis, then verifies a post-failover MirrorNeuron write/read succeeds.
+
 ## Failure model to expect
 
 When an executor box dies:
@@ -191,17 +233,13 @@ This is degraded service, not zero-impact failover.
 
 These are important to understand.
 
-### Redis is still a single point of failure
+### Single Redis mode is still a single point of failure
 
-Redis is the shared durable state store today.
+Single Redis mode remains supported for development and simple local deployments.
 
-If Redis is unavailable or corrupted:
+In that mode, Redis is still the shared durable state store. If it is unavailable or corrupted, job state, recovery data, leases, and event history are affected.
 
-- job state persistence is affected
-- recovery data is affected
-- event history is affected
-
-Connection handling is more resilient now, but Redis itself is still a single point of failure.
+Use [Redis High Availability](redis-ha.md) for multi-box reliability.
 
 ### At-least-once, not exactly-once
 
@@ -230,11 +268,11 @@ In the current design, the fallback path keeps jobs completing successfully, but
 
 We validated executor-node loss during active work.
 
-We did not add comparable HA mechanisms yet for:
+Remaining platform-level gaps:
 
-- Redis loss
 - full seed/control node loss before or during submission
-- multi-box network partitions with split-brain handling
+- multi-box network partitions with split-brain handling when using two Sentinel voters or quorum `1`
+- exact workflow-history replay
 
 ## Practical guidance
 
@@ -243,7 +281,8 @@ If you want the most reliable behavior with the current runtime:
 - keep work split into bounded shards
 - prefer deterministic executor tasks
 - design collectors/aggregators to tolerate replay
-- keep Redis healthy and monitored
+- use Redis Sentinel HA for multi-box deployments
+- keep Redis and Sentinel healthy and monitored
 - treat box loss as capacity loss, not as a reason to restart the whole workflow
 
 ## Next likely improvements
@@ -254,4 +293,4 @@ If reliability becomes the next major focus, the most valuable next steps are:
 - event-driven completion instead of polling
 - stronger durable mailbox semantics for critical messages
 - deterministic coordinator ownership recorded in durable state
-- HA Redis or an equivalent replicated metadata store
+- production-grade Sentinel deployment automation and monitoring dashboards

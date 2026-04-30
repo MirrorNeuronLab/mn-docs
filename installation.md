@@ -136,6 +136,7 @@ export GEMINI_API_KEY="..."
 For two-box or larger clusters, see:
 
 - [Cluster Guide](cluster.md)
+- [Redis High Availability](redis-ha.md)
 
 ## Common install issues
 

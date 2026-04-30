@@ -76,6 +76,20 @@ These variables are read by the Elixir core runtime.
 | `MIRROR_NEURON_ENV` | `dev` | Runtime environment. Must be `dev`, `test`, or `prod`. Production requires a non-default `MIRROR_NEURON_COOKIE`. |
 | `MIRROR_NEURON_REDIS_URL` | `redis://127.0.0.1:6379/0` | Redis URL used by the runtime. Must use `redis://` or `rediss://`. |
 | `MIRROR_NEURON_REDIS_NAMESPACE` | `mirror_neuron` | Redis key namespace. Use a unique value for isolated test runs. |
+| `MIRROR_NEURON_REDIS_HA_MODE` | `single` | Redis mode. Use `single` for `MIRROR_NEURON_REDIS_URL` or `sentinel` for Redis Sentinel HA. |
+| `MIRROR_NEURON_REDIS_SENTINELS` | empty | Comma-separated Sentinel endpoints such as `192.168.4.29:26379,192.168.4.35:26379`. Required when `MIRROR_NEURON_REDIS_HA_MODE=sentinel`. |
+| `MIRROR_NEURON_REDIS_SENTINEL_MASTER` | `mirror-neuron` | Sentinel master name to resolve. |
+| `MIRROR_NEURON_REDIS_SENTINEL_HOST_MAP` | empty | Optional comma-separated hostname rewrite map, such as `host.docker.internal=127.0.0.1`, for NAT or Docker test environments. |
+| `MIRROR_NEURON_REDIS_DB` | `0` | Redis database number used in Sentinel mode. |
+| `MIRROR_NEURON_REDIS_USERNAME` | unset | Optional Redis ACL username. |
+| `MIRROR_NEURON_REDIS_PASSWORD` | unset | Optional Redis password. |
+| `MIRROR_NEURON_REDIS_SENTINEL_USERNAME` | unset | Optional Sentinel ACL username. |
+| `MIRROR_NEURON_REDIS_SENTINEL_PASSWORD` | unset | Optional Sentinel password. |
+| `MIRROR_NEURON_REDIS_WAIT_REPLICAS` | `0` | Optional Redis `WAIT` acknowledgement count after durable writes. Use `1` or higher for reliability-first HA writes. |
+| `MIRROR_NEURON_REDIS_WAIT_TIMEOUT_MS` | `100` | Timeout for Redis `WAIT` durable-write acknowledgement. |
+| `MIRROR_NEURON_REDIS_RECONNECT_ATTEMPTS` | `10` | Reconnect/retry attempts for reconnectable Redis failures. |
+| `MIRROR_NEURON_REDIS_RECONNECT_BACKOFF_MS` | `250` | Initial reconnect backoff in milliseconds. |
+| `MIRROR_NEURON_REDIS_RECONNECT_MAX_BACKOFF_MS` | `2000` | Maximum reconnect backoff in milliseconds. |
 | `MIRROR_NEURON_COOKIE` | `mirrorneuron` | Erlang distribution cookie. Must be changed in `prod`. |
 | `MIRROR_NEURON_OPENSHELL_BIN` | `openshell` | OpenShell executable name or path. |
 | `MIRROR_NEURON_TEMP_DIR` | `/tmp/mirror_neuron` | Runtime temporary directory. |
@@ -86,6 +100,9 @@ These variables are read by the Elixir core runtime.
 | `MIRROR_NEURON_NODE_NAME` | set by launch scripts | Erlang node name, typically `mirror_neuron@<ip>` or `mn1@<ip>`. |
 | `MIRROR_NEURON_CLUSTER_NODES` | empty | Comma-separated Erlang node names for clustering. |
 | `MIRROR_NEURON_DIST_PORT` | `4370` in cluster scripts | Erlang distribution port used by cluster helper scripts. |
+| `MIRROR_NEURON_REDIS_SENTINEL_PORT` | `26379` in cluster scripts | Local Sentinel port used by Redis HA helper scripts. |
+| `MIRROR_NEURON_REDIS_SENTINEL_QUORUM` | `1` in cluster scripts | Sentinel quorum used by Redis HA helper scripts. Use at least three Sentinel voters for production. |
+| `MIRROR_NEURON_REDIS_HA_AUTOCONFIG` | `1` in `start_cluster_node.sh` | When Sentinel mode is enabled, controls whether the cluster start script runs `scripts/redis_ha.sh join`. |
 | `MIRROR_NEURON_BUNDLES_DIR` | unset | Directory scanned for registered bundles on runtime startup. |
 | `MIRROR_NEURON_BUNDLE_RELOAD_MODE` | manifest value | Overrides bundle reload mode for scanned bundles. |
 | `MIRROR_NEURON_BUNDLE_RELOAD_INTERVAL_SECONDS` | manifest value | Overrides bundle reload interval for scanned bundles. |
@@ -233,5 +250,11 @@ These variables are used by tests or helper scripts, not by normal production ru
 | `MIRROR_NEURON_SIM_WAIT_TIMEOUT_SECONDS` | `420` | Wait timeout for ecosystem simulation cluster e2e scripts. |
 | `MIRROR_NEURON_GEMINI_MODEL` | `gemini-2.5-flash-lite` | Gemini model used by LLM codegen cluster e2e scripts. |
 | `MIRROR_NEURON_REDIS_PORT` | `6379` | Redis port used by cluster helper scripts. |
+| `MIRROR_NEURON_REDIS_TEST_IMAGE` | `redis:7` | Redis Docker image used by Sentinel HA smoke tests. |
+| `MIRROR_NEURON_REDIS_HA_LOCAL_IP` | unset | Local IP override for `test_redis_sentinel_two_box_ha.sh`. |
+| `MIRROR_NEURON_REDIS_HA_REMOTE_IP` | unset | Remote IP override for `test_redis_sentinel_two_box_ha.sh`. |
+| `MIRROR_NEURON_REDIS_HA_TEST_REDIS_PORT` | `46379` | Host Redis port used by the two-box Sentinel smoke test. |
+| `MIRROR_NEURON_REDIS_HA_TEST_SENTINEL_PORT` | `46380` | Host Sentinel port used by the two-box Sentinel smoke test. |
+| `MIRROR_NEURON_REDIS_HA_TEST_SSH_OPTS` | `-o BatchMode=yes -o ConnectTimeout=10` | SSH options used by the two-box Sentinel smoke test. |
 | `MIRROR_NEURON_CLI_DIST_PORT` | `4371` | Erlang distribution port used by `cluster_cli.sh`. |
 | `MIRROR_NEURON_TEST_TOOL_BIN` | unset | Test helper binary override used by selected tests. |
