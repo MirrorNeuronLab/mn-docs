@@ -11,13 +11,9 @@ MirrorNeuron is an Elixir/BEAM runtime for durable, observable, multi-agent work
 
 ## Quick Start
 
-From the monorepo root:
-
 ```bash
-cd MirrorNeuron
-mix deps.get
-cd ..
-mn validate mn-blueprints/general_test_message_flow
+curl -fsSL https://mirrorneuron.io/install.sh | bash
+mn blueprint run general_test_message_flow
 ```
 
 Expected output:
