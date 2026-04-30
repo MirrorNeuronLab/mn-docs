@@ -1,125 +1,96 @@
-# Monitor Guide
+# Monitor A Job
 
-MirrorNeuron includes a terminal monitor designed to be the CLI equivalent of a lightweight web operations view.
+Use `mn monitor` when you already have a job id and want to stream its events.
 
-Tool:
-
-- `./mn monitor`
-
-## What it shows
-
-At the top level:
-
-- cluster nodes
-- executor pool usage
-- visible jobs
-- how many boxes each job is using
-- sandbox count per job
-- last significant event
-
-At the job detail level:
-
-- job summary
-- runtime footprint
-- sandboxes
-- agents
-- recent events
-
-## Local usage
+## Start Monitoring
 
 ```bash
-cd MirrorNeuron
-./mn monitor
+mn monitor <job_id>
 ```
 
-Controls:
+Expected output includes job events as they arrive.
 
-- type a row number to open a job
-- type a full job id to open it directly
-- `r` to refresh
-- `b` to go back
-- `q` to detach
-
-> 💡 **Important:**  
-> Pressing `q` or `Ctrl+C` only detaches your terminal session. It does **not** stop the running jobs. To cancel a job, use `mn cancel <job_id>`.
-
-## JSON mode
+If you do not know the job id:
 
 ```bash
-./mn monitor --json
+mn list
 ```
 
-This uses the monitor API from [monitor.ex](../lib/mirror_neuron/monitor.ex).
+Expected output includes:
 
-## Cluster usage
+```text
+Job ID
+```
+
+## Fetch Results
 
 ```bash
-./mn monitor \
-  --box1-ip 192.168.4.29 \
-  --box2-ip 192.168.4.35 \
-  --self-ip 192.168.4.29
+mn result <job_id>
 ```
 
-Useful options:
+This fetches final and progressive results for a job when the bundle emits them.
 
-- `--seed-ip <ip>`
-- `--redis-host <host>`
-- `--redis-port <port>`
-- `--cookie <cookie>`
-- `--cli-port <port>`
+## Inspect Status
 
-## What the monitor means
+```bash
+mn status <job_id>
+```
 
-### Boxes
+Expected output includes:
 
-In the overview, `boxes` means how many runtime nodes are currently visible in a job’s agent snapshots.
+```json
+{
+  "status": "running"
+}
+```
 
-### Sandboxes
+Terminal statuses are:
 
-The sandbox count comes from:
-
-- executor snapshots
-- sandbox-related events
-
-For short executor jobs, this gives you a practical operational view without requiring direct OpenShell inspection.
-
-### Status values
-
-Typical job statuses:
-
-- `pending`
-- `running`
 - `completed`
 - `failed`
 - `cancelled`
 
-Typical agent statuses:
+## Cancel A Job
 
-- `ready`
-- `busy`
-- `queued`
-- `running`
-- `completed`
-- `error`
-- `paused`
+```bash
+mn cancel <job_id>
+```
 
-## When to use the monitor vs the main CLI
+Expected output:
 
-Use `mn` when you want to:
+```text
+Job cancelled. Status: cancelled
+```
 
-- submit jobs
-- inspect one job directly
-- send control commands
+## System Overview
 
-Use `mn monitor` when you want to:
+For a broader view of nodes and jobs:
 
-- see the whole platform
-- identify active jobs quickly
-- inspect sandboxes and agent placement
-- get a terminal “ops” view
+```bash
+mn nodes
+mn metrics
+```
 
-## Related docs
+Expected `mn nodes` output includes:
 
-- [CLI Guide](cli.md)
+```json
+{
+  "nodes": [],
+  "jobs": []
+}
+```
+
+In a cluster, `nodes` contains connected runtime nodes and executor pool stats.
+
+## Operational Notes
+
+- Closing your terminal does not necessarily cancel a submitted job.
+- Use `mn cancel <job_id>` to stop daemon workflows.
+- Use `mn dead-letters <job_id>` when messages fail to route or process.
+- Run `mn clear` only when you are ready to remove terminal job records.
+
+## Related Pages
+
+- [CLI Reference](cli.md)
 - [API Reference](api.md)
 - [Troubleshooting](troubleshooting.md)

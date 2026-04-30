@@ -1,275 +1,278 @@
-# Examples Guide
+# Choose A Blueprint Example
 
-**Note:** All examples have been moved to the [MirrorNeuron Blueprints](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints) repository. Before running these examples, ensure you have set `MIRROR_NEURON_HOME` pointing to your MirrorNeuron installation path and run them from the blueprints repository.
+This guide helps you pick the right checked-in blueprint for your first run or test.
 
+Run commands from the monorepo root unless a step says otherwise.
 
-MirrorNeuron currently includes several examples that cover different parts of the runtime.
+## List Available Blueprints
 
-## 1. Research flow
+```bash
+mn blueprint list
+```
+
+Expected output includes:
+
+```text
+ID
+Name
+Job Name
+```
+
+Blueprint availability depends on your local blueprint index and checkout.
+
+## 1. General Test Message Flow
 
 Path:
 
-- [mirrorneuron-blueprints/research_flow](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/research_flow)
+```text
+mn-blueprints/general_test_message_flow
+```
 
-Purpose:
+Use it when:
 
-- smallest useful workflow
-- validates routing and aggregation
-- no sandbox dependency
+- you want the smallest local workflow
+- you want to validate routing and manifest shape
+- you do not want external APIs
 
 Run:
 
 ```bash
-./mn validate research_flow
-./mn run research_flow
+mn validate mn-blueprints/general_test_message_flow
+mn run mn-blueprints/general_test_message_flow
 ```
 
-## 2. OpenShell worker demo
+Expected output:
+
+```text
+Job submitted successfully
+```
+
+## 2. Pure Python Basic Workflow
 
 Path:
 
-- [mirrorneuron-blueprints/openshell_worker_demo](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/openshell_worker_demo)
+```text
+mn-blueprints/general_python_defined_basic
+```
 
-Purpose:
+Use it when:
 
-- demonstrates shell plus Python executor payloads
-- shows bundle-based payload staging
-- shows bundle-scoped OpenShell policy files
-- good first sandbox example
+- you want to author a workflow in Python
+- you want the SDK to generate a normal bundle
+- you want HostLocal, retry, and deterministic input examples
+
+Generate:
+
+```bash
+python3 mn-blueprints/general_python_defined_basic/generate_bundle.py \
+  --quick-test \
+  --output-dir /tmp/mn-python-basic
+```
+
+Validate and run:
+
+```bash
+mn validate /tmp/mn-python-basic
+mn run /tmp/mn-python-basic
+```
+
+## 3. Pure Python Advanced Daemon
+
+Path:
+
+```text
+mn-blueprints/general_python_defined_advanced_deamon
+```
+
+Use it when:
+
+- you want daemon workflow options
+- you want stream/backpressure examples
+- you want a Python-defined workflow that stays alive until cancelled
+
+Generate:
+
+```bash
+python3 mn-blueprints/general_python_defined_advanced_deamon/generate_bundle.py \
+  --quick-test \
+  --output-dir /tmp/mn-python-advanced-daemon
+```
 
 Run:
 
 ```bash
-./mn validate openshell_worker_demo
-./mn run openshell_worker_demo --json
+mn validate /tmp/mn-python-advanced-daemon
+mn run /tmp/mn-python-advanced-daemon
 ```
 
-Bundle-scoped OpenShell policy example:
+Cancel when done:
 
-```json
-{
-  "config": {
-    "upload_path": "word_count",
-    "workdir": "/sandbox/job/word_count",
-    "command": ["bash", "scripts/collect_metrics.sh"],
-    "policy": "policies/api-egress.yaml"
-  }
-}
+```bash
+mn cancel <job_id>
 ```
 
-The `policy` path is resolved relative to the bundle `payloads/` directory, so a bundle can carry its own OpenShell network allowlist. For example, [api-egress.yaml](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/openshell_worker_demo/payloads/policies/api-egress.yaml) allows selected API hosts and a fixed IP.
+Expected output:
 
-## 3. Divisibility monitor
+```text
+Job cancelled. Status: cancelled
+```
+
+## 4. OpenShell Worker Basic
 
 Path:
 
-- [mirrorneuron-blueprints/divisibility_monitor](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/divisibility_monitor)
+```text
+mn-blueprints/general_openshell_worker_basic
+```
 
-Purpose:
+Use it when:
 
-- demonstrates a long-lived job that keeps running until manually stopped
-- uses two BEAM module agents without OpenShell
-- shows agent-to-agent looping with explicit messages
-- keeps terminal progress in open-ended mode instead of a fake finite count
-- uses `local_restart` recovery so old local demo runs are not auto-resumed
+- you want sandboxed shell or Python execution
+- you want to test OpenShell setup
+- you want to inspect payload staging
 
 Run:
 
 ```bash
-./mn validate divisibility_monitor
-./mn run divisibility_monitor --no-await
+mn validate mn-blueprints/general_openshell_worker_basic
+mn run mn-blueprints/general_openshell_worker_basic
 ```
 
-Watch it:
+If the run fails before worker code starts, check:
 
 ```bash
-./mn monitor
+openshell status
 ```
 
-## 4. Prime sweep scale benchmark
+Expected output includes:
+
+```text
+Status: Connected
+```
+
+## 5. Prime Sweep Scale
 
 Path:
 
-- [mirrorneuron-blueprints/prime_sweep_scale](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/prime_sweep_scale)
-
-Purpose:
-
-- shard work across many logical executor workers
-- aggregate worker results
-- stress execution scheduling and sandbox reuse
-
-Key files:
-
-- [generate_bundle.py](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/prime_sweep_scale/generate_bundle.py)
-- [run_scale_test.sh](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/prime_sweep_scale/run_scale_test.sh)
-- [summarize_result.py](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/prime_sweep_scale/summarize_result.py)
-
-Run locally:
-
-```bash
-bash prime_sweep_scale/run_scale_test.sh --start 1000003 --end 1001202
+```text
+mn-blueprints/general_prime_sweep_scale
 ```
 
-Run on cluster:
+Use it when:
+
+- you want fan-out/fan-in executor behavior
+- you want to exercise pools and backpressure
+- you want a local or cluster scale smoke test
+
+Generate a quick bundle:
 
 ```bash
-bash prime_sweep_scale/run_scale_test.sh \
-  --workers 4 \
-  --start 1000003 \
-  --box1-ip 192.168.4.29 \
-  --box2-ip 192.168.4.35 \
-  --self-ip 192.168.4.29
+python3 mn-blueprints/general_prime_sweep_scale/generate_bundle.py \
+  --quick-test \
+  --output-dir /tmp/mn-prime
 ```
 
-## 5. LLM codegen and review loop
+Run:
+
+```bash
+mn validate /tmp/mn-prime
+mn run /tmp/mn-prime
+```
+
+## 6. Stream Live Backpressure Daemon
 
 Path:
 
-- [mirrorneuron-blueprints/llm_codegen_review](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/llm_codegen_review)
-
-Purpose:
-
-- meaningful end-to-end agent collaboration
-- Gemini-powered code generation and review
-- three rounds of generate -> review -> regenerate
-- final Python validator
-
-Local:
-
-```bash
-bash llm_codegen_review/run_llm_e2e.sh
+```text
+mn-blueprints/general_stream_live_backpressure_deamon
 ```
 
-Cluster:
+Use it when:
+
+- you want a daemon workflow
+- you want bounded queue and retry-later behavior
+- you want live stream pressure signals
+
+Run:
 
 ```bash
-bash scripts/test_cluster_llm_codegen_e2e.sh \
-  --box1-ip 192.168.4.29 \
-  --box2-ip 192.168.4.35
+mn validate mn-blueprints/general_stream_live_backpressure_deamon
+mn run mn-blueprints/general_stream_live_backpressure_deamon
 ```
 
-## 6. General stream basic daemon
+Cancel after observing events:
+
+```bash
+mn cancel <job_id>
+```
+
+## 7. Science Ecosystem Simulation
 
 Path:
 
-- `mn-blueprints/general_stream_basic_deamon`
-
-Purpose:
-
-- demonstrates live runtime-level streaming messages between agents
-- uses gzipped NDJSON chunks as the wire payload
-- shows one agent continuously producing a stream and another consuming it incrementally
-- detects abnormal peaks until the daemon job is manually cancelled
-
-Key files:
-
-- `mn-blueprints/general_stream_basic_deamon/generate_bundle.py`
-- `mn-blueprints/general_stream_basic_deamon/summarize_result.py`
-- [test_cluster_streaming_e2e.sh](../scripts/test_cluster_streaming_e2e.sh)
-
-Run locally:
-
-```bash
-mn run mn-blueprints/general_stream_basic_deamon
+```text
+mn-blueprints/science_ecosystem_simulation
 ```
 
-Run on cluster:
+Use it when:
+
+- you want a larger stateful simulation
+- you want to test many messages and actors
+- you want a richer cluster workload
+
+Quick generation:
 
 ```bash
-bash scripts/test_cluster_streaming_e2e.sh \
-  --box1-ip 192.168.4.29 \
-  --box2-ip 192.168.4.35
+python3 mn-blueprints/science_ecosystem_simulation/generate_bundle.py \
+  --quick-test \
+  --output-dir /tmp/mn-ecosystem
 ```
 
-## 7. Shared MPE crowd visualization
+## 8. Financial Market Realtime Advisor Daemon
 
 Path:
 
-- [mirrorneuron-blueprints/mpe_simple_push_visualization](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/mpe_simple_push_visualization)
-
-Purpose:
-
-- run one shared PettingZoo MPE world with many agents in the same environment
-- keep the execution lightweight with one `HostLocal` simulation worker and one visualizer
-- produce a browser-viewable HTML visualization of the whole arena over time
-- provide a much smaller simulation example than `ecosystem_simulation`
-
-Key files:
-
-- [generate_bundle.py](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/mpe_simple_push_visualization/generate_bundle.py)
-- [run_simple_push_e2e.sh](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/mpe_simple_push_visualization/run_simple_push_e2e.sh)
-- [summarize_result.py](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/mpe_simple_push_visualization/summarize_result.py)
-- [Shared MPE Crowd Example](mpe_simple_push_example.md)
-
-Run locally:
-
-```bash
-bash mpe_simple_push_visualization/run_simple_push_e2e.sh
+```text
+mn-blueprints/financial_market_realtime_advisor_deamon
 ```
 
-Open the generated HTML automatically:
+Use it when:
+
+- you want a long-lived market simulation
+- you want optional LLM and Slack integration
+- you want retry and dry-run delivery behavior
+
+Start in quick-test mode before enabling real external delivery:
 
 ```bash
-bash mpe_simple_push_visualization/run_simple_push_e2e.sh --open
+python3 mn-blueprints/financial_market_realtime_advisor_deamon/generate_bundle.py \
+  --quick-test \
+  --output-dir /tmp/mn-market
 ```
 
-## 8. Ecosystem simulation
+## Recommended Order
 
-Path:
+1. `general_test_message_flow`
+2. `general_python_defined_basic`
+3. `general_openshell_worker_basic`
+4. `general_prime_sweep_scale`
+5. `general_python_defined_advanced_deamon`
+6. `general_stream_live_backpressure_deamon`
+7. `science_ecosystem_simulation`
+8. `financial_market_realtime_advisor_deamon`
 
-- [mirrorneuron-blueprints/ecosystem_simulation](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/ecosystem_simulation)
+That path moves from pure local routing to Python authoring, sandbox execution, scale, daemon behavior, streaming, simulation, and external integrations.
 
-Purpose:
+## Security Notes
 
-- stress the runtime with a large stateful simulation
-- model many animals competing for limited regional resources
-- exercise cross-region messaging, migration, breeding, and summary ranking
-- demonstrate a BEAM-native sharded world model
-- randomize world resource allocation and initial DNA per run
-- report the top 10 DNA profiles at the end
+- Review `manifest.json` before running any blueprint.
+- Check `pass_env` before passing secrets.
+- Use quick-test and dry-run modes before external delivery.
+- Cancel daemon jobs when you are done.
 
-Key files:
+## Related Pages
 
-- [generate_bundle.py](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/ecosystem_simulation/generate_bundle.py)
-- [run_simulation_e2e.sh](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/ecosystem_simulation/run_simulation_e2e.sh)
-- [summarize_result.py](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/ecosystem_simulation/summarize_result.py)
-- [watch_ascii.exs](https://github.com/MirrorNeuronLab/mirrorneuron-blueprints/tree/main/ecosystem_simulation/watch_ascii.exs)
-- [Simulation Example Guide](simulation_example.md)
-
-Run locally:
-
-```bash
-bash ecosystem_simulation/run_simulation_e2e.sh
-```
-
-Run on cluster:
-
-```bash
-bash scripts/test_cluster_ecosystem_sim_e2e.sh \
-  --box1-ip 192.168.4.29 \
-  --box2-ip 192.168.4.35
-```
-
-## Choosing the right example
-
-Use this order:
-
-1. `research_flow`
-2. `openshell_worker_demo`
-3. `divisibility_monitor`
-4. `prime_sweep_scale`
-5. `general_stream_basic_deamon`
-6. `mpe_simple_push_visualization`
-7. `llm_codegen_review`
-8. `ecosystem_simulation`
-
-That progression moves from:
-
-- local routing
-- local sandbox execution
-- long-lived module-based message loops
-- scale and cluster placement
-- runtime streaming and incremental consumption
-- visual post-processing over one shared MPE crowd world
-- richer multi-agent collaboration
-- large-scale stateful simulation under cluster load
+- [Quickstart](quickstart.md)
+- [Blueprints and Skills](blueprints-and-skills.md)
+- [Job Bundle Format](bundle.md)
+- [Security Model](security.md)

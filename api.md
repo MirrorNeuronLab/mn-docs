@@ -527,24 +527,18 @@ This event channel is written today but not yet consumed by the terminal monitor
 
 ## Terminal CLI
 
-### Main command
+The user-facing CLI is `mn`.
 
-Built escript:
+Common commands:
 
-- [mirror_neuron](../mn)
+```bash
+mn nodes
+mn status <job_id>
+mn monitor <job_id>
+mn cancel <job_id>
+```
 
-### Monitor subcommand
-
-Use:
-
-- `./mn monitor`
-
-It currently uses:
-
-- `MirrorNeuron.cluster_overview/1`
-- `MirrorNeuron.job_details/2`
-
-If cluster monitoring is needed, start it with the same `MIRROR_NEURON_*` environment used by control nodes.
+The CLI uses the Python SDK over gRPC for most control paths. See [CLI Reference](cli.md).
 
 ## Stability guidance
 

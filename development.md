@@ -1,5 +1,7 @@
 # Development Guide
 
+For contributor setup, test commands, and pull request expectations, start with [Contributing](contributing.md). This page is the lower-level runtime development reference.
+
 This guide is for contributors and integrators working on MirrorNeuron itself.
 
 ## Project structure
@@ -109,6 +111,8 @@ instead of reaching directly into Redis.
 
 If you add a user-visible feature, update:
 
-- [README.md](../README.md)
-- at least one page under [docs](../docs)
+- [README.md](README.md)
+- at least one relevant page in `mn-docs`
 - [docs/api.md](api.md) if the feature changes public inspection or control APIs
+
+Use [Documentation Style](documentation-style.md) for tone, expected output, warnings, and PR checklist guidance.

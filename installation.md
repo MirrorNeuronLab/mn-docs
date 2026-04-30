@@ -1,43 +1,67 @@
-# Installation
+# Install MirrorNeuron Locally
 
-This guide covers setting up MirrorNeuron for development, testing, and production use.
+This guide installs the dependencies needed to validate bundles, run local workflows, and execute the test suite.
 
-## Automated Installation (macOS, Linux, WSL)
+## Requirements
 
-You can quickly install MirrorNeuron using our automated script. This will download the latest version, build it, and configure `mn` as a system-wide command.
-
-**Prerequisites:** You must have `git` and `mix` (Elixir) installed.
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/MirrorNeuronLab/mn-deploy/main/install.sh | bash
-```
-
-### Uninstallation
-
-To uninstall MirrorNeuron if installed via the automated script, remove the cloned repository and the generated executable:
-
-```bash
-rm -rf ~/.local/share/MirrorNeuron
-rm ~/.local/bin/mn
-```
-
-If you prefer to install it manually or want to learn about the required dependencies, follow the manual steps below.
-
-## Manual Setup
-
-MirrorNeuron currently expects:
-
-- macOS or Linux
+- macOS, Linux, or WSL2
+- `git`
+- Python 3.9+
 - Elixir and Erlang
-- Redis
 - Docker
-- OpenShell
+- Redis, usually through Docker for local development
+- OpenShell for sandboxed worker execution
 
-For LLM-based examples, you also need:
+Optional:
 
-- a Gemini API key available in the environment on the machine running the job
+- model provider keys for LLM blueprints
+- two machines with SSH access for cluster and Redis HA smoke tests
 
-## 1. Install Elixir and Erlang
+## Option 1: Install With The Deployment Script
+
+Use the deployment script when you want a system-wide `mn` command.
+
+```bash
+curl -fsSL https://mirrorneuron.io/install.sh | bash
+```
+
+Expected result:
+
+```text
+mn installed
+```
+
+Verify:
+
+```bash
+mn --help
+```
+
+Expected output includes:
+
+```text
+MirrorNeuron CLI
+```
+
+## Option 2: Set Up From The Monorepo
+
+From the monorepo root:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install -r mn-system-tests/requirements.txt
+```
+
+Expected result:
+
+```text
+Successfully installed
+```
+
+The system-test requirements install the local Python SDK and CLI in editable mode.
+
+## Step 1: Install Elixir And Erlang
 
 On macOS with Homebrew:
 
@@ -47,9 +71,34 @@ elixir --version
 mix --version
 ```
 
-## 2. Start Redis
+Expected output includes:
 
-The simplest local path is Docker:
+```text
+Elixir
+Mix
+```
+
+On Linux, use your package manager or `asdf` and verify with the same commands.
+
+## Step 2: Fetch Core Dependencies
+
+```bash
+cd MirrorNeuron
+mix deps.get
+mix compile
+```
+
+Expected output:
+
+```text
+Generated mirror_neuron app
+```
+
+If dependencies are already compiled, Mix may print less output. A zero exit code is the success signal.
+
+## Step 3: Start Redis
+
+The simplest local Redis path is Docker:
 
 ```bash
 docker rm -f mirror-neuron-redis 2>/dev/null || true
@@ -57,17 +106,23 @@ docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
 docker exec mirror-neuron-redis redis-cli ping
 ```
 
-Expected result:
+Expected output:
 
 ```text
 PONG
 ```
 
-## 3. Install OpenShell
+## Step 4: Install OpenShell
 
 ```bash
 curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | sh
 ~/.local/bin/openshell --version
+```
+
+Expected output includes:
+
+```text
+openshell
 ```
 
 If `openshell` is not on your `PATH`:
@@ -82,34 +137,24 @@ Or point MirrorNeuron directly to the binary:
 export MIRROR_NEURON_OPENSHELL_BIN="$HOME/.local/bin/openshell"
 ```
 
-## 4. Start the OpenShell gateway
+## Step 5: Start The OpenShell Gateway
 
 ```bash
 openshell gateway start
 openshell status
 ```
 
-You want `Status: Connected`.
+Expected output includes:
 
-## 5. Fetch dependencies and build
-
-```bash
-cd MirrorNeuron
-mix deps.get
-mix test
+```text
+Status: Connected
 ```
 
-This builds the main CLI entry:
+If OpenShell is not needed for your first pure-router workflow, you can skip this until you run executor blueprints.
 
-- [mirror_neuron](../mn)
+## Step 6: Configure Local Environment
 
-Monitoring is now a subcommand:
-
-- `./mn monitor`
-
-## 6. Recommended local environment
-
-These are the most commonly used environment variables:
+Recommended local defaults:
 
 ```bash
 export MIRROR_NEURON_REDIS_URL="redis://127.0.0.1:6379/0"
@@ -117,29 +162,86 @@ export MIRROR_NEURON_EXECUTOR_MAX_CONCURRENCY="4"
 export MIRROR_NEURON_COOKIE="mirrorneuron"
 ```
 
-Optional:
+Optional for LLM-enabled blueprints:
 
 ```bash
-export GEMINI_API_KEY="..."
+export LITELLM_MODEL="gemini/gemini-2.5-flash-lite"
+export LITELLM_API_KEY="..."
 ```
 
-## 7. Smoke test
+Use a unique Redis namespace when running tests beside a developer runtime:
 
 ```bash
-./mn validate mirrorneuron-blueprints/research_flow
-./mn run mirrorneuron-blueprints/research_flow
-./mn monitor --json | head -n 20
+export MIRROR_NEURON_REDIS_NAMESPACE="mirror_neuron_dev_$(date +%s)"
 ```
 
-## Cluster-specific prerequisites
+## Step 7: Smoke Test
 
-For two-box or larger clusters, see:
+From the monorepo root:
+
+```bash
+mn validate mn-blueprints/general_test_message_flow
+```
+
+Expected output:
+
+```text
+Job bundle at 'mn-blueprints/general_test_message_flow' is valid.
+```
+
+Start services:
+
+```bash
+mn start
+mn run mn-blueprints/general_test_message_flow
+```
+
+Expected output:
+
+```text
+Job submitted successfully
+```
+
+## Uninstall Local Services
+
+Stop MirrorNeuron:
+
+```bash
+mn stop
+```
+
+Stop local Redis:
+
+```bash
+docker rm -f mirror-neuron-redis
+```
+
+If installed through the deployment script, remove the install directory and executable:
+
+```bash
+rm -rf ~/.local/share/MirrorNeuron
+rm -f ~/.local/bin/mn
+```
+
+Warning: only remove these paths if they belong to the MirrorNeuron install you want to delete.
+
+## Security Notes
+
+- Keep local Redis bound to trusted interfaces.
+- Change `MIRROR_NEURON_COOKIE` before using a real cluster.
+- Do not expose API or gRPC ports publicly without an authentication boundary.
+- Review third-party bundles before running them.
+
+## Cluster Prerequisites
+
+For two-box or larger clusters, continue with:
 
 - [Cluster Guide](cluster.md)
 - [Redis High Availability](redis-ha.md)
 
-## Common install issues
+## Common Install Issues
 
-If setup does not work as expected, start with:
+If setup does not work as expected:
 
 - [Troubleshooting](troubleshooting.md)
+- [Testing](testing.md)

@@ -130,7 +130,22 @@ two_box_initial_write_ok=...
 two_box_post_failover_write_read_ok
 ```
 
-The two-box test starts Redis and Sentinel on both machines, writes MirrorNeuron state, kills the local Redis primary, waits for Sentinel failover, then writes and reads again through the remote-promoted primary.
+The two-box test starts Redis and Sentinel on both machines, writes MirrorNeuron state, kills the initial Redis primary, waits for Sentinel failover, then writes and reads again through the promoted replica. If the remote box cannot route to the local Redis test port, the script automatically uses the remote Redis as the initial primary and tests failover back to the local replica.
+
+Run the same path through the monorepo test runner:
+
+```bash
+python3 mn-system-tests/test_all.py --redis-ha \
+  --redis-ha-remote-host 192.168.4.173 \
+  --redis-ha-local-ip 192.168.4.25 \
+  --redis-ha-remote-ip 192.168.4.173
+```
+
+Expected output:
+
+```text
+All selected test suites passed.
+```
 
 ## Environment Rules
 

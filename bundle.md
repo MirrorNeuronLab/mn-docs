@@ -164,10 +164,18 @@ You can validate and run a job bundle using the MirrorNeuron CLI:
 
 ```bash
 # Validate the bundle structure and manifest constraints
-./mn validate path/to/my_job_bundle
+mn validate path/to/my_job_bundle
 
 # Execute the bundle in the cluster
-./mn run path/to/my_job_bundle
+mn run path/to/my_job_bundle
 ```
+
+Expected validation output:
+
+```text
+Job bundle at 'path/to/my_job_bundle' is valid.
+```
+
+Before running a third-party bundle, review `manifest.json`, `payloads/`, `runner`, `command`, `pass_env`, and any OpenShell `policy` file. See [Security Model](security.md).
 
 Via the API (HTTP POST to `/api/v1/jobs`), the exact same `manifest.json` shape is accepted, with the payloads assumed to either already exist locally or omitted in pure-router workflows.

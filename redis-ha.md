@@ -159,17 +159,61 @@ bash scripts/test_redis_sentinel_two_box_ha.sh \
 The two-box smoke:
 
 1. starts Redis and Sentinel in Docker on both boxes
-2. starts local Redis as primary and remote Redis as replica
-3. writes MirrorNeuron state through Sentinel mode
-4. kills the local primary Redis
-5. waits for Sentinel promotion
-6. verifies MirrorNeuron can write and read through the remote-promoted primary
+2. checks whether the remote box can reach the local Redis test port
+3. starts the reachable side as the initial primary and the other side as a replica
+4. writes MirrorNeuron state through Sentinel mode
+5. kills the initial primary Redis
+6. waits for Sentinel promotion
+7. verifies MirrorNeuron can write and read through the promoted replica
+
+If the remote box cannot route to the local test port, the script prints:
+
+```text
+Remote cannot reach local Redis at <local-ip>:<port>; using remote as initial primary.
+```
+
+That fallback is intentional for lab networks with one-way reachability. The test still verifies that MirrorNeuron survives losing the initial Redis primary.
+
+Warning: the fallback is a smoke-test convenience, not a production Sentinel topology. Production should use independently reachable Redis and Sentinel nodes with at least three Sentinel voters.
 
 Expected success markers:
 
 ```text
 two_box_initial_write_ok=...
 two_box_post_failover_write_read_ok
+```
+
+Useful overrides:
+
+```bash
+bash scripts/test_redis_sentinel_two_box_ha.sh \
+  --remote-host 192.168.4.173 \
+  --local-ip 192.168.4.25 \
+  --remote-ip 192.168.4.173 \
+  --remote-network auto \
+  --initial-primary auto
+```
+
+Options:
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `--remote-network` | `auto` | `auto`, `host`, or `bridge`. On Linux Docker, `auto` chooses host networking for the remote side. |
+| `--initial-primary` | `auto` | `auto`, `local`, or `remote`. `auto` falls back to remote-primary when the remote cannot reach the local Redis port. |
+
+The monorepo wrapper runs the same smoke:
+
+```bash
+python3 mn-system-tests/test_all.py --redis-ha \
+  --redis-ha-remote-host 192.168.4.173 \
+  --redis-ha-local-ip 192.168.4.25 \
+  --redis-ha-remote-ip 192.168.4.173
+```
+
+Expected output:
+
+```text
+All selected test suites passed.
 ```
 
 ## Operational Notes

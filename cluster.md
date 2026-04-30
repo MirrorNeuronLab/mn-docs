@@ -109,17 +109,25 @@ You want to see:
 - `mn1@192.168.4.29`
 - `mn2@192.168.4.35`
 
+Expected output also includes executor pool stats for each runtime node.
+
 ## Submit a cluster job
 
 Small prime test:
 
 ```bash
-bash mirrorneuron-blueprints/prime_sweep_scale/run_scale_test.sh \
-  --workers 4 \
-  --start 1000003 \
-  --box1-ip 192.168.4.29 \
-  --box2-ip 192.168.4.35 \
-  --self-ip 192.168.4.29
+python3 mn-blueprints/general_prime_sweep_scale/generate_bundle.py \
+  --quick-test \
+  --output-dir /tmp/mn-prime
+
+mn validate /tmp/mn-prime
+mn run /tmp/mn-prime
+```
+
+Expected output:
+
+```text
+Job submitted successfully
 ```
 
 ## Common cluster failure patterns

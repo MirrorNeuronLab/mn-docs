@@ -256,5 +256,7 @@ These variables are used by tests or helper scripts, not by normal production ru
 | `MIRROR_NEURON_REDIS_HA_TEST_REDIS_PORT` | `46379` | Host Redis port used by the two-box Sentinel smoke test. |
 | `MIRROR_NEURON_REDIS_HA_TEST_SENTINEL_PORT` | `46380` | Host Sentinel port used by the two-box Sentinel smoke test. |
 | `MIRROR_NEURON_REDIS_HA_TEST_SSH_OPTS` | `-o BatchMode=yes -o ConnectTimeout=10` | SSH options used by the two-box Sentinel smoke test. |
+| `MIRROR_NEURON_REDIS_HA_TEST_REMOTE_NETWORK` | `auto` | Remote Docker network mode for the two-box Sentinel smoke test. Supported values: `auto`, `host`, `bridge`. |
+| `MIRROR_NEURON_REDIS_HA_TEST_INITIAL_PRIMARY` | `auto` | Initial Redis primary for the two-box Sentinel smoke test. Supported values: `auto`, `local`, `remote`. |
 | `MIRROR_NEURON_CLI_DIST_PORT` | `4371` | Erlang distribution port used by `cluster_cli.sh`. |
 | `MIRROR_NEURON_TEST_TOOL_BIN` | unset | Test helper binary override used by selected tests. |

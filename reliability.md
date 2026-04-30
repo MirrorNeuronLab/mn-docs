@@ -84,7 +84,6 @@ Redis operations now recover more gracefully from broken long-lived connections:
 
 - reconnect the managed Redix client
 - retry on connection failures with bounded backoff
-- fall back to a one-shot Redis connection when needed
 - reconnect to the Sentinel-elected primary after failover
 - retry `READONLY` errors that can occur during Redis promotion
 
@@ -215,7 +214,7 @@ bash scripts/test_redis_sentinel_two_box_ha.sh \
   --remote-ip 192.168.4.173
 ```
 
-The two-box test starts Redis and Sentinel on both boxes, writes state through MirrorNeuron, kills the local Redis primary, waits for Sentinel to promote the remote Redis, then verifies a post-failover MirrorNeuron write/read succeeds.
+The two-box test starts Redis and Sentinel on both boxes, writes state through MirrorNeuron, kills the initial Redis primary, waits for Sentinel to promote the replica, then verifies a post-failover MirrorNeuron write/read succeeds. In lab networks where the remote host cannot route to the local Redis test port, the smoke test automatically uses the remote Redis as the initial primary and verifies failover back to the local replica.
 
 ## Failure model to expect
 

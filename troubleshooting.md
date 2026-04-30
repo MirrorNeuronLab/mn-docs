@@ -18,12 +18,94 @@ docker ps
 docker exec mirror-neuron-redis redis-cli ping
 ```
 
+Expected output:
+
+```text
+PONG
+```
+
 Fix:
 
 ```bash
 docker rm -f mirror-neuron-redis 2>/dev/null || true
 docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
 ```
+
+### Redis Sentinel two-box smoke says replica did not become online
+
+Symptoms:
+
+```text
+remote replica did not become online
+```
+
+or remote Redis logs show:
+
+```text
+Error condition on socket for SYNC: No route to host
+```
+
+Cause:
+
+- the remote box cannot route to the local Redis test port
+- remote Docker bridge networking cannot reach the local LAN IP
+- firewall rules block the test Redis port
+
+Check from the remote box:
+
+```bash
+nc -vz -w 3 192.168.4.25 46379
+```
+
+If this fails, let the smoke test auto-select the remote side as the initial primary:
+
+```bash
+python3 mn-system-tests/test_all.py --redis-ha \
+  --redis-ha-remote-host 192.168.4.173 \
+  --redis-ha-local-ip 192.168.4.25 \
+  --redis-ha-remote-ip 192.168.4.173
+```
+
+Expected output includes:
+
+```text
+Remote cannot reach local Redis at 192.168.4.25:46379; using remote as initial primary.
+two_box_post_failover_write_read_ok
+```
+
+For direct script control:
+
+```bash
+cd MirrorNeuron
+bash scripts/test_redis_sentinel_two_box_ha.sh \
+  --remote-host 192.168.4.173 \
+  --local-ip 192.168.4.25 \
+  --remote-ip 192.168.4.173 \
+  --remote-network auto \
+  --initial-primary auto
+```
+
+### Redis failover returns `READONLY` or connection errors
+
+During Sentinel promotion, Redis clients can briefly see:
+
+```text
+READONLY You can't write against a read only replica
+```
+
+or:
+
+```text
+%Redix.ConnectionError{}
+```
+
+MirrorNeuron retries reconnectable Redis errors with bounded backoff. If errors persist, check Sentinel:
+
+```bash
+redis-cli -p 26379 SENTINEL get-master-addr-by-name mirror-neuron
+```
+
+Expected output is the current primary host and port.
 
 ## OpenShell issues
 
@@ -40,6 +122,12 @@ Check:
 ```bash
 openshell status
 openshell sandbox list
+```
+
+Expected output includes:
+
+```text
+Status: Connected
 ```
 
 Reset:
@@ -133,7 +221,7 @@ Check:
 
 ```bash
 bash scripts/cluster_cli.sh --box1-ip 192.168.4.29 --box2-ip 192.168.4.35 --self-ip 192.168.4.29 -- inspect nodes
-./mn monitor --box1-ip 192.168.4.29 --box2-ip 192.168.4.35 --self-ip 192.168.4.29
+mn nodes
 ```
 
 ## Monitor issues
@@ -149,11 +237,11 @@ Options:
 
 ### monitor JSON has build noise
 
-Use the checked-in wrapper:
+Use the CLI command:
 
-- `./mn monitor`
+- `mn monitor <job_id>`
 
-It starts the app in a cleaner mode than raw `mix run`.
+If you need all jobs first, run `mn list`.
 
 ## LLM example issues
 
@@ -204,10 +292,10 @@ If the workflow itself is tiny but runtime is slow, look first at:
 ## Good diagnostic commands
 
 ```bash
-./mn inspect nodes
-./mn events <job_id>
-./mn inspect agents <job_id>
-./mn monitor
+mn nodes
+mn status <job_id>
+mn monitor <job_id>
+mn dead-letters <job_id>
 openshell status
 openshell sandbox list
 epmd -names
