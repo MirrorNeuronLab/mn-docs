@@ -150,28 +150,18 @@ These variables are currently used by `general_context_memory`.
 
 Blueprint manifests decide which process environment variables are passed to workers. A variable listed here still needs to be included in a blueprint's `pass_env` or explicit env mapping before a sandboxed worker can see it.
 
+LLM-enabled blueprints use LiteLLM-style settings only. Provider-specific aliases such as OpenAI, Gemini, generic `LLM_*`, Ollama fallback, or profile-prefixed LLM variables are intentionally not part of the blueprint environment contract.
+
 | Variable | Default | Usage |
 | --- | --- | --- |
-| `OPENAI_API_KEY` | unset | OpenAI API key used by the finance compliance context-memory blueprint. |
-| `OPENAI_MODEL` | `gpt-4o-mini` | OpenAI model for finance compliance context-memory workers. |
-| `MN_BLUEPRINT_QUICK_TEST` | disabled | Enables quick/test mode in finance compliance context helpers when set to `1`, `true`, `yes`, or `on`. |
-| `SYNAPTIC_LLM_CONFIG` | `ollama.json` in business email manifest | LLM config file selected by the business email blueprint. |
-| `LITELLM_MODEL` | blueprint-specific | LiteLLM model for business email blueprint workers. |
-| `LLM_MODEL` | blueprint-specific | Generic model fallback for business email blueprint workers. |
-| `GEMINI_MODEL` | blueprint-specific | Gemini model fallback for business email blueprint workers. |
-| `LITELLM_API_BASE` | blueprint-specific | LiteLLM API base URL. |
-| `LLM_API_BASE` | blueprint-specific | Generic LLM API base URL fallback. |
-| `GEMINI_API_BASE_URL` | provider default | Gemini API base URL override. |
-| `OLLAMA_API_BASE` | blueprint-specific | Ollama API base URL fallback. |
-| `LITELLM_API_KEY` | unset | LiteLLM API key. |
-| `LLM_API_KEY` | unset | Generic LLM API key fallback. |
-| `GEMINI_API_KEY` | unset | Gemini API key. |
-| `<PROFILE_PREFIX>LITELLM_MODEL` | unset | Profile-specific LiteLLM model override used by business email runtime helpers. |
-| `<PROFILE_PREFIX>LLM_MODEL` | unset | Profile-specific generic model override used by business email runtime helpers. |
-| `<PROFILE_PREFIX>LITELLM_API_BASE` | unset | Profile-specific LiteLLM API base override. |
-| `<PROFILE_PREFIX>LLM_API_BASE` | unset | Profile-specific generic API base override. |
-| `<PROFILE_PREFIX>LITELLM_API_KEY` | unset | Profile-specific LiteLLM API key override. |
-| `<PROFILE_PREFIX>LLM_API_KEY` | unset | Profile-specific generic API key override. |
+| `MN_BLUEPRINT_QUICK_TEST` | disabled | Enables quick/test mode in blueprint helpers when set to `1`, `true`, `yes`, or `on`. |
+| `LITELLM_MODEL` | `ollama/gemma4:latest` where local defaults are provided; otherwise blueprint-specific | LiteLLM model for LLM-enabled blueprint workers. Use provider prefixes such as `ollama/`, `openai/`, or `gemini/`. |
+| `LITELLM_API_BASE` | `http://localhost:11434` for local Ollama blueprints; otherwise provider default | LiteLLM provider API base URL. For local Ollama Gemma, keep this as `http://localhost:11434`. |
+| `LITELLM_API_KEY` | unset | Optional LiteLLM provider API key. Not required for local Ollama. |
+| `LITELLM_TIMEOUT_SECONDS` | `60` | Optional timeout used by shared LLM skill workers. |
+| `LITELLM_MAX_TOKENS` | `800` | Optional max output token limit used by shared LLM skill workers. |
+| `LITELLM_NUM_RETRIES` | `2` | Optional provider retry count. Passed to LiteLLM when available. |
+| `LITELLM_RETRY_BACKOFF_SECONDS` | `1.0` | Optional exponential retry backoff base for direct HTTP fallbacks. |
 
 ## Email and web integration variables
 
