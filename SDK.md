@@ -40,10 +40,10 @@ Important environment variables:
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `MIRROR_NEURON_GRPC_TARGET` | `localhost:50051` | Runtime gRPC endpoint. |
-| `MIRROR_NEURON_GRPC_TIMEOUT_SECONDS` | `10` | Per-RPC timeout. |
-| `MIRROR_NEURON_GRPC_AUTH_TOKEN` | unset | Optional bearer token metadata. |
-| `MIRROR_NEURON_SDK_LOG_PATH` | `~/.mn/logs/sdk.log` | SDK log path. |
+| `MN_GRPC_TARGET` | `localhost:50051` | Runtime gRPC endpoint. |
+| `MN_GRPC_TIMEOUT_SECONDS` | `10` | Per-RPC timeout. |
+| `MN_GRPC_AUTH_TOKEN` | unset | Optional bearer token metadata. |
+| `MN_SDK_LOG_PATH` | `~/.mn/logs/sdk.log` | SDK log path. |
 
 ## Python-Defined Workflows
 

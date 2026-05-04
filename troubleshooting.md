@@ -180,7 +180,7 @@ Fix:
 
 - This is an **Erlang Cookie mismatch**. Both nodes must share the exact same secret cookie.
 - If you are running nodes on different physical machines, they will auto-generate different cookies by default.
-- Set the cookie explicitly on both boxes before starting: `export MIRROR_NEURON_COOKIE="my_shared_secret"`
+- Set the cookie explicitly on both boxes before starting: `export MN_COOKIE="my_shared_secret"`
 
 ### HTTP port `eaddrinuse` (4000 already in use)
 
@@ -193,8 +193,8 @@ Fix:
 
 - By default, the MirrorNeuron HTTP API binds to port `4000`. 
 - If you run multiple nodes on the same machine, or if you accidentally configure the Erlang `--bind` to port 4000, they will clash.
-- Override the HTTP API port for one of the nodes: `export MIRROR_NEURON_API_PORT=4001`
-- Make sure your Erlang `--bind` distribution port (e.g. `4370`) is completely different from your `MIRROR_NEURON_API_PORT`.
+- Override the HTTP API port for one of the nodes: `export MN_API_PORT=4001`
+- Make sure your Erlang `--bind` distribution port (e.g. `4370`) is completely different from your `MN_API_PORT`.
 
 ### runtime node name already in use
 

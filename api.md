@@ -13,7 +13,7 @@ The goal is to keep these shapes stable enough for future tools such as:
 
 MirrorNeuron runs an embedded HTTP server (powered by Bandit and Plug) offering a clean, RESTful API. This is inspired by modern resource-oriented principles (similar to Apache Airflow's REST API) but remains simpler, JSON-first, and tightly coupled to MirrorNeuron's lightweight multi-agent engine.
 
-By default, the API binds to port `4000`. You can change this using the `MIRROR_NEURON_API_PORT` environment variable.
+By default, the API binds to port `4000`. You can change this using the `MN_API_PORT` environment variable.
 
 ### Base URL
 

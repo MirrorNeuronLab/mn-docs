@@ -32,25 +32,25 @@ When a job is submitted, it is assigned a **Job Coordinator** process managed by
 
 All runtime boxes must agree on:
 
-- `MIRROR_NEURON_COOKIE`
-- `MIRROR_NEURON_CLUSTER_NODES`
+- `MN_COOKIE`
+- `MN_CLUSTER_NODES`
 - Redis location, or Redis Sentinel endpoints when Redis HA is enabled
 
 Typical values:
 
 ```bash
-export MIRROR_NEURON_COOKIE="mirrorneuron"
-export MIRROR_NEURON_CLUSTER_NODES="mn1@192.168.4.29,mn2@192.168.4.35"
-export MIRROR_NEURON_REDIS_URL="redis://192.168.4.29:6379/0"
+export MN_COOKIE="mirrorneuron"
+export MN_CLUSTER_NODES="mn1@192.168.4.29,mn2@192.168.4.35"
+export MN_REDIS_URL="redis://192.168.4.29:6379/0"
 ```
 
 Redis Sentinel HA values:
 
 ```bash
-export MIRROR_NEURON_REDIS_HA_MODE="sentinel"
-export MIRROR_NEURON_REDIS_SENTINELS="192.168.4.29:26379,192.168.4.35:26379"
-export MIRROR_NEURON_REDIS_SENTINEL_MASTER="mirror-neuron"
-export MIRROR_NEURON_REDIS_DB="0"
+export MN_REDIS_HA_MODE="sentinel"
+export MN_REDIS_SENTINELS="192.168.4.29:26379,192.168.4.35:26379"
+export MN_REDIS_SENTINEL_MASTER="mirror-neuron"
+export MN_REDIS_DB="0"
 ```
 
 See [Redis High Availability](redis-ha.md) for setup, leave, and failover testing details.
@@ -61,7 +61,7 @@ Use fixed distribution ports in dev mode:
 
 ```bash
 export ERL_AFLAGS="-kernel inet_dist_listen_min 4370 inet_dist_listen_max 4370"
-export MIRROR_NEURON_DIST_PORT="4370"
+export MN_DIST_PORT="4370"
 ```
 
 This makes failures much easier to reason about than random dynamic ports.
@@ -142,15 +142,15 @@ Usually means:
 ### Invalid challenge reply (Cookie mismatch)
 
 Usually means:
-- The `MIRROR_NEURON_COOKIE` differs between machines. 
-- Ensure `export MIRROR_NEURON_COOKIE="your_shared_secret"` is identical on all physical boxes.
+- The `MN_COOKIE` differs between machines. 
+- Ensure `export MN_COOKIE="your_shared_secret"` is identical on all physical boxes.
 
 ### Port `4000` already in use (`eaddrinuse`)
 
 Usually means:
 - Two nodes on the same box are trying to start the web API on `4000`.
 - The Erlang `--bind` distribution port is clashing with the Web API.
-- Use `export MIRROR_NEURON_API_PORT=4001` to change the web port.
+- Use `export MN_API_PORT=4001` to change the web port.
 
 ### node name already in use
 

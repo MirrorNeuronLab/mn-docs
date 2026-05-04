@@ -25,7 +25,7 @@ Blueprint availability depends on your local blueprint index and checkout.
 Path:
 
 ```text
-mn-blueprints/general_test_message_flow
+mn-blueprints/general_message_routing_trace
 ```
 
 Use it when:
@@ -37,8 +37,8 @@ Use it when:
 Run:
 
 ```bash
-mn validate mn-blueprints/general_test_message_flow
-mn run mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
+mn blueprint run general_message_routing_trace
 ```
 
 Expected output:
@@ -122,7 +122,7 @@ Job cancelled. Status: cancelled
 Path:
 
 ```text
-mn-blueprints/general_openshell_worker_basic
+mn-blueprints/general_openshell_sandbox_worker_pipeline
 ```
 
 Use it when:
@@ -134,8 +134,8 @@ Use it when:
 Run:
 
 ```bash
-mn validate mn-blueprints/general_openshell_worker_basic
-mn run mn-blueprints/general_openshell_worker_basic
+mn blueprint run general_openshell_sandbox_worker_pipeline
+mn blueprint run general_openshell_sandbox_worker_pipeline
 ```
 
 If the run fails before worker code starts, check:
@@ -184,7 +184,7 @@ mn run /tmp/mn-prime
 Path:
 
 ```text
-mn-blueprints/general_stream_live_backpressure_deamon
+mn-blueprints/general_stream_backpressure_control_loop
 ```
 
 Use it when:
@@ -196,8 +196,8 @@ Use it when:
 Run:
 
 ```bash
-mn validate mn-blueprints/general_stream_live_backpressure_deamon
-mn run mn-blueprints/general_stream_live_backpressure_deamon
+mn blueprint run general_stream_backpressure_control_loop
+mn blueprint run general_stream_backpressure_control_loop
 ```
 
 Cancel after observing events:
@@ -252,12 +252,12 @@ python3 mn-blueprints/financial_market_realtime_advisor_deamon/generate_bundle.p
 
 ## Recommended Order
 
-1. `general_test_message_flow`
+1. `general_message_routing_trace`
 2. `general_python_defined_basic`
-3. `general_openshell_worker_basic`
+3. `general_openshell_sandbox_worker_pipeline`
 4. `general_prime_sweep_scale`
 5. `general_python_defined_advanced_deamon`
-6. `general_stream_live_backpressure_deamon`
+6. `general_stream_backpressure_control_loop`
 7. `science_ecosystem_simulation`
 8. `financial_market_realtime_advisor_deamon`
 

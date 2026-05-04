@@ -134,7 +134,7 @@ export PATH="$HOME/.local/bin:$PATH"
 Or point MirrorNeuron directly to the binary:
 
 ```bash
-export MIRROR_NEURON_OPENSHELL_BIN="$HOME/.local/bin/openshell"
+export MN_OPENSHELL_BIN="$HOME/.local/bin/openshell"
 ```
 
 ## Step 5: Start The OpenShell Gateway
@@ -157,9 +157,9 @@ If OpenShell is not needed for your first pure-router workflow, you can skip thi
 Recommended local defaults:
 
 ```bash
-export MIRROR_NEURON_REDIS_URL="redis://127.0.0.1:6379/0"
-export MIRROR_NEURON_EXECUTOR_MAX_CONCURRENCY="4"
-export MIRROR_NEURON_COOKIE="mirrorneuron"
+export MN_REDIS_URL="redis://127.0.0.1:6379/0"
+export MN_EXECUTOR_MAX_CONCURRENCY="4"
+export MN_COOKIE="mirrorneuron"
 ```
 
 Optional for LLM-enabled blueprints:
@@ -172,7 +172,7 @@ export LITELLM_API_KEY="..."
 Use a unique Redis namespace when running tests beside a developer runtime:
 
 ```bash
-export MIRROR_NEURON_REDIS_NAMESPACE="mirror_neuron_dev_$(date +%s)"
+export MN_REDIS_NAMESPACE="mirror_neuron_dev_$(date +%s)"
 ```
 
 ## Step 7: Smoke Test
@@ -180,20 +180,20 @@ export MIRROR_NEURON_REDIS_NAMESPACE="mirror_neuron_dev_$(date +%s)"
 From the monorepo root:
 
 ```bash
-mn validate mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Expected output:
 
 ```text
-Job bundle at 'mn-blueprints/general_test_message_flow' is valid.
+Blueprint 'general_message_routing_trace' validated. Running...
 ```
 
 Start services:
 
 ```bash
 mn start
-mn run mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Expected output:
@@ -228,7 +228,7 @@ Warning: only remove these paths if they belong to the MirrorNeuron install you 
 ## Security Notes
 
 - Keep local Redis bound to trusted interfaces.
-- Change `MIRROR_NEURON_COOKIE` before using a real cluster.
+- Change `MN_COOKIE` before using a real cluster.
 - Do not expose API or gRPC ports publicly without an authentication boundary.
 - Review third-party bundles before running them.
 

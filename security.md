@@ -49,16 +49,16 @@ Important boundaries:
 Use these defaults for local development:
 
 ```bash
-export MIRROR_NEURON_REDIS_URL="redis://127.0.0.1:6379/0"
-export MIRROR_NEURON_API_PORT="4000"
-export MIRROR_NEURON_GRPC_PORT="50051"
-export MIRROR_NEURON_EXECUTOR_MAX_CONCURRENCY="4"
+export MN_REDIS_URL="redis://127.0.0.1:6379/0"
+export MN_API_PORT="4000"
+export MN_GRPC_PORT="50051"
+export MN_EXECUTOR_MAX_CONCURRENCY="4"
 ```
 
 Recommended habits:
 
 - Keep API and gRPC listeners on localhost for single-machine development.
-- Use a unique `MIRROR_NEURON_REDIS_NAMESPACE` for tests.
+- Use a unique `MN_REDIS_NAMESPACE` for tests.
 - Use OpenShell for code you do not fully trust.
 - Keep `pass_env` narrow and explicit.
 - Store provider keys in environment variables, not in manifests or payload files.
@@ -104,7 +104,7 @@ Safer alternative:
 Risk:
 
 ```bash
-export MIRROR_NEURON_API_HOST="0.0.0.0"
+export MN_API_HOST="0.0.0.0"
 ```
 
 Safer alternative:
@@ -118,7 +118,7 @@ Safer alternative:
 Risk:
 
 ```bash
-export MIRROR_NEURON_REDIS_SENTINEL_QUORUM="1"
+export MN_REDIS_SENTINEL_QUORUM="1"
 ```
 
 Safer alternative:

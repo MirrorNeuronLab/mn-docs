@@ -13,15 +13,14 @@ MirrorNeuron is an Elixir/BEAM runtime for durable, observable, multi-agent work
 
 ```bash
 curl -fsSL https://mirrorneuron.io/install.sh | bash
-mn blueprint run general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Expected output:
 
 ```text
-Job bundle at 'mn-blueprints/general_test_message_flow' is valid.
-Graph ID: general_test_message_flow_v1
-Nodes count: 3
+Blueprint 'general_message_routing_trace' validated. Running...
+Job submitted successfully
 ```
 
 To run jobs, start Redis and the MirrorNeuron runtime first:
@@ -29,7 +28,7 @@ To run jobs, start Redis and the MirrorNeuron runtime first:
 ```bash
 docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
 mn start
-mn run mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Expected result:
@@ -52,8 +51,8 @@ Job submitted successfully
 Run the tiny message-flow blueprint first:
 
 ```bash
-mn validate mn-blueprints/general_test_message_flow
-mn run mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
+mn blueprint monitor
 mn list
 ```
 

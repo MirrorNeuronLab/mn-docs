@@ -29,19 +29,17 @@ If those are not ready yet, follow [Installation](installation.md) first.
 From the monorepo root:
 
 ```bash
-mn validate mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Expected output:
 
 ```text
-Job bundle at 'mn-blueprints/general_test_message_flow' is valid.
-Job Name: test-message-flow
-Graph ID: general_test_message_flow_v1
-Nodes count: 3
+Blueprint 'general_message_routing_trace' validated. Running...
+Job submitted successfully
 ```
 
-This command does not require Redis or a running runtime. It checks bundle structure, `manifest.json`, nodes, edges, and entrypoints.
+This command launches the registered blueprint through the unified blueprint CLI.
 
 ## Step 2: Start Redis
 
@@ -88,7 +86,7 @@ or a non-empty `nodes` list when the core runtime is reachable.
 ## Step 4: Run The Workflow
 
 ```bash
-mn run mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Expected output:

@@ -101,7 +101,7 @@ In Sentinel mode:
 - if the primary dies, Sentinel promotes a replica
 - MirrorNeuron re-resolves the primary and reconnects
 
-Optional `MIRROR_NEURON_REDIS_WAIT_REPLICAS` adds Redis `WAIT` acknowledgement after durable writes when reliability is more important than write latency.
+Optional `MN_REDIS_WAIT_REPLICAS` adds Redis `WAIT` acknowledgement after durable writes when reliability is more important than write latency.
 
 See [Redis High Availability](redis-ha.md).
 

@@ -46,15 +46,14 @@ Cluster helper scripts in `MirrorNeuron/scripts/` provide lower-level node start
 Validates a local job bundle.
 
 ```bash
-mn validate mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Expected output:
 
 ```text
-Job bundle at 'mn-blueprints/general_test_message_flow' is valid.
-Graph ID: general_test_message_flow_v1
-Nodes count: 3
+Blueprint 'general_message_routing_trace' validated. Running...
+Job submitted successfully
 ```
 
 Use this before running any bundle from another person or repository.
@@ -64,7 +63,7 @@ Use this before running any bundle from another person or repository.
 Submits and follows a local bundle.
 
 ```bash
-mn run mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Expected output:
@@ -76,7 +75,7 @@ Job submitted successfully
 Limit how long the CLI follows post-submit events:
 
 ```bash
-mn run mn-blueprints/general_test_message_flow --follow-seconds 10
+mn blueprint run general_message_routing_trace
 ```
 
 Environment controls:
@@ -327,10 +326,10 @@ Blueprint names and availability depend on your local blueprint index.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `MIRROR_NEURON_GRPC_TARGET` | `localhost:50051` | Core gRPC endpoint. |
-| `MIRROR_NEURON_GRPC_TIMEOUT_SECONDS` | `10` | Per-RPC timeout. |
-| `MIRROR_NEURON_GRPC_AUTH_TOKEN` | unset | Optional bearer token metadata. |
-| `MIRROR_NEURON_CLI_OUTPUT` | `rich` | Set to `plain` for less formatting. |
+| `MN_GRPC_TARGET` | `localhost:50051` | Core gRPC endpoint. |
+| `MN_GRPC_TIMEOUT_SECONDS` | `10` | Per-RPC timeout. |
+| `MN_GRPC_AUTH_TOKEN` | unset | Optional bearer token metadata. |
+| `MN_CLI_OUTPUT` | `rich` | Set to `plain` for less formatting. |
 
 ## Troubleshooting
 
@@ -348,7 +347,7 @@ mn nodes
 Use plain output:
 
 ```bash
-MIRROR_NEURON_CLI_OUTPUT=plain mn list
+MN_CLI_OUTPUT=plain mn list
 ```
 
 ## Related Pages

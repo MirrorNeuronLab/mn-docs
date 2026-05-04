@@ -15,7 +15,7 @@ When deploying a cluster across different host operating systems (like macOS and
 - **macOS:** `--network host` does not expose the Erlang ports to the external network due to the underlying Linux VM. Instead, the `mn` CLI automatically detects macOS (`Darwin`) and manually publishes `-p 4369:4369` and `-p 9000-9010:9000-9010`.
 - **Linux:** Native Docker uses `--network host` which binds the Erlang distribution safely to the physical host interfaces.
 
-In both cases, we inject `MIRROR_NEURON_NODE_NAME=mirror_neuron@<IP>` so the Erlang node is explicitly addressable rather than falling back to `nonode@nohost`.
+In both cases, we inject `MN_NODE_NAME=mirror_neuron@<IP>` so the Erlang node is explicitly addressable rather than falling back to `nonode@nohost`.
 
 ## 3. Remote Payload Execution (`HostLocal` Runner)
 

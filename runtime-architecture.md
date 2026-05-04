@@ -97,7 +97,7 @@ The lease manager addresses that by making executor capacity explicit.
 - Every executor requests a lease before running OpenShell.
 - The lease manager grants or queues the request per node.
 - Executors emit events when they request, acquire, and release leases.
-- Capacity is configured with `MIRROR_NEURON_EXECUTOR_MAX_CONCURRENCY` or per-pool overrides.
+- Capacity is configured with `MN_EXECUTOR_MAX_CONCURRENCY` or per-pool overrides.
 
 This keeps BEAM lightweight while still allowing large logical graphs.
 
@@ -105,14 +105,14 @@ This keeps BEAM lightweight while still allowing large logical graphs.
 
 MirrorNeuron now supports local executor pools.
 
-- default pool capacity comes from `MIRROR_NEURON_EXECUTOR_MAX_CONCURRENCY`
-- named pools can be configured with `MIRROR_NEURON_EXECUTOR_POOL_CAPACITIES`
+- default pool capacity comes from `MN_EXECUTOR_MAX_CONCURRENCY`
+- named pools can be configured with `MN_EXECUTOR_POOL_CAPACITIES`
 
 Examples:
 
 ```bash
-export MIRROR_NEURON_EXECUTOR_MAX_CONCURRENCY=4
-export MIRROR_NEURON_EXECUTOR_POOL_CAPACITIES="default=4,gpu=1,io=8"
+export MN_EXECUTOR_MAX_CONCURRENCY=4
+export MN_EXECUTOR_POOL_CAPACITIES="default=4,gpu=1,io=8"
 ```
 
 Executor node config can request a pool and slot count:

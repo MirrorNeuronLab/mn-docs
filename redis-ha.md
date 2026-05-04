@@ -2,7 +2,7 @@
 
 MirrorNeuron can run Redis in two modes:
 
-- `single`: one Redis endpoint from `MIRROR_NEURON_REDIS_URL`
+- `single`: one Redis endpoint from `MN_REDIS_URL`
 - `sentinel`: Redis primary-replica replication with Sentinel failover
 
 Use Sentinel mode for clusters where one Redis process or one box going down should not stop durable state access. MirrorNeuron still writes correctness-critical state only to the Sentinel-elected primary. Replicas are copies and failover candidates, not independent writable stores.
@@ -18,28 +18,28 @@ MirrorNeuron does not use Redis sharding or multi-master merging for runtime sta
 Set these on every runtime and control node:
 
 ```bash
-export MIRROR_NEURON_REDIS_HA_MODE="sentinel"
-export MIRROR_NEURON_REDIS_SENTINELS="192.168.4.29:26379,192.168.4.35:26379"
-export MIRROR_NEURON_REDIS_SENTINEL_MASTER="mirror-neuron"
-export MIRROR_NEURON_REDIS_DB="0"
+export MN_REDIS_HA_MODE="sentinel"
+export MN_REDIS_SENTINELS="192.168.4.29:26379,192.168.4.35:26379"
+export MN_REDIS_SENTINEL_MASTER="mirror-neuron"
+export MN_REDIS_DB="0"
 ```
 
-`MIRROR_NEURON_REDIS_URL` remains useful as the single-Redis fallback and to provide the Redis URL scheme. In Sentinel mode, MirrorNeuron resolves the current primary from Sentinel before opening the Redix connection.
+`MN_REDIS_URL` remains useful as the single-Redis fallback and to provide the Redis URL scheme. In Sentinel mode, MirrorNeuron resolves the current primary from Sentinel before opening the Redix connection.
 
 Optional authentication:
 
 ```bash
-export MIRROR_NEURON_REDIS_USERNAME="default"
-export MIRROR_NEURON_REDIS_PASSWORD="..."
-export MIRROR_NEURON_REDIS_SENTINEL_USERNAME="default"
-export MIRROR_NEURON_REDIS_SENTINEL_PASSWORD="..."
+export MN_REDIS_USERNAME="default"
+export MN_REDIS_PASSWORD="..."
+export MN_REDIS_SENTINEL_USERNAME="default"
+export MN_REDIS_SENTINEL_PASSWORD="..."
 ```
 
 Optional durable write acknowledgement:
 
 ```bash
-export MIRROR_NEURON_REDIS_WAIT_REPLICAS="1"
-export MIRROR_NEURON_REDIS_WAIT_TIMEOUT_MS="100"
+export MN_REDIS_WAIT_REPLICAS="1"
+export MN_REDIS_WAIT_TIMEOUT_MS="100"
 ```
 
 This runs Redis `WAIT` after durable job, event, snapshot, bundle archive, and node-state writes. It is reliability-first and can add latency. Hot lease renewals do not use `WAIT` by default.
@@ -47,9 +47,9 @@ This runs Redis `WAIT` after durable job, event, snapshot, bundle archive, and n
 Optional reconnect tuning:
 
 ```bash
-export MIRROR_NEURON_REDIS_RECONNECT_ATTEMPTS="10"
-export MIRROR_NEURON_REDIS_RECONNECT_BACKOFF_MS="250"
-export MIRROR_NEURON_REDIS_RECONNECT_MAX_BACKOFF_MS="2000"
+export MN_REDIS_RECONNECT_ATTEMPTS="10"
+export MN_REDIS_RECONNECT_BACKOFF_MS="250"
+export MN_REDIS_RECONNECT_MAX_BACKOFF_MS="2000"
 ```
 
 The runtime retries reconnectable Redis failures, including closed connections and `READONLY` errors that can appear during promotion.
@@ -221,6 +221,6 @@ All selected test suites passed.
 - Keep Sentinel endpoints reachable from all MirrorNeuron nodes.
 - Redis nodes should announce box-reachable IPs, not container bridge IPs.
 - Use at least three Sentinel voters for production.
-- Use `MIRROR_NEURON_REDIS_WAIT_REPLICAS=1` when losing the primary immediately after a write would be unacceptable.
-- Keep `MIRROR_NEURON_REDIS_NAMESPACE` unique for tests.
+- Use `MN_REDIS_WAIT_REPLICAS=1` when losing the primary immediately after a write would be unacceptable.
+- Keep `MN_REDIS_NAMESPACE` unique for tests.
 - Monitor Redis replication lag, Sentinel leadership, and MirrorNeuron Redis reconnect warnings.

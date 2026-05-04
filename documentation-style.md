@@ -43,7 +43,7 @@ Avoid:
 Always use fenced code blocks:
 
 ```bash
-mn validate mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Include the working directory when it matters:
@@ -81,9 +81,9 @@ Warning: `--purge-local` can delete Redis data. Use it only for disposable test 
 
 Prefer examples from checked-in blueprints:
 
-- `mn-blueprints/general_test_message_flow`
+- `mn-blueprints/general_message_routing_trace`
 - `mn-blueprints/general_python_defined_basic`
-- `mn-blueprints/general_stream_live_backpressure_deamon`
+- `mn-blueprints/general_stream_backpressure_control_loop`
 - `mn-blueprints/general_prime_sweep_scale`
 
 ## Links

@@ -17,7 +17,7 @@ Current component mapping:
 - `MirrorNeuron/tests/api`: core gRPC/API boundary tests.
 - `MirrorNeuron/tests/e2e`: runtime and stream/live execution e2e tests.
 - `MirrorNeuron/tests/regression`: script-style regression repros.
-- `mn-api/tests`, `mn-cli/tests`, `mn-python-sdk/tests`, `mn-ts-sdk/tests`, `mn-web-ui/src/test`: component unit tests today. Split these into `unit/`, `integration/`, `regression/`, and `e2e/` as each package grows.
+- `mn-api/tests`, `mn-cli/tests`, `mn-python-sdk/tests`, `mn-web-ui/src/test`: component unit tests today. Split these into `unit/`, `integration/`, `regression/`, and `e2e/` as each package grows.
 - `mn-system-tests/integration` and `mn-system-tests/e2e`: live cross-component tests. These are opt-in because they need running services.
 - `mn-blueprints/*/tests` and `mn-skills/*/tests`: blueprint and skill package tests.
 
@@ -78,8 +78,8 @@ Use isolated ports and namespaces so tests do not collide with a developer insta
 
 ```bash
 cd MirrorNeuron
-MIRROR_NEURON_GRPC_PORT=55200 \
-MIRROR_NEURON_REDIS_NAMESPACE=mirror_neuron_manual_e2e \
+MN_GRPC_PORT=55200 \
+MN_REDIS_NAMESPACE=mirror_neuron_manual_e2e \
 mix run --no-halt
 ```
 
@@ -87,16 +87,16 @@ In another terminal:
 
 ```bash
 cd mn-api
-MIRROR_NEURON_API_PORT=4001 \
-MIRROR_NEURON_GRPC_TARGET=localhost:55200 \
+MN_API_PORT=4001 \
+MN_GRPC_TARGET=localhost:55200 \
 mn-api
 ```
 
 Then run:
 
 ```bash
-MIRROR_NEURON_GRPC_TARGET=localhost:55200 \
-MIRROR_NEURON_API_BASE_URL=http://localhost:4001/api/v1 \
+MN_GRPC_TARGET=localhost:55200 \
+MN_API_BASE_URL=http://localhost:4001/api/v1 \
 RUN_MN_SYSTEM_TESTS=1 \
 python3 -m pytest mn-system-tests/integration mn-system-tests/e2e
 ```
@@ -149,16 +149,16 @@ All selected test suites passed.
 
 ## Environment Rules
 
-All runtime/config overrides must use `MIRROR_NEURON_`.
+All runtime/config overrides must use `MN_`.
 
 Useful test isolation vars:
 
-- `MIRROR_NEURON_GRPC_PORT`: use a non-default port for test core instances.
-- `MIRROR_NEURON_GRPC_TARGET`: point CLI/API/SDK tests at the test core.
-- `MIRROR_NEURON_API_BASE_URL`: point system e2e tests at a non-default API port.
-- `MIRROR_NEURON_REDIS_NAMESPACE`: isolate Redis keys per test run.
-- `MIRROR_NEURON_ENV=test`: use test-mode validation where appropriate.
-- `MIRROR_NEURON_API_TOKEN`: test API bearer auth.
+- `MN_GRPC_PORT`: use a non-default port for test core instances.
+- `MN_GRPC_TARGET`: point CLI/API/SDK tests at the test core.
+- `MN_API_BASE_URL`: point system e2e tests at a non-default API port.
+- `MN_REDIS_NAMESPACE`: isolate Redis keys per test run.
+- `MN_ENV=test`: use test-mode validation where appropriate.
+- `MN_API_TOKEN`: test API bearer auth.
 
 Live tests are opt-in. If `RUN_MN_SYSTEM_TESTS=1` is not set, `mn-system-tests` marks integration/e2e tests skipped.
 

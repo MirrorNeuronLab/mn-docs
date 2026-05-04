@@ -44,21 +44,20 @@ The documentation has two goals:
 From the monorepo root:
 
 ```bash
-mn validate mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Expected output:
 
 ```text
-Job bundle at 'mn-blueprints/general_test_message_flow' is valid.
-Graph ID: general_test_message_flow_v1
-Nodes count: 3
+Blueprint 'general_message_routing_trace' validated. Running...
+Job submitted successfully
 ```
 
 Run it after Redis and the runtime are started:
 
 ```bash
-mn run mn-blueprints/general_test_message_flow
+mn blueprint run general_message_routing_trace
 ```
 
 Expected output:
@@ -75,7 +74,7 @@ MirrorNeuron can run local commands, create sandboxes, call APIs, pass selected 
 - Keep `pass_env` narrow.
 - Prefer OpenShell over HostLocal for less-trusted worker code.
 - Keep Redis protected and use Redis Sentinel for multi-box reliability.
-- Change `MIRROR_NEURON_COOKIE` for any non-local cluster.
+- Change `MN_COOKIE` for any non-local cluster.
 - Bind API/gRPC listeners only to trusted networks.
 
 Read [Security Model](security.md) for the full checklist.
