@@ -1,75 +1,51 @@
 # MirrorNeuron Docs
 
-MirrorNeuron is an Elixir/BEAM runtime for durable, observable, multi-agent workflows that run on one machine, on edge boxes, or across a small cluster.
+Documentation for MirrorNeuron, including installation, architecture, CLI usage, blueprint development, security, and troubleshooting.
 
-## What It Does
+## Project Scope
 
-- Runs message-driven workflow graphs from reusable bundles and blueprints.
-- Keeps job state, agent snapshots, events, leases, and recovery metadata in Redis.
-- Executes Python, shell, and other worker payloads through bounded local or OpenShell runners.
-- Supports daemon workflows, streaming, backpressure, retry, cluster failover, and Redis Sentinel HA.
+MirrorNeuron is an Elixir/BEAM runtime with Python tooling for running message-driven workflow graphs. The documentation covers:
+
+- Runtime architecture and clustering.
+- Local installation and first-run setup.
+- CLI, API, SDK, Web UI, blueprints, and skills.
+- Security considerations for running worker payloads.
+- Troubleshooting and contribution guidance.
+
+## Prerequisites
+
+- macOS, Linux, or WSL2.
+- Python 3.9+ for CLI, SDK, API, system tests, and Python-defined blueprints.
+- Docker for the default local Redis and core workflow.
+- Redis for runtime state.
+- OpenShell when running sandboxed workers.
+
+Elixir/Erlang are required for core runtime development. Released-package installs use OTP tarballs instead of building the core from source.
 
 ## Quick Start
 
+Install MirrorNeuron from released packages:
+
 ```bash
 curl -fsSL https://mirrorneuron.io/install.sh | bash
-mn blueprint run general_message_routing_trace
 ```
 
-Expected output:
-
-```text
-Blueprint 'general_message_routing_trace' validated. Running...
-Job submitted successfully
-```
-
-To run jobs, start Redis and the MirrorNeuron runtime first:
+Start the runtime and run a sample blueprint:
 
 ```bash
-docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
 mn start
 mn blueprint run general_message_routing_trace
-```
-
-Expected result:
-
-```text
-Job submitted successfully
-```
-
-## Requirements
-
-- macOS, Linux, or WSL2.
-- Elixir/Erlang for the core runtime.
-- Python 3.9+ for the CLI, SDK, API, system tests, and Python-defined blueprints.
-- Redis for durable runtime state.
-- Docker for the easiest local Redis and Redis Sentinel tests.
-- OpenShell for sandboxed worker execution.
-
-## First Useful Task
-
-Run the tiny message-flow blueprint first:
-
-```bash
-mn blueprint run general_message_routing_trace
 mn blueprint monitor
-mn list
 ```
 
-Then try a pure Python-defined workflow:
+Check jobs:
 
 ```bash
-python3 mn-blueprints/general_python_defined_basic/generate_bundle.py \
-  --quick-test \
-  --output-dir /tmp/mn-python-basic
-
-mn validate /tmp/mn-python-basic
-mn run /tmp/mn-python-basic
+mn list
+mn nodes
 ```
 
-## Architecture
-
-MirrorNeuron separates the control plane from the execution plane.
+## Architecture Summary
 
 ```text
 CLI / API / Web UI
@@ -84,9 +60,27 @@ Execution runners: HostLocal, OpenShell, Python, shell, worker payloads
 Redis durable state and optional Redis Sentinel HA
 ```
 
-Read [Runtime Architecture](runtime-architecture.md) and [Cluster Architecture](cluster_architecture.md) for the full model.
+Read:
 
-## Security Basics
+- [Runtime Architecture](runtime-architecture.md)
+- [Cluster Architecture](cluster_architecture.md)
+- [Security Model](security.md)
+
+## Documentation Index
+
+| Topic | Document |
+| --- | --- |
+| Getting started | [quickstart.md](quickstart.md) |
+| Installation | [installation.md](installation.md) |
+| CLI reference | [cli.md](cli.md) |
+| Blueprints and skills | [blueprints-and-skills.md](blueprints-and-skills.md) |
+| Runtime architecture | [runtime-architecture.md](runtime-architecture.md) |
+| Cluster architecture | [cluster_architecture.md](cluster_architecture.md) |
+| Security | [security.md](security.md) |
+| Troubleshooting | [troubleshooting.md](troubleshooting.md) |
+| Contributing | [contributing.md](contributing.md) |
+
+## Security Notes
 
 MirrorNeuron can run local code, create sandboxes, call external services, connect to model providers, and pass selected environment variables to worker payloads.
 
@@ -99,17 +93,9 @@ Before running third-party bundles or exposing a cluster:
 - Prefer Redis Sentinel HA over single Redis for multi-box deployments.
 - Treat incoming live messages, emails, Slack events, and model outputs as untrusted input.
 
-Read [Security Model](security.md) before operating shared or public-facing workflows.
+## Contributing
 
-## Where To Go Next
-
-- [Getting Started](quickstart.md)
-- [Installation](installation.md)
-- [CLI Reference](cli.md)
-- [Blueprints and Skills](blueprints-and-skills.md)
-- [Security Model](security.md)
-- [Troubleshooting](troubleshooting.md)
-- [Contributing](contributing.md)
+Keep docs concise and command examples copyable. When documenting behavior, link to the relevant component README or source file when practical.
 
 ## License
 
