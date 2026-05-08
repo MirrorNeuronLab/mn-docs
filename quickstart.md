@@ -17,7 +17,7 @@ By the end, you will have:
 You need:
 
 - macOS, Linux, or WSL2
-- Python 3.9+
+- Python 3.10+
 - Elixir/Erlang
 - Docker
 - the `mn` CLI on your PATH
