@@ -18,6 +18,20 @@ my_bundle/
 
 For a pure routing workflow, `payloads/` can be empty. For executor workflows, put scripts, Python packages, policies, templates, and data under `payloads/`.
 
+Blueprints that need Python packages at runtime should declare them on the executor node instead of adding them to the core image. For `MirrorNeuron.Runner.HostLocal`, add a dependency file under `payloads/` and reference it with `python_environment`:
+
+```json
+{
+  "runner_module": "MirrorNeuron.Runner.HostLocal",
+  "python_environment": {
+    "requirements": "worker/requirements.txt",
+    "packages": ["opencv-python-headless>=4.10,<5"]
+  }
+}
+```
+
+The runtime creates a cached virtualenv keyed by Python version and dependency contents, then runs `python` or `python3` commands from that environment. Root-level blueprint `requirements.txt` files remain documentation or developer setup files unless an executor explicitly references a dependency file under `payloads/`.
+
 Validate the bundle:
 
 ```bash

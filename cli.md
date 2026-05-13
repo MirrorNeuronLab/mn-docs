@@ -322,6 +322,21 @@ Job submitted successfully
 
 Blueprint names and availability depend on your local blueprint index.
 
+## `mn blueprint cleanup`
+
+Removes blueprint-owned runtime resources that are no longer referenced by the local blueprint index.
+
+```bash
+mn blueprint cleanup
+mn blueprint cleanup --blueprint-id business_facility_safety_video_guardian
+mn blueprint cleanup --dry-run
+mn blueprint cleanup --runs-root ~/.mn/runs --generated-bundles-dir ~/.mn/generated_blueprint_bundles --bundle-cache-dir /tmp/mirror_neuron/bundle_cache
+```
+
+The cleanup command removes cached blueprint Python virtualenvs, `~/.mn/runs/<run_id>` records, `~/.mn/generated_blueprint_bundles/<run_id>` bundles, local bundle-cache entries, stale incomplete setup directories, and Docker resources labelled with the deleted blueprint ID. Blueprint-owned Docker containers/images should use `mirrorneuron.blueprint_id=<blueprint_id>` or `com.mirrorneuron.blueprint_id=<blueprint_id>`. `mn blueprint update` runs this cleanup automatically for blueprints removed by a catalog update. Use `mn blueprint uninstall` to remove cached blueprint storage and its owned resources together.
+
+Cleanup is explicit lifecycle housekeeping, not a background scheduler. Use `--dry-run` to inspect what would be reclaimed. Use `--no-files` or `--no-docker` when you only want part of the sweep.
+
 ## Connectivity Environment
 
 | Variable | Default | Description |

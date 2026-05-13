@@ -122,6 +122,9 @@ These variables are read by the Elixir core runtime.
 | `MN_MAX_GPU_MEMORY_USED_RATIO` | `0.98` | GPU memory threshold. Must be greater than `0` and `<= 1`. |
 | `MN_MAX_COMMAND_LENGTH` | `32768` | Maximum wrapped command length for OpenShell and HostLocal runners. |
 | `MN_MAX_ARTIFACT_BYTES` | `1048576` | Maximum captured artifact bytes before truncation. |
+| `MN_BLUEPRINT_PYTHON_ENVS_DIR` | `$MN_TEMP_DIR/blueprint_python_envs` | Cache root for blueprint-scoped HostLocal Python virtualenvs. |
+| `MN_BLUEPRINT_PYTHON_ENV_SETUP_TIMEOUT_MS` | `600000` | Timeout for waiting on another process to finish creating the same blueprint Python virtualenv. |
+| `MN_BUNDLE_CACHE_DIR` | `$MN_TEMP_DIR/bundle_cache` | Local MirrorNeuron bundle cache root; blueprint cleanup reclaims entries whose manifest belongs to a deleted blueprint. |
 | `MN_MAX_EVENT_BYTES` | unset | Optional positive integer validated at startup for event-size limits. |
 | `MN_MAX_FAN_OUT` | unset | Optional positive integer validated at startup for fan-out limits. |
 
@@ -171,6 +174,9 @@ LLM-enabled blueprints use LiteLLM-style settings only. Provider-specific aliase
 | Variable | Default | Usage |
 | --- | --- | --- |
 | `MN_BLUEPRINT_QUICK_TEST` | disabled | Enables quick/test mode in blueprint helpers when set to `1`, `true`, `yes`, or `on`. |
+| `MN_BLUEPRINT_ID` | unset | Explicit blueprint identity injected by catalog runs and used for resource ownership/cleanup. |
+| `MN_BLUEPRINT_RESOURCE_STALE_SECONDS` | `3600` | Minimum age before `mn blueprint cleanup` removes stale incomplete blueprint resources, orphaned generated bundles, or setup locks. |
+| `MN_GENERATED_BLUEPRINT_BUNDLES_DIR` | `~/.mn/generated_blueprint_bundles` | Root for generated Python workflow bundles and cleanup of source-mode blueprint artifacts. |
 | `MN_CONFIG_PATH` | `~/.mn/config.json` | Shared blueprint-support user config path. |
 | `MN_RUN_ID` | generated | Optional stable run ID for blueprint runs and specialized worker contracts. |
 | `MN_RUNS_ROOT` | `~/.mn/runs` | Overrides the local run-store root. |

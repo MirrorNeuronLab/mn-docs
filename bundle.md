@@ -87,6 +87,32 @@ When you configure an executor node to run a script, you declare it in the `conf
 
 In this example, the runtime will look for `my_job_bundle/payloads/process_data.py` and mount it into the OpenShell sandbox at `/sandbox/process_data.py`.
 
+### Blueprint-Scoped Python Dependencies
+
+`MirrorNeuron.Runner.HostLocal` executor nodes can opt in to an isolated Python virtual environment with `python_environment`. Dependencies are cached by Python version, requirements contents, and inline package list, so repeated runs reuse the same environment while unrelated blueprints remain isolated.
+
+```json
+{
+  "node_id": "video_worker",
+  "agent_type": "executor",
+  "config": {
+    "runner_module": "MirrorNeuron.Runner.HostLocal",
+    "upload_path": "person_detector",
+    "upload_as": "person_detector",
+    "workdir": "/sandbox/job/person_detector",
+    "command": ["python3", "scripts/analyze_door_camera_frame.py"],
+    "python_environment": {
+      "requirements": "person_detector/requirements.txt",
+      "packages": ["opencv-python-headless>=4.10,<5"]
+    }
+  }
+}
+```
+
+`requirements` must be a relative path inside `payloads/`. Inline `packages` are normal pip requirement strings. If both are provided, both are installed into the same cached environment. If neither is provided, no environment is created.
+
+The core Docker image only includes generic Python virtualenv support. Blueprint-specific packages such as OpenCV, optimization solvers, browser tooling, and model libraries should be declared by the blueprint, not installed into core. Root-level blueprint `requirements.txt` files are not automatically installed; put runtime dependency files under `payloads/` and reference them explicitly from the executor node.
+
 ---
 
 ## Example Bundle
