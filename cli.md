@@ -5,13 +5,13 @@ The `mn` command is the primary user-facing CLI. It uses `mn-python-sdk` to talk
 Check your installed version:
 
 ```bash
-mn --help
+mn --version
 ```
 
 Expected output includes:
 
 ```text
-MirrorNeuron CLI
+mn <version>
 ```
 
 ## Command Summary
