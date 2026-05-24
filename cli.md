@@ -33,7 +33,9 @@ mn metrics
 mn dead-letters <job_id>
 mn start
 mn stop
-mn join <ip>
+mn join <main-host> --token <token>
+mn expose-node
+mn add-node <host> --token <token>
 mn leave <node_name>
 mn blueprint list
 mn blueprint run <name>
@@ -274,14 +276,44 @@ MirrorNeuron services started
 MirrorNeuron services stopped
 ```
 
-## `mn join` And `mn leave`
+## Cluster Node Flows
 
-Join a cluster by IP:
+MirrorNeuron supports two cluster flows.
+
+Use `mn start` on the main box. It starts the regular runtime, exposes the core
+gRPC and cluster ports, and prints a stable token persisted at `~/.mn/network.token`.
+A second box can join that main runtime with:
 
 ```bash
-mn join 192.168.4.173
+mn join 192.168.4.10 --token <token>
 ```
 
+For the inverse flow, expose a core-only node on the second box:
+
+```bash
+mn expose-node --host 192.168.4.20
+```
+
+Then add that node from the main box:
+
+```bash
+mn add-node 192.168.4.20 --token <token>
+```
+
+`mn expose-node` starts only Core with gRPC, cluster ports, and secured Redis when
+no external `MN_REDIS_URL` is configured. It does not start the REST API, Web UI,
+OpenShell, context engine, or SDK-facing helper processes.
+
+After joining or adding, use `mn nodes` and `mn resource list` to see aggregate
+CPU, GPU, memory, and disk across the cluster.
+
+## `mn leave`
+
+Remove a node from the cluster:
+
+```bash
+mn leave mirror_neuron@192.168.4.20
+```
 Leave by node name:
 
 ```bash
@@ -344,6 +376,7 @@ Cleanup is explicit lifecycle housekeeping, not a background scheduler. Use `--d
 | `MN_GRPC_TARGET` | `localhost:50051` | Core gRPC endpoint. |
 | `MN_GRPC_TIMEOUT_SECONDS` | `10` | Per-RPC timeout. |
 | `MN_GRPC_AUTH_TOKEN` | unset | Optional bearer token metadata. |
+| `MN_NETWORK_JOIN_TOKEN` | `~/.mn/network.token` for `mn start` and `mn expose-node` | Stable token used to derive cluster cookies and network-mode Redis secrets. |
 | `MN_CLI_OUTPUT` | `rich` | Set to `plain` for less formatting. |
 
 ## Troubleshooting

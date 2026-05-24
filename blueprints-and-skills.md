@@ -126,7 +126,7 @@ The compiler does not:
 - make Python workflow code itself durable at runtime
 - turn non-deterministic Python side effects into replay-safe workflow commands
 
-If a workflow needs long-running durable behavior, express it with MirrorNeuron daemon, stream, retry, and recovery manifest options.
+If a workflow needs long-running durable behavior, express it with MirrorNeuron service, stream, retry, and recovery manifest options.
 
 ## Skill Package Shape
 
@@ -164,7 +164,7 @@ Before publishing or running a blueprint or skill:
 - Check whether `runner` is `host_local` or OpenShell.
 - Check all `pass_env` entries.
 - Check network policies and API base URLs.
-- Check whether the workflow is a daemon.
+- Check whether the workflow is a service.
 - Confirm retry behavior will not spam external services.
 - Run quick tests with fake data and dry-run delivery flags first.
 

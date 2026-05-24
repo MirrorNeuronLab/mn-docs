@@ -76,33 +76,24 @@ mn validate /tmp/mn-python-basic
 mn run /tmp/mn-python-basic
 ```
 
-## 3. Pure Python Advanced Daemon
+## 3. Pure Python Advanced Service
 
 Path:
 
 ```text
-mn-blueprints/general_python_defined_advanced_deamon
+mn-blueprints/general_python_sdk_live_research_service
 ```
 
 Use it when:
 
-- you want daemon workflow options
+- you want service workflow options
 - you want stream/backpressure examples
 - you want a Python-defined workflow that stays alive until cancelled
-
-Generate:
-
-```bash
-python3 mn-blueprints/general_python_defined_advanced_deamon/generate_bundle.py \
-  --quick-test \
-  --output-dir /tmp/mn-python-advanced-daemon
-```
 
 Run:
 
 ```bash
-mn validate /tmp/mn-python-advanced-daemon
-mn run /tmp/mn-python-advanced-daemon
+mn blueprint run general_python_sdk_live_research_service
 ```
 
 Cancel when done:
@@ -179,7 +170,7 @@ mn validate /tmp/mn-prime
 mn run /tmp/mn-prime
 ```
 
-## 6. Stream Live Backpressure Daemon
+## 6. Stream Live Backpressure Service
 
 Path:
 
@@ -189,7 +180,7 @@ mn-blueprints/general_stream_backpressure_control_loop
 
 Use it when:
 
-- you want a daemon workflow
+- you want a service workflow
 - you want bounded queue and retry-later behavior
 - you want live stream pressure signals
 
@@ -228,12 +219,12 @@ python3 mn-blueprints/science_ecosystem_simulation/generate_bundle.py \
   --output-dir /tmp/mn-ecosystem
 ```
 
-## 8. Financial Market Realtime Advisor Daemon
+## 8. Finance Liquidity Microstructure Radar
 
 Path:
 
 ```text
-mn-blueprints/financial_market_realtime_advisor_deamon
+mn-blueprints/finance_liquidity_microstructure_radar
 ```
 
 Use it when:
@@ -245,9 +236,7 @@ Use it when:
 Start in quick-test mode before enabling real external delivery:
 
 ```bash
-python3 mn-blueprints/financial_market_realtime_advisor_deamon/generate_bundle.py \
-  --quick-test \
-  --output-dir /tmp/mn-market
+mn blueprint run finance_liquidity_microstructure_radar
 ```
 
 ## Recommended Order
@@ -256,19 +245,19 @@ python3 mn-blueprints/financial_market_realtime_advisor_deamon/generate_bundle.p
 2. `general_python_defined_basic`
 3. `general_openshell_sandbox_worker_pipeline`
 4. `general_prime_sweep_scale`
-5. `general_python_defined_advanced_deamon`
+5. `general_python_sdk_live_research_service`
 6. `general_stream_backpressure_control_loop`
 7. `science_ecosystem_simulation`
-8. `financial_market_realtime_advisor_deamon`
+8. `finance_liquidity_microstructure_radar`
 
-That path moves from pure local routing to Python authoring, sandbox execution, scale, daemon behavior, streaming, simulation, and external integrations.
+That path moves from pure local routing to Python authoring, sandbox execution, scale, service behavior, streaming, simulation, and external integrations.
 
 ## Security Notes
 
 - Review `manifest.json` before running any blueprint.
 - Check `pass_env` before passing secrets.
 - Use quick-test and dry-run modes before external delivery.
-- Cancel daemon jobs when you are done.
+- Cancel service jobs when you are done.
 
 ## Related Pages
 

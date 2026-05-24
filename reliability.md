@@ -1,188 +1,347 @@
 # Reliability Guide
 
-This guide describes the practical reliability model currently implemented in MirrorNeuron.
+This guide explains the reliability model currently implemented in MirrorNeuron.
 
-It is intentionally modest:
+MirrorNeuron is not a consensus workflow engine. It is a durable, retryable, message-driven runtime for small local and multi-computer AI labs. Its reliability design is practical and conservative: restart locally first, reschedule across nodes only when policy and safety allow it, and pause for review when automatic movement could duplicate unsafe side effects.
 
-- retry and replay where possible
-- recover from runtime node loss without taking the whole job down
-- keep work moving on the remaining healthy box
-- document what still is not HA yet
+## Reliability Goals
 
-MirrorNeuron is not a consensus-based control plane. It is closer to a durable, retryable workflow runtime with bounded sandbox execution.
+MirrorNeuron aims for:
 
-## Reliability goals
+- durable job records, events, snapshots, leases, and recovery metadata
+- at-least-once recovery for replayable agent work
+- automatic local restart for transient worker failures
+- automatic cross-node rescheduling for safe `cluster_recover` jobs
+- graceful node maintenance and drain without placing new work on a node
+- clear operator status when recovery pauses or blocks
 
-The current design aims for:
-
-- no single executor box causing total workflow failure by default
-- replayable job shards instead of one giant irrecoverable task
-- durable enough state to restart work after process or node loss
-- at-least-once recovery with idempotent aggregation where needed
-
-It does not yet aim for:
+MirrorNeuron does not currently aim for:
 
 - exactly-once delivery
 - consensus-based workflow history replay
-- multi-master Redis writes or conflict merging
+- multi-primary Redis conflict resolution
+- automatic movement of work that is marked unsafe or manual-only
 
-## Mechanisms in use today
+## Durable State
 
-### Small units of work
+Redis is the shared durable state store. MirrorNeuron persists:
 
-The examples and scale harnesses break jobs into bounded chunks instead of one long-running worker.
+- job records and status
+- job event history
+- durable job bundle references
+- agent snapshots and heartbeats
+- job coordinator leases such as `job:<job_id>`
+- the cluster leader lease `cluster:leader`
+- node state, profile health, capabilities, and drain metadata
+- recovery evals used by the reconciler
+- restart/reschedule `policy_state`
 
-That matters because recovery can replay one failed shard instead of redoing the whole workflow.
+Agent snapshots are the core recovery unit. They include the assigned node, processed message count, inflight message, pending messages, encoded local state, and last heartbeat timestamp.
 
-### Durable Redis-backed state
+This is enough for replay-oriented recovery. It is not a full deterministic event history.
 
-MirrorNeuron persists:
+## Coordinator And Leader Leases
 
-- job records
-- job events
-- agent snapshots
-- cluster and job leases
+Each running job has a job coordinator process supervised through `Horde`.
 
-Agent snapshots include:
+The coordinator owns a Redis job lease. If its node dies, Horde may start a replacement coordinator on another peer, but the Redis lease remains the durable guardrail that prevents two coordinators from assuming ownership at the same time.
 
-- assigned node
-- processed message count
-- inflight message
-- pending messages
-- encoded local agent state
-- heartbeat timestamp
+Cluster-wide sweeps are handled by a Redis-elected leader:
 
-This is the minimum durable state needed for replay-oriented recovery.
+1. A runtime node acquires `cluster:leader`.
+2. The leader periodically refreshes that lease.
+3. If the leader dies or loses Redis, the lease expires.
+4. Another node acquires the lease and resumes sweeps.
 
-### Heartbeats
+The leader sweeps:
 
-Agents periodically persist fresh snapshots with `last_heartbeat_at`.
+- due recovery evals
+- due drain retries and deadlines
+- orphaned jobs whose coordinator lease is gone
 
-The job coordinator runs health checks on an interval and uses missing or stale agents as a recovery signal.
+## Job Types
 
-### Dynamic Leader Election
+MirrorNeuron supports four lifecycle modes.
 
-MirrorNeuron now implements a Redis-backed leader election process.
-The cluster automatically elects a leader by acquiring a `cluster:leader` lease. The leader node is responsible for cluster-wide health checks such as sweeping and recovering orphaned jobs (jobs whose coordinator crashed and haven't been picked up by Horde). 
-If the leader node dies, another node automatically acquires the lease and assumes leadership, avoiding split-brain scenarios since Redis is the sole arbiter of truth.
+| Type | Reliability behavior |
+| --- | --- |
+| `service` | Long-running. Unexpected completion or missing agents are treated as restartable unless stopped or paused. |
+| `batch` | Runs to completion. Failure retries and reschedules are limited by policy. Normal completion is final. |
+| `system` | Long-running copy on every eligible node. A completed target is restarted to keep that node covered. |
+| `sysbatch` | One-off copy on every eligible node. Each target completes once, and the job completes after all targets finish. |
 
-### Retry and backoff
+`system` and `sysbatch` expand one logical agent group across eligible nodes. Runtime agent ids include the target node, for example `monitor@mirror_neuron@192.168.4.20`, while the scheduler plan keeps the original source agent id for policy lookup.
 
-Executors already support bounded retry with backoff for transient sandbox failures.
+## Recovery Modes
 
-Examples:
+The effective recovery mode controls how far MirrorNeuron may go automatically.
 
-- OpenShell transport errors
-- connection reset / closed
-- transient sandbox startup failures
+| Mode | Behavior |
+| --- | --- |
+| `cluster_recover` | Local restart first, then safe cross-node reschedule when restart policy is exhausted or a node is lost. |
+| `local_restart` | Restart locally according to policy. Do not move the job to another node automatically. |
+| `manual_recover` | Do not automatically restart or reschedule after failure. Pause for operator review. |
 
-This is the first line of defense before cross-node recovery is needed.
+Jobs without effective `cluster_recover` are never moved across machines automatically.
 
-### Redis reconnect and fallback commands
+## Restart And Reschedule Policies
 
-Redis operations now recover more gracefully from broken long-lived connections:
+MirrorNeuron uses Nomad-inspired policies at job and per-agent scope.
 
-- reconnect the managed Redix client
-- retry on connection failures with bounded backoff
-- reconnect to the Sentinel-elected primary after failover
-- retry `READONLY` errors that can occur during Redis promotion
+Job-level policies live under `policies.restart` and `policies.reschedule`. Agent-level overrides live under `nodes[].policies.restart` and `nodes[].policies.reschedule`.
 
-This reduces cases where a single wedged Redis client would make an otherwise healthy node unusable.
+Restart policy fields:
 
-### Redis Sentinel HA
+| Field | Meaning |
+| --- | --- |
+| `attempts` | Number of restarts allowed inside the sliding interval. |
+| `interval_ms` | Sliding window for counting attempts. |
+| `delay_ms` | Base delay before the next restart. |
+| `delay_function` | `constant`, `exponential`, or `fibonacci`. |
+| `max_delay_ms` | Cap for calculated delay. |
+| `mode` | `fail` or `delay` after attempts are exhausted. |
 
-MirrorNeuron supports Redis Sentinel mode for replicated durable state.
+Reschedule policy fields:
 
-In Sentinel mode:
+| Field | Meaning |
+| --- | --- |
+| `attempts` | Number of cross-node reschedules allowed inside the sliding interval. |
+| `interval_ms` | Sliding window for counting attempts. |
+| `delay_ms` | Base delay before the next reschedule. |
+| `delay_function` | `constant`, `exponential`, or `fibonacci`. |
+| `max_delay_ms` | Cap for calculated delay. |
+| `unlimited` | If `true`, attempts do not exhaust. |
 
-- every box can run a local Redis copy
-- one Redis is the Sentinel-elected primary
-- MirrorNeuron writes job state, events, snapshots, and leases only to the primary
-- if the primary dies, Sentinel promotes a replica
-- MirrorNeuron re-resolves the primary and reconnects
+Legacy `policies.max_agent_restart_attempts` is still accepted only when `policies.restart.attempts` is absent.
 
-Optional `MN_REDIS_WAIT_REPLICAS` adds Redis `WAIT` acknowledgement after durable writes when reliability is more important than write latency.
+### Defaults
 
-See [Redis High Availability](redis-ha.md).
+| Job and recovery mode | Restart default | Reschedule default |
+| --- | --- | --- |
+| `service` / `system` with `cluster_recover` | 3 attempts in 10 minutes, exponential `1s` to `30s`, `mode: fail` | unlimited, exponential `5s` to `5m` |
+| `service` / `system` with `local_restart` | 3 attempts in 10 minutes, exponential `1s` to `30s`, `mode: delay` | disabled |
+| `batch` / `sysbatch` with `cluster_recover` | 3 attempts in 24 hours, exponential `1s` to `30s`, `mode: fail` | 1 attempt in 24 hours, constant `5s` |
+| any job with `manual_recover` | disabled | disabled |
 
-### Distributed Coordinator with Lease
+Example:
 
-Job runners and coordinators are now managed dynamically by `Horde` across the peer cluster. 
-They acquire a job lease in Redis.
+```json
+{
+  "policies": {
+    "recovery_mode": "cluster_recover",
+    "job_type": "service",
+    "restart": {
+      "attempts": 2,
+      "interval_ms": 60000,
+      "delay_ms": 1000,
+      "delay_function": "exponential",
+      "max_delay_ms": 5000,
+      "mode": "fail"
+    },
+    "reschedule": {
+      "attempts": 0,
+      "interval_ms": 60000,
+      "delay_ms": 2000,
+      "delay_function": "exponential",
+      "max_delay_ms": 30000,
+      "unlimited": true
+    }
+  }
+}
+```
 
-That means:
+## Policy State
 
-- if a box dies during a job, `Horde` automatically schedules the coordinator on another available box.
-- the new coordinator recognizes the existing job state via Redis, acquires the lease, and safely resumes work.
-- the system dynamically re-balances control without being pinned to the original submission node.
+The runtime persists normalized policies and per-agent state on the job.
 
-### Agent recovery from persisted snapshots
+`mn status <job-id>` includes fields such as:
 
-When an agent disappears, MirrorNeuron can restart it from its last persisted snapshot.
+- `restart_policy`
+- `reschedule_policy`
+- `policy_state`
+- `recovery_status`
+- `recovery_requires_review`
+- `recovery`
 
-Recovery uses:
+Per-agent `policy_state` records:
 
-- restored local state
-- restored pending messages
-- restored inflight message replay
+- restart and reschedule histories
+- active attempt counts
+- last failure reason
+- next action
+- next eligible timestamp
+- exhausted policy reason
 
-This works both for:
+Restart attempts are counted when recovery starts, not only when it succeeds. This prevents a bad startup loop from retrying forever without consuming attempts.
 
-- explicit recovery started by the coordinator
-- agent redistribution/restart on the remaining node
+## Local Restart Flow
 
-### Replay of completed executor outputs
+When an agent is missing, unhealthy, or exits unexpectedly:
 
-Executors now persist their last emitted output payload.
+1. The job coordinator checks the agent's restart policy.
+2. If an attempt is allowed, it records the attempt and schedules a delayed restart.
+3. The affected agent worker is terminated if still present.
+4. The durable snapshot is loaded.
+5. The agent restarts with restored local state, pending messages, and inflight replay data.
+6. On success, pending restart timers are cleared.
 
-If an executor had already completed work before a node died, recovery can re-emit that logical result instead of silently losing it.
+If restart attempts are exhausted:
 
-This closes an important gap where:
+- `mode: delay` waits until the sliding window resets, then tries locally again.
+- `mode: fail` makes the agent eligible for reschedule if the job is `cluster_recover`.
+- `manual_recover` pauses for review.
+- `local_restart` pauses long-running service/system work or fails completion-oriented batch/sysbatch work according to job behavior.
 
-- the sandbox work had already finished
-- but the downstream collector had not durably observed the result yet
+Cross-node reschedule after restart exhaustion is launched through an async recovery task so the coordinator does not deadlock by calling a reconciler that may call back into the coordinator.
 
-### Aggregator dedupe for replayed executor results
+## Hybrid Automatic Rescheduling
 
-The built-in aggregator now ignores duplicate results by `agent_id` when that field is present in the payload.
+The reconciler handles node loss, orphan sweeps, and policy-driven reschedules through one conservative path.
 
-That makes replay safer for common fan-out/fan-in patterns such as:
+For affected agents on a failed node:
 
-- prime sweep workers
-- single-result executor shards
+1. Check that the job is active.
+2. Check that effective recovery is `cluster_recover`.
+3. Check durable bundle and snapshot safety.
+4. Check the reschedule policy unless the trigger is a maintenance drain.
+5. Re-plan affected agents with the failed node excluded and the stale job placements ignored.
+6. Move only affected agents if the coordinator is alive.
+7. Restart the whole job only when the coordinator or job lease is gone.
 
-This is an at-least-once reliability model with lightweight deduplication, not exactly-once delivery.
+Agent-level movement uses `only_agent_ids`, `exclude_nodes`, and `ignore_job_ids` so the scheduler does not count stale placements from the same job while computing the replacement plan.
 
-## What we verified
+The coordinator handles `reschedule_agents` by:
 
-After the current reliability pass, the following were re-run successfully:
+- terminating only affected live agents
+- reloading their durable snapshots
+- applying the merged scheduler plan
+- restarting those agents with updated `mirror_neuron_target_node`
+- emitting per-agent reschedule events
 
-### Local e2e
+Unaffected agents stay running.
 
-- OpenShell worker demo
-- prime sweep
-- streaming peak detection
-- LLM codegen/review loop
+## Node Loss Flow
 
-### Two-box cluster e2e
+When a runtime node goes down:
 
-- prime sweep
-- streaming peak detection
-- LLM codegen/review loop
+1. `NodeMonitor` marks the node reconnecting.
+2. It retries `Node.connect` with exponential backoff.
+3. If reconnect succeeds, executor capacity is restored and blocked recovery evals are woken.
+4. If reconnect is exhausted, executor capacity for the node is released.
+5. The node is marked `disconnected` for the disconnect grace window.
+6. During grace, recovery may wait instead of moving node-scoped work too quickly.
+7. When grace expires, the node is marked `offline`.
+8. The leader runs orphan and recovery sweeps.
 
-### Destructive failover test
+This avoids turning a short network hiccup into unnecessary cross-node movement.
 
-We also verified a real two-box failover path:
+## Recovery Safety Checks
 
-1. start a cluster on box 1 and box 2
-2. submit a larger prime fan-out job
-3. wait until executors are actively running on box 2
-4. kill the MirrorNeuron runtime on box 2 during execution
-5. verify the job still completes on box 1
+Automatic recovery pauses for review when safety is uncertain.
 
-The dedicated harness is:
+MirrorNeuron blocks or pauses when:
+
+- required agent snapshots are missing
+- checkpoints are corrupt
+- the durable job bundle is unavailable
+- the job was already paused before runtime loss
+- the job uses `manual_recover`
+- an active or queued step has unsafe side effects
+- an executor has no retry-safety marker
+
+Executor steps are considered safer to replay when their config includes one of:
+
+- `safe_to_retry: true`
+- `idempotent: true`
+- `idempotency_key`
+- `recovery_idempotency_key`
+
+Unsafe markers include:
+
+- `manual_review_on_recovery`
+- `requires_approval`
+- `unsafe`
+- `safe_to_retry: false`
+- `idempotent: false`
+- side effects marked as external writes
+
+The goal is to move replayable work automatically and stop before duplicating irreversible external effects.
+
+## Recovery Evals
+
+Recovery evals are durable records for reconciliation work.
+
+They let the leader retry recovery when placement is temporarily blocked. A blocked eval stores its reason and `wait_until` timestamp. Placement-blocked evals do not consume reschedule policy attempts until a real placement attempt is made.
+
+The retry backoff for recovery eval infrastructure is separate from job reschedule policy:
+
+- recovery eval backoff answers "when should the control plane retry this blocked eval?"
+- reschedule policy answers "is this workload allowed to try another placement?"
+
+## Drain And Maintenance Reliability
+
+Maintenance mode is a cordon. It stops new placements but leaves current work alone.
+
+Drain mode is a graceful migration workflow:
+
+- mark the node `draining`
+- set `scheduling_eligible` to `false`
+- migrate safe long-running service work
+- let batch work finish before the deadline
+- ignore `system` and `sysbatch` by default
+- pause unsafe leftovers for review at the deadline
+- leave the node in maintenance when the drain completes
+
+Drain migrations do not consume failure reschedule attempts because they are operator-requested maintenance moves, not workload failures.
+
+The leader also processes due drains so blocked drains can make progress after capacity changes or deadlines expire.
+
+## Replay And Deduplication
+
+MirrorNeuron uses at-least-once recovery.
+
+That means work or output can be replayed after failure. To make common fan-out/fan-in jobs safer:
+
+- executors persist their last emitted output payload
+- recovery can re-emit completed executor output if the downstream collector did not durably observe it
+- the built-in aggregator dedupes replayed executor results by `agent_id` when that field is present
+
+This works well for one-result-per-worker patterns such as prime sweep shards. It is not a universal exactly-once system for arbitrary streams.
+
+## Redis HA
+
+Single Redis mode remains the simplest development setup, but it is a single point of failure.
+
+Redis Sentinel mode provides an authoritative primary with replica promotion:
+
+- MirrorNeuron writes to the Sentinel-elected primary.
+- If the primary dies, Sentinel promotes a replica.
+- MirrorNeuron re-resolves the primary and reconnects.
+- `READONLY` and connection errors are retried during promotion.
+- Optional `MN_REDIS_WAIT_REPLICAS` asks Redis to wait for replica acknowledgement after durable writes.
+
+See [Redis High Availability](redis-ha.md) for setup and smoke tests.
+
+## Verified Scenarios
+
+The current design has targeted unit, runtime, CLI, SDK, and joined-cluster coverage for:
+
+- scheduler exclusion of offline, draining, maintenance, and ineligible nodes
+- partial agent replanning with stale placement ignoring
+- service and batch lifecycle behavior
+- system and sysbatch expansion across eligible nodes
+- restart policy normalization, delay functions, window exhaustion, and legacy fallback
+- reschedule policy enforcement and unlimited mode
+- node loss reconciliation with live coordinator agent movement
+- whole-job recovery when the coordinator lease is gone
+- safe pause behavior for missing snapshots, corrupt snapshots, unsafe active steps, and manual recovery
+- node drain dry runs, service migration, batch waiting, system job ignore, blocked placement, cancellation, and maintenance toggles
+- two-box cluster verification using local plus `spark`
+
+Useful smoke tests:
 
 ```bash
+cd MirrorNeuron
 bash scripts/test_cluster_prime_failover_e2e.sh \
   --box1-ip 192.168.4.29 \
   --box2-ip 192.168.4.35 \
@@ -190,106 +349,81 @@ bash scripts/test_cluster_prime_failover_e2e.sh \
   --end 1006002
 ```
 
-That test now completes successfully and emits recovery events.
-
-### Redis Sentinel failover tests
-
-Redis HA has dedicated smoke tests.
-
-Local Docker Sentinel:
+Redis Sentinel local smoke test:
 
 ```bash
 cd MirrorNeuron
 bash scripts/test_redis_sentinel_ha.sh
 ```
 
-Two physical boxes:
+Two-box Sentinel smoke test:
 
 ```bash
 cd MirrorNeuron
-
 bash scripts/test_redis_sentinel_two_box_ha.sh \
   --remote-host 192.168.4.173 \
   --local-ip 192.168.4.25 \
   --remote-ip 192.168.4.173
 ```
 
-The two-box test starts Redis and Sentinel on both boxes, writes state through MirrorNeuron, kills the initial Redis primary, waits for Sentinel to promote the replica, then verifies a post-failover MirrorNeuron write/read succeeds. In lab networks where the remote host cannot route to the local Redis test port, the smoke test automatically uses the remote Redis as the initial primary and verifies failover back to the local replica.
+## Failure Model To Expect
 
-## Failure model to expect
+When an executor node dies:
 
-When an executor box dies:
-
-- jobs should keep running if the coordinator is on a healthy box
+- jobs continue if the coordinator and durable state are healthy
+- replayable agents can restart locally or move to another node
 - some work may be replayed
-- throughput drops
+- throughput drops because capacity is gone
 - completion may take longer
-- the result should still converge if replayable state exists
+- unsafe work pauses for review
 
-This is degraded service, not zero-impact failover.
+When the coordinator node dies:
 
-## Current shortcomings
+- the job lease eventually expires
+- the leader sweep detects the orphan
+- the durable bundle is loaded
+- a fresh scheduler plan is computed
+- the whole job is restarted only if recovery policy and safety allow it
 
-These are important to understand.
+When Redis is unavailable:
 
-### Single Redis mode is still a single point of failure
+- durable writes, leases, recovery evals, and job status are affected
+- Sentinel mode can recover after primary promotion
+- single Redis mode cannot tolerate Redis loss
 
-Single Redis mode remains supported for development and simple local deployments.
+## Practical Guidance
 
-In that mode, Redis is still the shared durable state store. If it is unavailable or corrupted, job state, recovery data, leases, and event history are affected.
+For the most reliable behavior:
 
-Use [Redis High Availability](redis-ha.md) for multi-box reliability.
-
-### At-least-once, not exactly-once
-
-Recovery can replay work or results.
-
-That is why:
-
-- executor outputs are replayable
-- aggregators dedupe common duplicates
-
-If you need exactly-once semantics, the current runtime is not there yet.
-
-### Aggregator dedupe is intentionally simple
-
-The built-in aggregator currently dedupes replayed executor results by `agent_id` when present.
-
-That works well for one-result-per-worker patterns, but it is not a universal dedupe system for arbitrary multi-message streams.
-
-### Redis client stability can still be noisy
-
-The runtime now recovers from broken Redix connections much better, but under stress you may still see warning logs about closed connections.
-
-In the current design, the fallback path keeps jobs completing successfully, but the logging may still be noisy.
-
-### Node loss is covered better than full platform loss
-
-We validated executor-node loss during active work.
-
-Remaining platform-level gaps:
-
-- full seed/control node loss before or during submission
-- multi-box network partitions with split-brain handling when using two Sentinel voters or quorum `1`
-- exact workflow-history replay
-
-## Practical guidance
-
-If you want the most reliable behavior with the current runtime:
-
+- use `cluster_recover` only for work that is safe to replay
+- mark unsafe executor steps with manual review or approval fields
+- give replayable executors an idempotency marker
 - keep work split into bounded shards
-- prefer deterministic executor tasks
-- design collectors/aggregators to tolerate replay
-- use Redis Sentinel HA for multi-box deployments
-- keep Redis and Sentinel healthy and monitored
-- treat box loss as capacity loss, not as a reason to restart the whole workflow
+- prefer deterministic worker payloads
+- use `service` for long-running workers and APIs
+- use `batch` for finite evals and data processing
+- use `system` for per-node monitors and local workers
+- use `sysbatch` for per-node diagnostics and cache warmups
+- use maintenance before planned reboot when work can stay in place
+- use drain before planned reboot when safe work should move away
+- use Redis Sentinel HA for real multi-box reliability
 
-## Next likely improvements
+## Current Limitations
 
-If reliability becomes the next major focus, the most valuable next steps are:
+MirrorNeuron still has important limits:
 
-- stale lease reclaim tied to node liveness
-- event-driven completion instead of polling
-- stronger durable mailbox semantics for critical messages
-- deterministic coordinator ownership recorded in durable state
-- production-grade Sentinel deployment automation and monitoring dashboards
+- exactly-once delivery is not implemented
+- arbitrary stream dedupe is not automatic
+- full deterministic workflow-history replay is not implemented
+- single Redis mode remains a single point of failure
+- two-box Sentinel quorum settings are useful for lab smoke tests but not production-grade partition handling
+- specialized resources beyond CPU, memory, disk, and GPU count should be modeled with profiles, capabilities, and constraints
+
+## Related Docs
+
+- [Cluster Guide](cluster.md)
+- [Redis High Availability](redis-ha.md)
+- [Runtime Architecture](runtime-architecture.md)
+- [Job Bundle Format](bundle.md)
+- [Testing](testing.md)
+- [Troubleshooting](troubleshooting.md)

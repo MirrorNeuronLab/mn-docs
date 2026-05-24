@@ -13,7 +13,7 @@ Depending on configuration and bundle contents, MirrorNeuron can access:
 - Environment variables explicitly listed in a node or blueprint `pass_env`.
 - Model provider APIs and third-party services used by skills or worker payloads.
 - Cluster peers reachable through BEAM distribution and configured network ports.
-- Live inputs from daemon workflows, Slack/email integrations, sensors, or API clients.
+- Live inputs from service workflows, Slack/email integrations, sensors, or API clients.
 
 ## Trust Boundaries
 
@@ -134,7 +134,7 @@ Before running a bundle from another person or repository:
 - Inspect `payloads/` for scripts, package files, templates, and data.
 - Check `runner`, `command`, `uploads`, `env`, and `pass_env`.
 - Check OpenShell `policy` files.
-- Check whether the workflow is a daemon.
+- Check whether the workflow is a service.
 - Check whether workers call external APIs or model providers.
 - Check retry policies and backpressure settings.
 - Run `mn validate <bundle>` before `mn run <bundle>`.

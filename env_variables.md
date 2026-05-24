@@ -39,6 +39,7 @@ These variables control how CLI, SDK, and API clients connect to the core gRPC r
 | `MN_CORE_GRPC_TARGET` | `localhost:50051` | API | Fallback gRPC target used by the API when `MN_GRPC_TARGET` is unset. |
 | `MN_GRPC_TIMEOUT_SECONDS` | `10` | CLI, Python SDK, API | Per-RPC timeout. `0`, `none`, or an empty value disables the timeout. |
 | `MN_GRPC_AUTH_TOKEN` | empty | CLI, Python SDK | Optional bearer token metadata for protected gRPC gateways. |
+| `MN_NETWORK_JOIN_TOKEN` | `~/.mn/network.token` for `mn start` and `mn expose-node` | CLI, Python SDK | Stable token used by cluster join handshakes. |
 | `MN_CLI_OUTPUT` | `rich` | CLI | Set to `plain` to avoid Rich output formatting. |
 
 ## CLI, API, SDK, and skill logs
@@ -95,6 +96,11 @@ These variables are read by the Elixir core runtime.
 | `MN_API_ENABLED` | `true` | Enables the runtime's built-in API listener. False values are `0`, `false`, `FALSE`, `False`, or empty. |
 | `MN_API_PORT` | `4000` in core, `4001` in Python API | HTTP API port. The core runtime and Python API have different defaults. |
 | `MN_GRPC_PORT` | `50051` | Core gRPC server port. |
+| `MN_NETWORK_ONLY` | `false` | Restricts public gRPC to network join and cluster/resource summaries for core-only cluster peers. |
+| `MN_NETWORK_JOIN_TOKEN` | unset | Join token required by `ClusterService.NetworkHandshake`; `mn start` and `mn expose-node` derive cluster cookies and network-mode Redis secrets from it. |
+| `MN_NETWORK_ADVERTISE_HOST` | unset | Host returned by the network handshake for other nodes to reach this runtime. |
+| `MN_NETWORK_REDIS_HOST` | unset | Public Redis host returned by the network handshake. |
+| `MN_NETWORK_REDIS_PORT` | unset | Public Redis port returned by the network handshake. |
 | `MN_NODE_ROLE` | `runtime` | Runtime node role. `control` starts only shared/control services; other values start runtime workers. |
 | `MN_NODE_NAME` | set by launch scripts | Erlang node name, typically `mirror_neuron@<ip>` or `mn1@<ip>`. |
 | `MN_CLUSTER_NODES` | empty | Comma-separated Erlang node names for clustering. |
@@ -211,7 +217,7 @@ LLM-enabled blueprints use LiteLLM-style settings only. Provider-specific aliase
 
 ## Business email blueprint variables
 
-These are specific to `business_email_campaign_deamon`.
+These are specific to `business_customer_lifecycle_email_copilot`.
 
 | Variable | Default | Usage |
 | --- | --- | --- |

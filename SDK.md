@@ -77,7 +77,6 @@ class ResearchAgents:
 
 @workflow.defn(
     name="marketing_research_flow_v1",
-    daemon=False,
     recovery_mode="local_restart",
 )
 class MarketingResearchFlow:
@@ -137,7 +136,7 @@ It does not:
 - provide Temporal-style event-history replay
 - provide deterministic clock, random, or command APIs
 
-If you need durable long-running behavior, use MirrorNeuron workflow features such as daemon mode, stream agents, recovery policies, retries, backpressure, and persisted agent snapshots.
+If you need durable long-running behavior, set the workflow type to `service` and use MirrorNeuron workflow features such as stream agents, recovery policies, retries, backpressure, and persisted agent snapshots.
 
 ## Agent Options
 
@@ -167,7 +166,7 @@ Keep `pass_env` narrow. See [Security Model](security.md).
 | Field | Purpose |
 | --- | --- |
 | `name` | `graph_id` / workflow name. |
-| `daemon` | Keeps the job alive until cancelled. |
+| `type` | Set to `"service"` for long-running jobs; omit for default batch jobs. |
 | `stream_mode` | Enables stream-oriented behavior when supported by nodes. |
 | `recovery_mode` | Recovery policy such as `local_restart`. |
 | `backpressure` | Job-level pressure policy. |
@@ -209,7 +208,7 @@ Expected output:
 
 ```text
 general_python_defined_basic quick bundle
-general_python_defined_advanced_deamon quick bundle
+general_python_sdk_live_research_service quick bundle
 All selected test suites passed.
 ```
 

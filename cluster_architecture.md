@@ -37,8 +37,8 @@ mn start
 
 ### On Node 2 (The Follower)
 ```bash
-mn join <LEADER_IP>
-# e.g., mn join 192.168.4.25
+mn join <LEADER_IP> --token <token>
+# e.g., mn join 192.168.4.25 --token <token>
 ```
 *Will launch an attached worker node that links back to Redis or Sentinel and the Elixir swarm.*
 

@@ -85,7 +85,7 @@ In a cluster, `nodes` contains connected runtime nodes and executor pool stats.
 ## Operational Notes
 
 - Closing your terminal does not necessarily cancel a submitted job.
-- Use `mn cancel <job_id>` to stop daemon workflows.
+- Use `mn cancel <job_id>` to stop service workflows.
 - Use `mn dead-letters <job_id>` when messages fail to route or process.
 - Run `mn clear` only when you are ready to remove terminal job records.
 
