@@ -37,10 +37,13 @@ The control plane lives in BEAM:
 - message routing
 - supervision
 - persistence
+- placement scheduling and allocation metadata
 - retries and backoff
 - event history
 - aggregation
 - cluster coordination
+- service registry health state
+- deployment and schedule dispatch state
 
 These are all cheap, stateful, highly concurrent tasks that BEAM is excellent at.
 
@@ -145,6 +148,21 @@ The runtime should understand enough to route and observe messages, but it shoul
 
 That also enables multi-language workers: Python and shell code consume the payload contract inside the sandbox, while BEAM only needs the stable envelope.
 
+## Nomad-Inspired Orchestration Layer
+
+MirrorNeuron now has a small-cluster orchestration layer above the message graph:
+
+- desired-vs-actual reconciliation for failed nodes and orphaned jobs
+- full `service`, `batch`, `system`, and `sysbatch` job type behavior
+- restart and reschedule policy with sliding windows and backoff
+- node maintenance and drain
+- Redis-backed service registry and health checks
+- CUDA, Metal, port, volume, and runtime-driver aware placement
+- rolling, canary, promote, rollback, and version history for long-running deployments
+- periodic, delayed, and event-triggered job dispatch
+
+The detailed map is in [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md).
+
 ## Why artifacts matter
 
 Passing large blobs directly between agents is a bad fit for a clustered runtime.
@@ -210,6 +228,7 @@ The current implementation improves the runtime boundary a lot, but a few things
 - there is no cluster-wide lease balancer yet
 - sensor and deferred waiting primitives can still grow richer
 - artifacts are modeled in messages, but there is not yet a full external artifact store abstraction
+- resource allocation is scheduling metadata and environment hints, not OS-level isolation
 
 Those are good next steps, but the current runtime is already much closer to the intended design:
 

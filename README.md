@@ -64,6 +64,7 @@ Read:
 
 - [Runtime Architecture](runtime-architecture.md)
 - [Cluster Architecture](cluster_architecture.md)
+- [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md)
 - [Security Model](security.md)
 
 ## Documentation Index
@@ -74,8 +75,14 @@ Read:
 | Installation | [installation.md](installation.md) |
 | CLI reference | [cli.md](cli.md) |
 | Blueprints and skills | [blueprints-and-skills.md](blueprints-and-skills.md) |
+| Nomad-inspired runtime features | [nomad-inspired-runtime.md](nomad-inspired-runtime.md) |
+| Services and health checks | [services-and-health-checks.md](services-and-health-checks.md) |
+| Resources and devices | [resources-and-devices.md](resources-and-devices.md) |
+| Deployments | [deployments.md](deployments.md) |
+| Schedules and events | [schedules-and-events.md](schedules-and-events.md) |
 | Runtime architecture | [runtime-architecture.md](runtime-architecture.md) |
 | Cluster architecture | [cluster_architecture.md](cluster_architecture.md) |
+| Reliability and recovery | [reliability.md](reliability.md) |
 | Security | [security.md](security.md) |
 | Troubleshooting | [troubleshooting.md](troubleshooting.md) |
 | Contributing | [contributing.md](contributing.md) |

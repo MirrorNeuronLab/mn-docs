@@ -23,6 +23,7 @@ The documentation has two goals:
 | [Installation](installation.md) | Tutorial | You need to install Redis, OpenShell, Elixir, and Python tooling. |
 | [Examples](examples.md) | Tutorial | You want to choose the right checked-in blueprint. |
 | [Cluster Guide](cluster.md) | How-to | You need to start or inspect a multi-box runtime. |
+| [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md) | Overview | You want the status and code map for reconciliation, job types, policies, drain, services, resources, deployments, and schedules. |
 | [Redis High Availability](redis-ha.md) | How-to | You need Redis Sentinel failover. |
 | [Monitor Guide](monitor.md) | How-to | You need to inspect live jobs and events. |
 | [CLI Reference](cli.md) | Reference | You need exact CLI commands and options. |
@@ -30,6 +31,10 @@ The documentation has two goals:
 | [API Reference](api.md) | Reference | You need HTTP or Elixir API shapes. |
 | [Job Bundle Format](bundle.md) | Reference | You are writing or validating `manifest.json`. |
 | [Python SDK](SDK.md) | Reference | You want to compile Python workflow definitions into bundles. |
+| [Services and Health Checks](services-and-health-checks.md) | How-to | You need service declarations, registry lookup, or required service preflight. |
+| [Resources and Devices](resources-and-devices.md) | Reference | You need CUDA, Metal, GPU memory, ports, volumes, or runtime-driver placement. |
+| [Deployments](deployments.md) | How-to | You need rolling, canary, promotion, rollback, or versioned long-running jobs. |
+| [Schedules and Events](schedules-and-events.md) | How-to | You need cron, delayed, or event-triggered jobs. |
 | [Runtime Architecture](runtime-architecture.md) | Explanation | You want the control-plane/execution-plane mental model. |
 | [Cluster Architecture](cluster_architecture.md) | Explanation | You want leader, node, and relocation behavior. |
 | [Reliability Guide](reliability.md) | Explanation | You want recovery, leases, backpressure, and retention behavior. |

@@ -29,6 +29,24 @@ mn cancel [job_id]
 mn pause <job_id>
 mn resume <job_id>
 mn nodes
+mn reconcile-node <node_name> [--reason <text>] [--dry-run]
+mn drain-node <node_name> [--reason <text>] [--deadline 30m] [--dry-run] [--wait]
+mn undrain-node <node_name> [--reason <text>] [--mark-eligible]
+mn maintenance-node <node_name> --enable|--disable [--reason <text>]
+mn resource list
+mn resource set [--cpu 75] [--gpu 100] [--memory 75] [--disk 75]
+mn service list
+mn service resolve <name>
+mn service check <bundle_path>
+mn deploy <bundle_path> --key <deployment_key>
+mn deployment list|status|promote|rollback|pause|resume|fail
+mn schedule create <bundle_path> --cron "0 2 * * *"
+mn schedule delay <bundle_path> --in 30m
+mn schedule list|status|pause|resume|delete|run-now
+mn trigger create <bundle_path> --event <event_type>
+mn trigger list|delete
+mn event emit <event_type>
+mn event list
 mn metrics
 mn dead-letters <job_id>
 mn start
@@ -230,6 +248,114 @@ Expected output includes:
 
 In a real cluster, `nodes` contains node names, connected peers, and executor pool stats.
 
+## `mn reconcile-node`
+
+Runs the same reconciler used after node-loss recovery and leader orphan sweeps.
+
+```bash
+mn reconcile-node mirror_neuron@192.168.4.20 --reason "manual check" --dry-run
+```
+
+Use `--dry-run` first to see checked, recovered, paused, blocked, skipped, and failed counts.
+
+## `mn drain-node`, `mn undrain-node`, And `mn maintenance-node`
+
+Maintenance mode stops new placements without moving current work:
+
+```bash
+mn maintenance-node mirror_neuron@192.168.4.20 --enable --reason "driver update"
+mn maintenance-node mirror_neuron@192.168.4.20 --disable --reason "ready"
+```
+
+Drain mode stops new placements, moves safe service work, lets batch work finish before the deadline, and leaves the node in maintenance until undrained:
+
+```bash
+mn drain-node mirror_neuron@192.168.4.20 --reason "reboot" --deadline 30m --dry-run
+mn drain-node mirror_neuron@192.168.4.20 --reason "reboot" --deadline 30m --wait
+mn undrain-node mirror_neuron@192.168.4.20 --mark-eligible --reason "ready"
+```
+
+## `mn resource`
+
+Inspect aggregate and per-node CPU, memory, disk, GPU, device, port, host-path, and runtime-driver information:
+
+```bash
+mn resource list
+```
+
+Set coarse resource limit percentages:
+
+```bash
+mn resource set --cpu 75 --memory 75 --gpu 100 --disk 75
+```
+
+See [Resources and Devices](resources-and-devices.md).
+
+## `mn service`
+
+Inspect the service registry and run required service checks:
+
+```bash
+mn service list
+mn service list --all
+mn service resolve ollama --tag llm
+mn service check /path/to/bundle --output json
+```
+
+See [Services and Health Checks](services-and-health-checks.md).
+
+## `mn deploy` And `mn deployment`
+
+Deploy a bundle under a stable deployment key:
+
+```bash
+mn deploy /path/to/bundle --key agent-api --strategy rolling --max-parallel 1
+```
+
+Manage deployment status, canaries, and rollback:
+
+```bash
+mn deployment list
+mn deployment status agent-api
+mn deployment promote agent-api
+mn deployment rollback agent-api --version 1 --reason "restore stable"
+mn deployment pause agent-api --reason "hold"
+mn deployment resume agent-api --reason "continue"
+mn deployment fail agent-api --reason "candidate failed"
+```
+
+See [Deployments](deployments.md).
+
+## `mn schedule`, `mn trigger`, And `mn event`
+
+Create periodic and delayed schedules:
+
+```bash
+mn schedule create /path/to/bundle --cron "0 2 * * *" --timezone America/New_York
+mn schedule delay /path/to/bundle --in 30m
+```
+
+Manage schedules:
+
+```bash
+mn schedule list
+mn schedule status <schedule-id>
+mn schedule pause <schedule-id> --reason "hold"
+mn schedule resume <schedule-id> --reason "ready"
+mn schedule run-now <schedule-id>
+mn schedule delete <schedule-id> --reason "retired"
+```
+
+Create and emit generic event triggers:
+
+```bash
+mn trigger create /path/to/bundle --event file_uploaded --filter-json '{"path":{"prefix":"/datasets/"}}'
+mn event emit file_uploaded --payload-json '{"path":"/datasets/eval.jsonl"}'
+mn event list
+```
+
+See [Schedules and Events](schedules-and-events.md).
+
 ## `mn metrics`
 
 Shows runtime metrics derived from the core system summary.
@@ -402,5 +528,6 @@ MN_CLI_OUTPUT=plain mn list
 
 - [Quickstart](quickstart.md)
 - [API Reference](api.md)
+- [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md)
 - [Environment Variables](env_variables.md)
 - [Troubleshooting](troubleshooting.md)

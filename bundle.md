@@ -30,8 +30,14 @@ The `manifest.json` is a JSON document that defines the execution graph.
 | `manifest_version` | String | **Required.** The version of the manifest format (e.g., `"1.0"`). |
 | `graph_id` | String | **Required.** A unique identifier for the agent graph. |
 | `job_name` | String | Optional. A human-readable name for the job. Defaults to `graph_id` if missing. |
-| `type` | String | Optional. Set to `"service"` for workflows intended to run until manually stopped. Omit for default batch workflows. |
+| `type` | String | Optional. Set to `"service"` for workflows intended to run until manually stopped. Omit for default batch workflows. `system` and `sysbatch` are selected through scheduler policy. |
 | `requiredContextEngine` | Boolean | Optional. Set to `true` when the workflow requires the Context Engine. The runtime checks `CONTEXT_ENGINE_ADDR` or port `50052` and rejects the run before scheduling agents if the service is unavailable. Defaults to `false`. |
+| `services` | Array | Optional. Services registered by the job. See [Services and Health Checks](services-and-health-checks.md). |
+| `required_services` | Array | Optional. Services that must be healthy before job start. |
+| `deployment` | Object | Optional. Stable deployment key and metadata. See [Deployments](deployments.md). |
+| `schedule` | Object | Optional. Periodic or delayed schedule declaration. See [Schedules and Events](schedules-and-events.md). |
+| `triggers` | Array | Optional. Event-trigger schedule declarations. |
+| `parameterized` | Object | Optional. Dispatch payload and metadata declaration for scheduled or event-triggered runs. |
 | `metadata` | Object | Optional. Custom metadata tags for the job. |
 | `entrypoints` | Array | **Required.** A list of `node_id` strings where initial inputs will be injected to start the graph. |
 | `initial_inputs` | Object | Optional. A map where the keys are `node_id`s (from `entrypoints`) and values are arrays of message payloads to seed the job. |
@@ -50,6 +56,172 @@ Each item in the `nodes` array defines an agent that will be supervised by the B
 | `type` | String | Optional. The behavioral template (e.g., `"map"`, `"reduce"`, `"stream"`, `"batch"`). Defaults to `"generic"`. |
 | `role` | String | Optional. A human-readable tag describing the agent's domain role (e.g., `"researcher"`, `"root_coordinator"`). |
 | `config` | Object | Optional. Configuration specific to the `agent_type` and `type` (e.g., `emit_type`, `pool`, `uploads`). |
+| `resources` | Object | Optional. CPU, memory, disk, GPU, device, port, volume, and runtime-driver requirements. |
+| `services` | Array | Optional. Services registered by this specific agent. |
+| `requires_services` | Array | Optional. Node-scoped service requirements used during placement. |
+| `policies` | Object | Optional. Per-agent restart and reschedule overrides. |
+
+### Job Types
+
+MirrorNeuron supports four Nomad-inspired job types:
+
+| Type | How to declare | Behavior |
+| --- | --- | --- |
+| `service` | top-level `"type": "service"` or scheduler policy | Long-running and restarted/rescheduled by policy until stopped. |
+| `batch` | default top-level type | Runs to completion and retries within policy limits. |
+| `system` | `policies.scheduler.job_type: "system"` | Runs one copy on every eligible node. |
+| `sysbatch` | `policies.scheduler.job_type: "sysbatch"` | Runs one one-off copy on every eligible node. |
+
+Example:
+
+```json
+{
+  "policies": {
+    "scheduler": {
+      "job_type": "system",
+      "strategy": "spread"
+    }
+  }
+}
+```
+
+### Restart And Reschedule Policies
+
+Job-level policies live under `policies.restart` and `policies.reschedule`. Per-agent overrides live under `nodes[].policies.restart` and `nodes[].policies.reschedule`.
+
+```json
+{
+  "policies": {
+    "recovery_mode": "cluster_recover",
+    "restart": {
+      "attempts": 3,
+      "interval_ms": 600000,
+      "delay_ms": 1000,
+      "delay_function": "exponential",
+      "max_delay_ms": 30000,
+      "mode": "fail"
+    },
+    "reschedule": {
+      "unlimited": true,
+      "delay_ms": 5000,
+      "delay_function": "exponential",
+      "max_delay_ms": 300000
+    }
+  }
+}
+```
+
+See [Reliability Guide](reliability.md).
+
+### Resource Requirements
+
+```json
+{
+  "resources": {
+    "cpu_cores": 2,
+    "memory_mb": 8192,
+    "devices": [
+      {
+        "kind": "gpu",
+        "driver": "cuda",
+        "min_memory_mb": 16000,
+        "count": 1
+      }
+    ],
+    "ports": [
+      {
+        "label": "api",
+        "port": 8088,
+        "protocol": "http"
+      }
+    ],
+    "volumes": [
+      {
+        "name": "models",
+        "source": "/mnt/models",
+        "target": "/models",
+        "mode": "ro",
+        "type": "host"
+      }
+    ],
+    "runtime_driver": "host_local"
+  }
+}
+```
+
+See [Resources and Devices](resources-and-devices.md).
+
+### Service Requirements
+
+```json
+{
+  "required_services": [
+    {
+      "name": "ollama",
+      "origin": "external",
+      "address": "${config.ollama.host}",
+      "port": "${config.ollama.port}",
+      "checks": [
+        {
+          "type": "http",
+          "url": "${config.ollama.api_base}/api/tags",
+          "expected_status": 200
+        }
+      ]
+    }
+  ]
+}
+```
+
+See [Services and Health Checks](services-and-health-checks.md).
+
+### Deployment Policy
+
+```json
+{
+  "deployment": {
+    "key": "agent-api"
+  },
+  "policies": {
+    "update": {
+      "strategy": "canary",
+      "canary": 1,
+      "max_parallel": 1,
+      "auto_promote": false,
+      "auto_revert": true
+    }
+  }
+}
+```
+
+See [Deployments](deployments.md).
+
+### Schedule And Triggers
+
+```json
+{
+  "schedule": {
+    "kind": "periodic",
+    "crons": ["0 2 * * *"],
+    "timezone": "America/New_York",
+    "prohibit_overlap": true,
+    "missed_policy": "skip"
+  },
+  "triggers": [
+    {
+      "name": "dataset-uploaded",
+      "event_type": "file_uploaded",
+      "filters": {
+        "path": {
+          "prefix": "/datasets/"
+        }
+      }
+    }
+  ]
+}
+```
+
+See [Schedules and Events](schedules-and-events.md).
 
 ### Edges (Routing)
 

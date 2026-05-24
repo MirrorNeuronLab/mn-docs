@@ -147,6 +147,46 @@ Expected output:
 All selected test suites passed.
 ```
 
+## Nomad-Inspired Runtime Feature Tests
+
+The Nomad-inspired runtime features should be covered at three levels:
+
+- component unit tests in `MirrorNeuron`, `mn-cli`, and `mn-python-sdk`
+- live cross-component tests in `mn-system-tests`
+- two-box joined-cluster smoke tests when placement, drain, recovery, or schedule uniqueness is involved
+
+Core areas to keep covered:
+
+| Feature | Test focus |
+| --- | --- |
+| Reconciliation | Node-loss recovery, live coordinator agent movement, whole-job recovery after lease loss, pause for unsafe work. |
+| Job types | `service`, `batch`, `system`, and `sysbatch` lifecycle behavior. |
+| Restart/reschedule policy | Sliding windows, delay functions, `mode: fail`, `mode: delay`, disabled and unlimited reschedule. |
+| Drain and maintenance | Eligibility, dry run, service migration, batch waiting, system ignore, cancellation, undrain. |
+| Services and checks | Manifest validation, service preflight, registry filtering, HTTP/TCP/script/gRPC checks. |
+| Resources and devices | CUDA vs Metal, GPU memory, device ID exclusivity, explicit port conflicts, host volume placement. |
+| Deployments | Rolling, canary isolation, promotion, rollback, service discovery roles. |
+| Schedules and events | Cron parsing, timezone, delayed runs, overlap prevention, missed policies, event filters, idempotent dispatch. |
+
+Two-box cluster checks should use a shared Redis namespace and sync the remote workspace through Git rather than editing files directly on the remote machine.
+
+Typical joined-cluster verification:
+
+```bash
+mn start
+mn join <main-ip> --token <token>
+mn nodes
+mn resource list
+```
+
+Then run targeted system tests for:
+
+- one due schedule dispatching exactly once across both boxes
+- `system` jobs expanding across both eligible nodes
+- service jobs moving from a drained node to the other node
+- resource placement avoiding a node without the requested CUDA/Metal/device capability
+- required service preflight blocking before agents launch
+
 ## Environment Rules
 
 All runtime/config overrides must use `MN_`.

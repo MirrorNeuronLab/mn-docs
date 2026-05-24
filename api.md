@@ -32,11 +32,43 @@ By default, the API binds to port `4000`. You can change this using the `MN_API_
 | POST   | `/api/v1/jobs/cleanup`            | Clears finished/cancelled jobs from the datastore       |
 | GET    | `/api/v1/jobs/:job_id/events`     | Returns raw event history for a job                     |
 | POST   | `/api/v1/bundles/:bundle_id/reload` | Manually reload a registered job bundle                 |
+| GET    | `/api/v1/resource`              | Core resource totals and configured CPU/GPU/memory/disk limits |
+| POST/PUT | `/api/v1/resource`            | Set CPU/GPU/memory/disk limits |
+| POST   | `/api/v1/schedules`             | Create a runtime schedule from manifest JSON, payloads, or an uploaded bundle path |
+| GET    | `/api/v1/schedules`             | List schedules, optionally filtered by kind or status |
+| GET    | `/api/v1/schedules/:schedule_id` | Get one schedule |
+| PATCH  | `/api/v1/schedules/:schedule_id` | Update schedule attributes |
+| POST   | `/api/v1/schedules/:schedule_id/pause` | Pause a schedule |
+| POST   | `/api/v1/schedules/:schedule_id/resume` | Resume a schedule |
+| DELETE | `/api/v1/schedules/:schedule_id` | Delete a schedule |
+| POST   | `/api/v1/schedules/:schedule_id/dispatch` | Dispatch a schedule immediately |
+| POST   | `/api/v1/events`                | Emit a runtime trigger event |
+| GET    | `/api/v1/events`                | List recent runtime trigger events |
 
 ### Design Decisions & Differences from Airflow
 - **Simplicity over Ceremony**: Airflow's REST API is heavy and enterprise-oriented. MirrorNeuron's API is lean, using standard query parameters, and maps directly to internal monitor boundaries.
 - **Explicit Status Fields**: The `status` field drives logic directly (e.g., `pending`, `running`, `queued`, `completed`, `failed`, `cancelled`).
 - **Control Plane Separation**: The HTTP layer is merely a translation boundary into internal Elixir primitives and does no business logic itself.
+
+## gRPC And SDK Operator Surfaces
+
+The CLI and Python SDK primarily use gRPC. The gRPC server exposes JSON-safe methods for the newer orchestration features:
+
+| Area | Surface |
+| --- | --- |
+| Reconciliation | `ReconcileNode` |
+| Drain and maintenance | `DrainNode`, `CancelNodeDrain`, `SetNodeMaintenance`, `GetNodeDrainStatus` |
+| Services | `ListServices`, `ResolveService`, `CheckServices` |
+| Resources | resource get/set methods |
+| Deployments | deploy, update, list, status, promote, rollback, pause, resume, fail methods |
+| Schedules and events | create, update, list, status, pause, resume, delete, dispatch, emit, and list event methods |
+
+Implementation entry points:
+
+- `MirrorNeuron/lib/mirror_neuron.ex`
+- `MirrorNeuron/lib/mirror_neuron_grpc/server.ex`
+- `mn-python-sdk/mn_sdk/client.py`
+- `mn-cli/mn_cli/main.py`
 
 ### API Examples
 

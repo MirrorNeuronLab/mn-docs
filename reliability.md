@@ -57,6 +57,7 @@ The leader sweeps:
 
 - due recovery evals
 - due drain retries and deadlines
+- due schedules
 - orphaned jobs whose coordinator lease is gone
 
 ## Job Types
@@ -337,6 +338,10 @@ The current design has targeted unit, runtime, CLI, SDK, and joined-cluster cove
 - safe pause behavior for missing snapshots, corrupt snapshots, unsafe active steps, and manual recovery
 - node drain dry runs, service migration, batch waiting, system job ignore, blocked placement, cancellation, and maintenance toggles
 - two-box cluster verification using local plus `spark`
+- service registry health filtering and required service preflight
+- CUDA/Metal/device-memory placement, port conflicts, and host-volume placement
+- rolling/canary deployment bookkeeping and service discovery role filtering
+- periodic, delayed, and event-triggered dispatch idempotency
 
 Useful smoke tests:
 
@@ -417,11 +422,19 @@ MirrorNeuron still has important limits:
 - full deterministic workflow-history replay is not implemented
 - single Redis mode remains a single point of failure
 - two-box Sentinel quorum settings are useful for lab smoke tests but not production-grade partition handling
-- specialized resources beyond CPU, memory, disk, and GPU count should be modeled with profiles, capabilities, and constraints
+- resource/device placement records are scheduling hints and allocation metadata, not hard OS isolation
+- volumes are validated and advertised, but core does not mount them automatically
+- service health affects discovery and placement, but does not automatically restart services yet
+- scheduled jobs are ordinary child jobs, not a separate deterministic scheduler engine
 
 ## Related Docs
 
 - [Cluster Guide](cluster.md)
+- [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md)
+- [Services and Health Checks](services-and-health-checks.md)
+- [Resources and Devices](resources-and-devices.md)
+- [Deployments](deployments.md)
+- [Schedules and Events](schedules-and-events.md)
 - [Redis High Availability](redis-ha.md)
 - [Runtime Architecture](runtime-architecture.md)
 - [Job Bundle Format](bundle.md)

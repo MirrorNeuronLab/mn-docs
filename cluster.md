@@ -127,9 +127,13 @@ The scheduler places workload agents on runtime nodes. It considers:
 
 - node status and scheduling eligibility
 - available CPU, memory, disk, and GPU count
+- rich device inventory such as CUDA, Metal, GPU vendor, GPU memory, capabilities, and device IDs
+- explicit port conflicts
+- advertised host paths and runtime drivers
 - active job placements already consuming capacity
 - execution profiles advertised by each node
 - node capabilities and manifest constraints
+- node-scoped required services with passing health
 - the selected scheduler strategy
 
 Supported strategies:
@@ -153,10 +157,16 @@ Supported placement keys include:
 | Memory | `memory_mb`, `memory`, `memory_gb` |
 | Disk | `disk_mb`, `disk`, `disk_gb` |
 | GPU count | `gpu_count`, `gpus`, `gpu`, or GPU-like entries in `devices` |
+| Devices | `devices` with `kind`, `type`, `count`, `vendor`, `driver`, `min_memory_mb`, `capabilities`, and `ids` |
+| Ports | `ports` with `label`, `port`, and `protocol` |
+| Volumes | `volumes` with `name`, `source`, `target`, `mode`, and `type: host` |
+| Runtime driver | `runtime_driver` such as `host_local` or `openshell` |
 
 Execution profiles can also imply GPU demand. If a node asks for a profile whose runtime profile has `gpu: true`, the scheduler requires at least one GPU.
 
-Special devices, local volumes, and port needs should be represented today through execution profiles, capabilities, and constraints unless they are already encoded as resource keys above.
+Placement records include concrete allocations for selected devices, reserved ports, volumes, and runtime driver. Core injects safe environment hints such as `MN_ALLOCATION_JSON`, `MN_ALLOCATED_DEVICE_IDS`, `CUDA_VISIBLE_DEVICES`, `MN_PORT_<LABEL>`, and `MN_VOLUME_<NAME>`.
+
+See [Resources and Devices](resources-and-devices.md) for the full resource model.
 
 ### Constraints And Capabilities
 
@@ -397,7 +407,10 @@ For production Redis HA, use at least three Sentinel voters. A two-box Sentinel 
 
 ## Related Docs
 
+- [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md)
 - [Reliability Guide](reliability.md)
+- [Resources and Devices](resources-and-devices.md)
+- [Services and Health Checks](services-and-health-checks.md)
 - [Redis High Availability](redis-ha.md)
 - [CLI Reference](cli.md)
 - [Runtime Architecture](runtime-architecture.md)

@@ -4,15 +4,18 @@ MirrorNeuron supports horizontal scaling by seamlessly clustering multiple Elixi
 
 ## 1. Network Requirements
 
-For two nodes (e.g. `192.168.4.25` as the Leader and `192.168.4.173` as a Follower) to communicate successfully:
+For two nodes, for example `192.168.4.25` and `192.168.4.173`, to communicate successfully:
+
 - **Erlang Port Mapper Daemon (EPMD):** Port `4369` must be open and reachable.
-- **Erlang Distribution Ports:** A predefined range of ports (e.g. `9000-9010`) must be explicitly published by the Docker container and reachable across the network.
+- **Erlang Distribution Port:** MirrorNeuron helpers pin BEAM distribution to port `4370` with `MN_DIST_PORT` and `ERL_AFLAGS`.
+- **gRPC:** Port `50051` must be reachable for CLI, SDK, and node operator calls.
 - **Redis:** Development clusters can use one shared Redis on port `6379`. Multi-box reliability should use Redis Sentinel HA so each box has a replicated Redis and MirrorNeuron reconnects to the Sentinel-elected primary.
+- **Redis Sentinel:** Sentinel uses port `26379` when HA mode is enabled.
 
 ## 2. Docker Configuration
 
 When deploying a cluster across different host operating systems (like macOS and Linux), the networking bridge behaves differently.
-- **macOS:** `--network host` does not expose the Erlang ports to the external network due to the underlying Linux VM. Instead, the `mn` CLI automatically detects macOS (`Darwin`) and manually publishes `-p 4369:4369` and `-p 9000-9010:9000-9010`.
+- **macOS:** `--network host` does not expose the Erlang ports to the external network due to the underlying Linux VM. Instead, the `mn` CLI automatically detects macOS (`Darwin`) and manually publishes the needed gRPC, EPMD, BEAM distribution, Redis, and Sentinel ports.
 - **Linux:** Native Docker uses `--network host` which binds the Erlang distribution safely to the physical host interfaces.
 
 In both cases, we inject `MN_NODE_NAME=mirror_neuron@<IP>` so the Erlang node is explicitly addressable rather than falling back to `nonode@nohost`.
@@ -27,7 +30,20 @@ As tasks are scheduled to execute remotely, the `MirrorNeuron.Runner.HostLocal` 
   
 This ensures that workflows can seamlessly map/reduce completely agnostic to the underlying hardware execution plane.
 
-## 4. Starting a Cluster
+## 4. Nomad-Inspired Control Loop
+
+The clustered runtime now has a Nomad-inspired control loop:
+
+- the scheduler places agents on eligible nodes using resources, devices, ports, volumes, runtime drivers, constraints, and service requirements
+- node state in Redis decides whether a node is healthy, joining, draining, in maintenance, disconnected, offline, or quarantined
+- the reconciler handles node loss, orphaned jobs, and policy-driven reschedules
+- the job coordinator restarts agents locally first, then asks the reconciler to move safe work when restart policy is exhausted
+- node drain marks a node ineligible, moves safe service work, lets batch work finish, and leaves the node in maintenance until undrained
+- the leader sweeps recovery evals, due drains, orphaned jobs, and due schedules
+
+See [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md), [Reliability Guide](reliability.md), and [Cluster Guide](cluster.md).
+
+## 5. Starting a Cluster
 
 ### On Node 1 (The Leader / Initial Node)
 ```bash
@@ -48,7 +64,7 @@ mn nodes
 ```
 *You should see multiple items under `nodes`, and their respective hardware capacities pooled together in the `executor_pools`.*
 
-## 5. Avoiding Local Resource Exhaustion
+## 6. Avoiding Local Resource Exhaustion
 When running on heavy distributed load tests (e.g. `general_prime_sweep_scale`), attempting to invoke 1,000 OS `python3` subprocesses concurrently across a local 2-node development setup may exhaust CPU and networking file descriptors, causing nodes to miss Erlang heartbeats (`timed out waiting for recovered agent ...`).
 
 To securely test scaling logic without overloading small development VMs, lower the worker count in the generated blueprint:

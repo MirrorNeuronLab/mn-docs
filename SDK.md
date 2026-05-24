@@ -155,6 +155,9 @@ If you need durable long-running behavior, set the workflow type to `service` an
 | `uploads` | Payload files to stage for execution. |
 | `policy` | Runner policy file, usually OpenShell network policy. |
 | `timeout_seconds` | Worker command timeout. |
+| `resources` | CPU, memory, disk, GPU/device, port, volume, and runtime-driver requirements. |
+| `services` | Agent-scoped service declarations. |
+| `requires_services` | Node-scoped service requirements used by the scheduler. |
 | `raw_config` | Escape hatch for manifest fields not yet modeled by the SDK. |
 
 Keep `pass_env` narrow. See [Security Model](security.md).
@@ -169,9 +172,45 @@ Keep `pass_env` narrow. See [Security Model](security.md).
 | `type` | Set to `"service"` for long-running jobs; omit for default batch jobs. |
 | `stream_mode` | Enables stream-oriented behavior when supported by nodes. |
 | `recovery_mode` | Recovery policy such as `local_restart`. |
+| `deployment` | Deployment key and metadata pass-through. |
+| `schedule` | Periodic or delayed schedule declaration pass-through. |
+| `triggers` | Event trigger declarations pass-through. |
+| `services` | Job-scoped services provided by the workflow. |
+| `required_services` | Required service preflight declarations. |
+| `policies` | Restart, reschedule, scheduler, and update policy maps. |
 | `backpressure` | Job-level pressure policy. |
 | `includes` | Files or directories copied into the generated payload. |
 | `excludes` | Package paths to omit. |
+
+The SDK passes these orchestration maps through unchanged so the runtime remains the source of truth for validation and behavior.
+
+## Operational Client Methods
+
+The gRPC client exposes operator surfaces for the Nomad-inspired runtime features:
+
+```python
+from mn_sdk import Client
+
+client = Client()
+
+client.reconcile_node("mirror_neuron@192.168.4.20", reason="manual check", dry_run=True)
+client.drain_node("mirror_neuron@192.168.4.20", reason="reboot", deadline_ms=1_800_000)
+client.set_node_maintenance("mirror_neuron@192.168.4.20", True, reason="maintenance")
+
+client.list_services()
+client.resolve_service("ollama", tags=["llm"])
+client.check_services([{"name": "ollama", "checks": [{"type": "tcp", "address": "127.0.0.1", "port": 11434}]}])
+
+client.list_deployments()
+client.promote_deployment("agent-api")
+client.rollback_deployment("agent-api", version="1")
+
+client.list_schedules()
+client.dispatch_schedule("schedule-id", payload={"manual": True})
+client.emit_trigger_event("file_uploaded", payload={"path": "/datasets/eval.jsonl"})
+```
+
+See [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md), [Services and Health Checks](services-and-health-checks.md), [Resources and Devices](resources-and-devices.md), [Deployments](deployments.md), and [Schedules and Events](schedules-and-events.md).
 
 ## Packaging Rules
 
