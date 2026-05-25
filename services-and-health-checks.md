@@ -185,6 +185,25 @@ Filter by node:
 mn service resolve vllm --node mirror_neuron@192.168.4.20
 ```
 
+## Blueprint Web UI Services
+
+Blueprints keep using their existing `config.web_ui` contract. For live/service blueprints with `web_ui.output.adapter: "gradio"`, launch preparation injects a runtime-managed `web_ui_dashboard` HostLocal agent and registers its dashboard as a service:
+
+```json
+{
+  "name": "blueprint-web-ui",
+  "tags": ["web_ui", "blueprint", "<blueprint_id>", "gradio"],
+  "meta": {
+    "run_id": "<run_id>",
+    "blueprint_id": "<blueprint_id>",
+    "url": "http://localhost:58000",
+    "adapter": "gradio"
+  }
+}
+```
+
+The generated service reserves an explicit HTTP port from `MN_BLUEPRINT_WEB_UI_PORT_START`/`MN_BLUEPRINT_WEB_UI_PORT_END` and includes an HTTP readiness check. Discovery returns it as passing only after the Gradio dashboard is reachable. The dashboard still writes `ui.json` and `web_ui.json` under the run store for older OtterDesk and CLI consumers, but the service registry is the authoritative live-service source.
+
 ## Runtime Behavior
 
 - job-level services register when the job starts
@@ -210,4 +229,3 @@ mn service resolve vllm --node mirror_neuron@192.168.4.20
 | CLI commands | `mn-cli/mn_cli/libs/service_cmds.py` |
 | Blueprint validation | `mn-python-sdk/mn_sdk/blueprint_validation.py` |
 | SDK client | `mn-python-sdk/mn_sdk/client.py` |
-
