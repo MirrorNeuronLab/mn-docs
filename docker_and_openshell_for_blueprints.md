@@ -173,6 +173,12 @@ For Gradio dashboards, keep `config.web_ui` as the public blueprint contract:
 Launch preparation injects the HostLocal dashboard node, port resource, service
 registration, and health check.
 
+When the run store is a native host path that is not mounted into the Core
+container, runtime dashboards should not depend on reading that path directly.
+The generated Gradio dashboard receives `MN_BLUEPRINT_RUN_EVENTS_URL` and reads
+live events from mn-api, falling back to `events.jsonl` only when no API event
+source is configured.
+
 ## Localhost Means Different Things
 
 `localhost` always means "this process's own network namespace."

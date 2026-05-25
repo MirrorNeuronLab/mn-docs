@@ -202,7 +202,7 @@ Blueprints keep using their existing `config.web_ui` contract. For live/service 
 }
 ```
 
-The generated service reserves an explicit HTTP port from `MN_BLUEPRINT_WEB_UI_PORT_START`/`MN_BLUEPRINT_WEB_UI_PORT_END` and includes an HTTP readiness check. Discovery returns it as passing only after the Gradio dashboard is reachable. The dashboard still writes `ui.json` and `web_ui.json` under the run store for older OtterDesk and CLI consumers, but the service registry is the authoritative live-service source.
+The generated service reserves an explicit HTTP port from `MN_BLUEPRINT_WEB_UI_PORT_START`/`MN_BLUEPRINT_WEB_UI_PORT_END` and includes an HTTP readiness check. Discovery returns it as passing only after the Gradio dashboard is reachable. Runtime dashboards read live events through the mn-api run events endpoint when the run store is outside the Core container, and fall back to `events.jsonl` when no API event source is configured. The dashboard still writes `ui.json` and `web_ui.json` under the run store for older OtterDesk and CLI consumers, but the service registry is the authoritative live-service source.
 
 ## Runtime Behavior
 
