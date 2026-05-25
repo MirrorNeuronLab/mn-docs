@@ -32,6 +32,7 @@ The documentation has two goals:
 | [Job Bundle Format](bundle.md) | Reference | You are writing or validating `manifest.json`. |
 | [Python SDK](SDK.md) | Reference | You want to compile Python workflow definitions into bundles. |
 | [Services and Health Checks](services-and-health-checks.md) | How-to | You need service declarations, registry lookup, or required service preflight. |
+| [Docker and OpenShell for Blueprints](docker_and_openshell_for_blueprints.md) | How-to | You need local files, ports, web UIs, host services, or sandbox resources to work first time. |
 | [Resources and Devices](resources-and-devices.md) | Reference | You need CUDA, Metal, GPU memory, ports, volumes, or runtime-driver placement. |
 | [Deployments](deployments.md) | How-to | You need rolling, canary, promotion, rollback, or versioned long-running jobs. |
 | [Schedules and Events](schedules-and-events.md) | How-to | You need cron, delayed, or event-triggered jobs. |
