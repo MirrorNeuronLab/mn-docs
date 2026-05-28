@@ -28,6 +28,8 @@ mn clear
 mn cancel [job_id]
 mn pause <job_id>
 mn resume <job_id>
+mn backup <job_id_or_run_id_or_blueprint_id> --output <folder>
+mn restore <blueprint_id> --input <backup.zip>
 mn nodes
 mn reconcile-node <node_name> [--reason <text>] [--dry-run]
 mn drain-node <node_name> [--reason <text>] [--deadline 30m] [--dry-run] [--wait]
@@ -228,6 +230,36 @@ Expected output:
 ```text
 Job resumed
 ```
+
+## `mn backup` And `mn restore`
+
+Back up a paused job:
+
+```bash
+mn backup <job_id_or_run_id_or_blueprint_id> --output ./backups
+```
+
+Restore it as a fresh paused clone:
+
+```bash
+mn restore <blueprint_id> --input ./backups/<backup>.zip
+```
+
+Backup resolution accepts an exact job ID, an exact blueprint run ID from
+`MN_RUNS_ROOT` or `~/.mn/runs`, or a blueprint ID when exactly one paused run is
+active for that blueprint. Ambiguous blueprint IDs fail and print candidate job
+and run IDs.
+
+Backups use the `mn.backup.v1` zip schema and include raw runtime job state,
+agent snapshots, event history, `bundle/manifest.json`, `bundle/payloads/**`,
+checksums, and local `run_store/**` files when available. The archive is a
+complete runtime clone and may contain secrets from manifests, config,
+environment values, runtime state, or payloads. Nothing is redacted.
+
+Restore always creates a new job ID and run ID for the target blueprint. The
+original job/run IDs are kept in restore provenance, stale leases and node
+ownership are discarded, and the restored job is left paused for inspection
+before `mn resume <new_job_id>`.
 
 ## `mn nodes`
 
