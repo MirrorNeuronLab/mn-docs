@@ -137,7 +137,7 @@ Before running a bundle from another person or repository:
 - Check whether the workflow is a service.
 - Check whether workers call external APIs or model providers.
 - Check retry policies and backpressure settings.
-- Run `mn validate <bundle>` before `mn run <bundle>`.
+- Run `mn blueprint validate <bundle>` before `mn blueprint run --folder <bundle>`.
 
 ## Skill Review Checklist
 

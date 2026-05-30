@@ -33,16 +33,16 @@ curl -fsSL https://mirrorneuron.io/install.sh | bash
 Start the runtime and run a sample blueprint:
 
 ```bash
-mn start
-mn blueprint run general_message_routing_trace
+mn runtime start
+mn blueprint run message_routing_trace
 mn blueprint monitor
 ```
 
 Check jobs:
 
 ```bash
-mn list
-mn nodes
+mn job list
+mn node list
 ```
 
 ## Architecture Summary
@@ -71,6 +71,8 @@ Read:
 
 | Topic | Document |
 | --- | --- |
+| Repository/component guide | [component-guide.md](component-guide.md) |
+| Skill catalog | [skill-catalog.md](skill-catalog.md) |
 | Getting started | [quickstart.md](quickstart.md) |
 | Installation | [installation.md](installation.md) |
 | CLI reference | [cli.md](cli.md) |

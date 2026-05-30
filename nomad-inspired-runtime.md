@@ -100,15 +100,15 @@ Use resource and service requirements together when a worker needs a healthy loc
 Drain a node before rebooting it:
 
 ```bash
-mn drain-node mirror_neuron@192.168.4.20 --reason "driver update" --deadline 30m --dry-run
-mn drain-node mirror_neuron@192.168.4.20 --reason "driver update" --deadline 30m --wait
-mn undrain-node mirror_neuron@192.168.4.20 --mark-eligible --reason "ready"
+mn node drain mirror_neuron@192.168.4.20 --reason "driver update" --deadline 30m --dry-run
+mn node drain mirror_neuron@192.168.4.20 --reason "driver update" --deadline 30m --wait
+mn node undrain mirror_neuron@192.168.4.20 --mark-eligible --reason "ready"
 ```
 
 Deploy a long-running service under a stable key:
 
 ```bash
-mn deploy /path/to/bundle --key agent-api --strategy rolling --max-parallel 1
+mn deployment deploy /path/to/bundle --key agent-api --strategy rolling --max-parallel 1
 mn deployment status agent-api
 ```
 

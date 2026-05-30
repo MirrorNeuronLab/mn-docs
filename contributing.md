@@ -13,7 +13,7 @@ Thanks for helping improve MirrorNeuron. The best first contribution is usually 
 
 ## Development Setup
 
-From the monorepo root:
+From the workspace root:
 
 ```bash
 python3 -m venv .venv

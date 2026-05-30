@@ -9,7 +9,7 @@ This guide collects the most common operational failures seen during local and t
 Symptoms:
 
 - runtime tests fail immediately
-- `mn run ...` hangs or errors
+- `mn blueprint run ...` hangs or errors
 
 Check:
 
@@ -221,7 +221,7 @@ Check:
 
 ```bash
 bash scripts/cluster_cli.sh --box1-ip 192.168.4.29 --box2-ip 192.168.4.35 --self-ip 192.168.4.29 -- inspect nodes
-mn nodes
+mn node list
 ```
 
 ## Monitor issues
@@ -239,9 +239,9 @@ Options:
 
 Use the CLI command:
 
-- `mn monitor <job_id>`
+- `mn job monitor <job_id>`
 
-If you need all jobs first, run `mn list`.
+If you need all jobs first, run `mn job list`.
 
 ## LLM example issues
 
@@ -292,10 +292,10 @@ If the workflow itself is tiny but runtime is slow, look first at:
 ## Good diagnostic commands
 
 ```bash
-mn nodes
-mn status <job_id>
-mn monitor <job_id>
-mn dead-letters <job_id>
+mn node list
+mn job status <job_id>
+mn job monitor <job_id>
+mn job dead-letters <job_id>
 openshell status
 openshell sandbox list
 epmd -names

@@ -8,7 +8,7 @@ The MirrorNeuron Python SDK provides:
 
 ## Install For Local Development
 
-From the monorepo root:
+From the workspace root:
 
 ```bash
 python3 -m pip install -e mn-python-sdk
@@ -17,7 +17,7 @@ python3 -m pip install -e mn-python-sdk
 Expected output:
 
 ```text
-Successfully installed mn-python-sdk
+Successfully installed mirrorneuron-python-sdk
 ```
 
 The `mn-system-tests/requirements.txt` file installs the SDK and CLI together for test runs.
@@ -27,7 +27,7 @@ The `mn-system-tests/requirements.txt` file installs the SDK and CLI together fo
 ```python
 from mn_sdk import Client
 
-client = Client(target="localhost:50051")
+client = Client(target="localhost:55051")
 
 manifest_json = '{"manifest_version": "1.0", "graph_id": "simple", "nodes": [], "edges": []}'
 job_id = client.submit_job(manifest_json, payloads={})
@@ -40,7 +40,7 @@ Important environment variables:
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `MN_GRPC_TARGET` | `localhost:50051` | Runtime gRPC endpoint. |
+| `MN_GRPC_TARGET` | `localhost:55051` | Runtime gRPC endpoint for the local deployed runtime. |
 | `MN_GRPC_TIMEOUT_SECONDS` | `10` | Per-RPC timeout. |
 | `MN_GRPC_AUTH_TOKEN` | unset | Optional bearer token metadata. |
 | `MN_SDK_LOG_PATH` | `~/.mn/logs/sdk.log` | SDK log path. |
@@ -89,12 +89,15 @@ class MarketingResearchFlow:
         return self.agents.reviewer(request)
 ```
 
-Generate a checked-in example:
+Generate the checked-in Python SDK research pipeline:
 
 ```bash
-python3 mn-blueprints/general_python_defined_basic/generate_bundle.py \
+cd mn-blueprints/python_sdk_research_pipeline
+python3 -m pip install -e ../../mn-skills/blueprint_support_skill
+python -m mn_blueprint_support.python_workflow_bundle_cli \
+  --blueprint-dir . \
   --quick-test \
-  --output-dir /tmp/mn-python-basic
+  --output-dir /tmp/mn-python-research
 ```
 
 Expected output:
@@ -106,7 +109,7 @@ bundle generated
 Validate:
 
 ```bash
-mn validate /tmp/mn-python-basic
+mn blueprint validate /tmp/mn-python-research
 ```
 
 Expected output:
@@ -237,19 +240,10 @@ Expected output:
 12 passed
 ```
 
-Generate both Python-defined blueprints:
-
-```bash
-python3 mn-system-tests/test_all.py --blueprints
-```
-
-Expected output:
-
-```text
-general_python_defined_basic quick bundle
-general_python_sdk_live_research_service quick bundle
-All selected test suites passed.
-```
+For the checked-in source-mode examples, repeat the same
+`mn_blueprint_support.python_workflow_bundle_cli` command in
+`mn-blueprints/python_sdk_research_pipeline` and
+`mn-blueprints/python_sdk_research_service`.
 
 ## Related Pages
 

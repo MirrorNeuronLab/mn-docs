@@ -43,7 +43,7 @@ Avoid:
 Always use fenced code blocks:
 
 ```bash
-mn blueprint run general_message_routing_trace
+mn blueprint run message_routing_trace
 ```
 
 Include the working directory when it matters:
@@ -81,10 +81,34 @@ Warning: `--purge-local` can delete Redis data. Use it only for disposable test 
 
 Prefer examples from checked-in blueprints:
 
-- `mn-blueprints/general_message_routing_trace`
-- `mn-blueprints/general_python_defined_basic`
-- `mn-blueprints/general_stream_backpressure_control_loop`
-- `mn-blueprints/general_prime_sweep_scale`
+- `mn-blueprints/message_routing_trace`
+- `mn-blueprints/python_sdk_research_pipeline`
+- `mn-blueprints/stream_backpressure_simulation`
+- `mn-blueprints/parallel_worker_benchmark`
+
+## Folder README Standard
+
+Most folder-level `README.md` files should stay quick. Put durable detail in
+`mn-docs` and link to it.
+
+Exception: blueprint folders in `mn-blueprints` and `otterdesk-blueprints`
+should stay self-contained. Their README files may include local catalog,
+input/output, safety, and validation detail because users often inspect a
+blueprint folder without opening the central docs.
+
+A quick README should include:
+
+- one-sentence purpose;
+- one or two safe first commands;
+- the smallest useful validation command;
+- links to the detailed guide, API reference, architecture page, or local spec.
+
+Do not duplicate long environment-variable tables, architecture explanations,
+release procedures, or troubleshooting sections in non-blueprint component
+READMEs. Move that material to a durable page such as
+[Component Guide](component-guide.md), [Environment Variables](env_variables.md),
+[Runtime Architecture](runtime-architecture.md), or
+[Troubleshooting](troubleshooting.md).
 
 ## Links
 

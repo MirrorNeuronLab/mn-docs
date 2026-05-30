@@ -1,8 +1,9 @@
 # Choose A Blueprint Example
 
-This guide helps you pick the right checked-in blueprint for your first run or test.
+This guide helps you choose a checked-in blueprint for a first run, smoke test,
+or runtime demonstration.
 
-Run commands from the monorepo root unless a step says otherwise.
+Run commands from the workspace root unless a step says otherwise.
 
 ## List Available Blueprints
 
@@ -18,27 +19,40 @@ Name
 Job Name
 ```
 
-Blueprint availability depends on your local blueprint index and checkout.
+Blueprint availability depends on your local blueprint index and checkout. The
+catalog source of truth is [`mn-blueprints/index.json`](../mn-blueprints/index.json).
 
-## 1. General Test Message Flow
+## Recommended Order
+
+| Order | Blueprint | Use it when |
+| --- | --- | --- |
+| 1 | `message_routing_trace` | You want the smallest local routing workflow. |
+| 2 | `python_sdk_research_pipeline` | You want to review a Python-defined batch workflow. |
+| 3 | `python_sdk_research_service` | You want a long-running Python service pattern. |
+| 4 | `openshell_sandbox_worker_pipeline` | You want sandboxed worker execution and artifact handoff. |
+| 5 | `parallel_worker_benchmark` | You want fan-out/fan-in scheduler pressure. |
+| 6 | `stream_backpressure_simulation` | You want bounded stream and backpressure behavior. |
+| 7 | `ecosystem_simulation` | You want a larger stateful simulation. |
+| 8 | `liquidity_risk_monitor` | You want a finance workflow with optional external integrations. |
+
+## 1. Message Routing Trace
 
 Path:
 
 ```text
-mn-blueprints/general_message_routing_trace
+mn-blueprints/message_routing_trace
 ```
 
 Use it when:
 
-- you want the smallest local workflow
-- you want to validate routing and manifest shape
-- you do not want external APIs
+- you want the smallest local workflow;
+- you want to validate routing and manifest shape;
+- you do not want external APIs.
 
 Run:
 
 ```bash
-mn blueprint run general_message_routing_trace
-mn blueprint run general_message_routing_trace
+mn blueprint run message_routing_trace
 ```
 
 Expected output:
@@ -47,216 +61,175 @@ Expected output:
 Job submitted successfully
 ```
 
-## 2. Pure Python Basic Workflow
+## 2. Python SDK Research Pipeline
 
 Path:
 
 ```text
-mn-blueprints/general_python_defined_basic
+mn-blueprints/python_sdk_research_pipeline
 ```
 
 Use it when:
 
-- you want to author a workflow in Python
-- you want the SDK to generate a normal bundle
-- you want HostLocal, retry, and deterministic input examples
+- you want to author workflows in Python;
+- you want the SDK compiler to generate a normal bundle;
+- you want a deterministic research pipeline example.
 
-Generate:
+Generate a quick deterministic bundle with the shared support generator:
 
 ```bash
-python3 mn-blueprints/general_python_defined_basic/generate_bundle.py \
+cd mn-blueprints/python_sdk_research_pipeline
+python3 -m pip install -e ../../mn-skills/blueprint_support_skill
+python -m mn_blueprint_support.python_workflow_bundle_cli \
+  --blueprint-dir . \
   --quick-test \
-  --output-dir /tmp/mn-python-basic
+  --output-dir /tmp/mirror-neuron-bundles
 ```
 
-Validate and run:
-
-```bash
-mn validate /tmp/mn-python-basic
-mn run /tmp/mn-python-basic
-```
-
-## 3. Pure Python Advanced Service
+## 3. Python SDK Research Service
 
 Path:
 
 ```text
-mn-blueprints/general_python_sdk_live_research_service
+mn-blueprints/python_sdk_research_service
 ```
 
 Use it when:
 
-- you want service workflow options
-- you want stream/backpressure examples
-- you want a Python-defined workflow that stays alive until cancelled
+- you want a service-style Python workflow;
+- you want repeated stateful turns;
+- you want a long-running workflow that can be cancelled.
 
 Run:
 
 ```bash
-mn blueprint run general_python_sdk_live_research_service
+mn blueprint run python_sdk_research_service
 ```
 
 Cancel when done:
 
 ```bash
-mn cancel <job_id>
+mn job cancel <job_id>
 ```
 
-Expected output:
-
-```text
-Job cancelled. Status: cancelled
-```
-
-## 4. OpenShell Worker Basic
+## 4. OpenShell Sandbox Worker Pipeline
 
 Path:
 
 ```text
-mn-blueprints/general_openshell_sandbox_worker_pipeline
+mn-blueprints/openshell_sandbox_worker_pipeline
 ```
 
 Use it when:
 
-- you want sandboxed shell or Python execution
-- you want to test OpenShell setup
-- you want to inspect payload staging
+- you want sandboxed shell or Python execution;
+- you want to test OpenShell setup;
+- you want to inspect payload staging.
 
 Run:
 
 ```bash
-mn blueprint run general_openshell_sandbox_worker_pipeline
-mn blueprint run general_openshell_sandbox_worker_pipeline
+mn blueprint run openshell_sandbox_worker_pipeline
 ```
 
-If the run fails before worker code starts, check:
+If the run fails before worker code starts, check OpenShell:
 
 ```bash
 openshell status
 ```
 
-Expected output includes:
-
-```text
-Status: Connected
-```
-
-## 5. Prime Sweep Scale
+## 5. Parallel Worker Benchmark
 
 Path:
 
 ```text
-mn-blueprints/general_prime_sweep_scale
+mn-blueprints/parallel_worker_benchmark
 ```
 
 Use it when:
 
-- you want fan-out/fan-in executor behavior
-- you want to exercise pools and backpressure
-- you want a local or cluster scale smoke test
+- you want fan-out/fan-in executor behavior;
+- you want to exercise pools and backpressure;
+- you want a local or cluster scale smoke test.
 
-Generate a quick bundle:
+Run from the catalog:
 
 ```bash
-python3 mn-blueprints/general_prime_sweep_scale/generate_bundle.py \
-  --quick-test \
-  --output-dir /tmp/mn-prime
+mn blueprint run parallel_worker_benchmark
 ```
+
+Run from the local folder:
+
+```bash
+cd mn-blueprints/parallel_worker_benchmark
+mn blueprint run --folder .
+```
+
+## 6. Stream Backpressure Simulation
+
+Path:
+
+```text
+mn-blueprints/stream_backpressure_simulation
+```
+
+Use it when:
+
+- you want a stream workflow;
+- you want bounded queue behavior;
+- you want retry-later and pressure signals.
 
 Run:
 
 ```bash
-mn validate /tmp/mn-prime
-mn run /tmp/mn-prime
+mn blueprint run stream_backpressure_simulation
 ```
 
-## 6. Stream Live Backpressure Service
+## 7. Ecosystem Simulation
 
 Path:
 
 ```text
-mn-blueprints/general_stream_backpressure_control_loop
+mn-blueprints/ecosystem_simulation
 ```
 
 Use it when:
 
-- you want a service workflow
-- you want bounded queue and retry-later behavior
-- you want live stream pressure signals
+- you want a larger stateful simulation;
+- you want to test many messages and actors;
+- you want a richer cluster workload.
 
 Run:
 
 ```bash
-mn blueprint run general_stream_backpressure_control_loop
-mn blueprint run general_stream_backpressure_control_loop
+mn blueprint run ecosystem_simulation
 ```
 
-Cancel after observing events:
-
-```bash
-mn cancel <job_id>
-```
-
-## 7. Science Ecosystem Simulation
+## 8. Liquidity Risk Monitor
 
 Path:
 
 ```text
-mn-blueprints/science_ecosystem_simulation
+mn-blueprints/liquidity_risk_monitor
 ```
 
 Use it when:
 
-- you want a larger stateful simulation
-- you want to test many messages and actors
-- you want a richer cluster workload
+- you want a market-signal workflow;
+- you want optional LLM or Slack integration;
+- you want dry-run delivery before live adapters.
 
-Quick generation:
-
-```bash
-python3 mn-blueprints/science_ecosystem_simulation/generate_bundle.py \
-  --quick-test \
-  --output-dir /tmp/mn-ecosystem
-```
-
-## 8. Finance Liquidity Microstructure Radar
-
-Path:
-
-```text
-mn-blueprints/finance_liquidity_microstructure_radar
-```
-
-Use it when:
-
-- you want a long-lived market simulation
-- you want optional LLM and Slack integration
-- you want retry and dry-run delivery behavior
-
-Start in quick-test mode before enabling real external delivery:
+Run in local/mock configuration first:
 
 ```bash
-mn blueprint run finance_liquidity_microstructure_radar
+mn blueprint run liquidity_risk_monitor
 ```
-
-## Recommended Order
-
-1. `general_message_routing_trace`
-2. `general_python_defined_basic`
-3. `general_openshell_sandbox_worker_pipeline`
-4. `general_prime_sweep_scale`
-5. `general_python_sdk_live_research_service`
-6. `general_stream_backpressure_control_loop`
-7. `science_ecosystem_simulation`
-8. `finance_liquidity_microstructure_radar`
-
-That path moves from pure local routing to Python authoring, sandbox execution, scale, service behavior, streaming, simulation, and external integrations.
 
 ## Security Notes
 
 - Review `manifest.json` before running any blueprint.
 - Check `pass_env` before passing secrets.
-- Use quick-test and dry-run modes before external delivery.
+- Use mock, quick-test, and dry-run modes before external delivery.
 - Cancel service jobs when you are done.
 
 ## Related Pages

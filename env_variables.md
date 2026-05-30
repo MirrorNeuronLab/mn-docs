@@ -6,7 +6,7 @@ Boolean values generally accept `1`, `true`, `yes`, or `on` for true and `0`, `f
 
 ## Run command logging
 
-These variables are read by the shared CLI runner used by both `mn run <bundle>` and `mn blueprint run <name>`. They are evaluated on the client side and do not need to be listed in a blueprint manifest `pass_env`.
+These variables are read by the shared CLI runner used by both `mn blueprint run --folder <bundle>` and `mn blueprint run <blueprint_id>`. They are evaluated on the client side and do not need to be listed in a blueprint manifest `pass_env`.
 
 Run artifacts are written to `/tmp/mn_<job_id>/`:
 
@@ -26,7 +26,7 @@ Example:
 MN_RUN_DETACH_LOG_SECONDS=10 \
 MN_RUN_LOG_LEVEL=DEBUG \
 MN_RUN_EVENT_LOG_MAX_BYTES=5242880 \
-mn blueprint run general_stream_backpressure_control_loop
+mn blueprint run stream_backpressure_simulation
 ```
 
 ## CLI and SDK connectivity
@@ -35,11 +35,11 @@ These variables control how CLI, SDK, and API clients connect to the core gRPC r
 
 | Variable | Default | Used by | Usage |
 | --- | --- | --- | --- |
-| `MN_GRPC_TARGET` | `localhost:50051` | CLI, Python SDK, API | gRPC target for the core runtime. |
-| `MN_CORE_GRPC_TARGET` | `localhost:50051` | API | Fallback gRPC target used by the API when `MN_GRPC_TARGET` is unset. |
+| `MN_GRPC_TARGET` | `localhost:55051` | CLI, Python SDK, API | gRPC target for the local deployed runtime. |
+| `MN_CORE_GRPC_TARGET` | `localhost:55051` | API | Fallback gRPC target used by the API when `MN_GRPC_TARGET` is unset. |
 | `MN_GRPC_TIMEOUT_SECONDS` | `10` | CLI, Python SDK, API | Per-RPC timeout. `0`, `none`, or an empty value disables the timeout. |
 | `MN_GRPC_AUTH_TOKEN` | empty | CLI, Python SDK | Optional bearer token metadata for protected gRPC gateways. |
-| `MN_NETWORK_JOIN_TOKEN` | `~/.mn/network.token` for `mn start` and `mn expose-node` | CLI, Python SDK | Stable token used by cluster join handshakes. |
+| `MN_NETWORK_JOIN_TOKEN` | `~/.mn/network.token` for `mn runtime start` and `mn node expose` | CLI, Python SDK | Stable token used by cluster join handshakes. |
 | `MN_CLI_OUTPUT` | `rich` | CLI | Set to `plain` to avoid Rich output formatting. |
 
 ## CLI, API, SDK, and skill logs
@@ -97,7 +97,7 @@ These variables are read by the Elixir core runtime.
 | `MN_API_PORT` | `4000` in core, `4001` in Python API | HTTP API port. The core runtime and Python API have different defaults. |
 | `MN_GRPC_PORT` | `50051` | Core gRPC server port. |
 | `MN_NETWORK_ONLY` | `false` | Restricts public gRPC to network join and cluster/resource summaries for core-only cluster peers. |
-| `MN_NETWORK_JOIN_TOKEN` | unset | Join token required by `ClusterService.NetworkHandshake`; `mn start` and `mn expose-node` derive cluster cookies and network-mode Redis secrets from it. |
+| `MN_NETWORK_JOIN_TOKEN` | unset | Join token required by `ClusterService.NetworkHandshake`; `mn runtime start` and `mn node expose` derive cluster cookies and network-mode Redis secrets from it. |
 | `MN_NETWORK_ADVERTISE_HOST` | unset | Host returned by the network handshake for other nodes to reach this runtime. |
 | `MN_NETWORK_REDIS_HOST` | unset | Public Redis host returned by the network handshake. |
 | `MN_NETWORK_REDIS_PORT` | unset | Public Redis port returned by the network handshake. |
@@ -160,7 +160,8 @@ These variables are used by runtime preflight checks and context-aware blueprint
 
 ## Context view logging
 
-These variables are currently used by `general_context_memory`.
+These variables are currently used by context-memory blueprints such as
+`context_memory_audit` and `context_memory_compression`.
 
 | Variable | Default | Usage |
 | --- | --- | --- |

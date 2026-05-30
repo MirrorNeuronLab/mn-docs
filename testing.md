@@ -132,7 +132,7 @@ two_box_post_failover_write_read_ok
 
 The two-box test starts Redis and Sentinel on both machines, writes MirrorNeuron state, kills the initial Redis primary, waits for Sentinel failover, then writes and reads again through the promoted replica. If the remote box cannot route to the local Redis test port, the script automatically uses the remote Redis as the initial primary and tests failover back to the local replica.
 
-Run the same path through the monorepo test runner:
+Run the same path through the workspace test runner:
 
 ```bash
 python3 mn-system-tests/test_all.py --redis-ha \
@@ -173,9 +173,9 @@ Two-box cluster checks should use a shared Redis namespace and sync the remote w
 Typical joined-cluster verification:
 
 ```bash
-mn start
-mn join <main-ip> --token <token>
-mn nodes
+mn runtime start
+mn node join <main-ip> --token <token>
+mn node list
 mn resource list
 ```
 

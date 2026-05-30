@@ -288,8 +288,8 @@ When a port fails:
 Useful commands:
 
 ```bash
-mn validate /path/to/bundle
-mn run /path/to/bundle
+mn blueprint validate /path/to/bundle
+mn blueprint run --folder /path/to/bundle
 mn service list --all
 mn service resolve blueprint-web-ui --tag <blueprint_id>
 ```

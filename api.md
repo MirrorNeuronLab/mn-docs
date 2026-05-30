@@ -259,7 +259,7 @@ curl -X POST http://localhost:4000/api/v1/bundles/prime_sweep_40_workers/reload
 
 ## Public Elixir API
 
-These functions are exposed from [MirrorNeuron](../lib/mirror_neuron.ex).
+These functions are exposed from [MirrorNeuron](../MirrorNeuron/lib/mirror_neuron.ex).
 
 ### Job execution
 
@@ -449,7 +449,7 @@ These are the control-plane mutation APIs currently used by the main CLI.
 
 ## Monitor API
 
-These functions are implemented in [monitor.ex](../lib/mirror_neuron/monitor.ex) and are intended as the stable read model for operational tooling.
+These functions are implemented in [monitor.ex](../MirrorNeuron/lib/mirror_neuron/monitor.ex) and are intended as the stable read model for operational tooling.
 
 ### `MirrorNeuron.list_jobs(opts \\ [])`
 
@@ -531,7 +531,7 @@ Return:
 
 ## Redis persistence keys
 
-The current monitor API is backed by these Redis structures in [redis_store.ex](../lib/mirror_neuron/persistence/redis_store.ex).
+The current monitor API is backed by these Redis structures in [redis_store.ex](../MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex).
 
 Namespace prefix:
 
@@ -564,10 +564,10 @@ The user-facing CLI is `mn`.
 Common commands:
 
 ```bash
-mn nodes
-mn status <job_id>
-mn monitor <job_id>
-mn cancel <job_id>
+mn node list
+mn job status <job_id>
+mn job monitor <job_id>
+mn job cancel <job_id>
 ```
 
 The CLI uses the Python SDK over gRPC for most control paths. See [CLI Reference](cli.md).

@@ -155,7 +155,7 @@ Example:
 
 The runtime persists normalized policies and per-agent state on the job.
 
-`mn status <job-id>` includes fields such as:
+`mn job status <job-id>` includes fields such as:
 
 - `restart_policy`
 - `reschedule_policy`

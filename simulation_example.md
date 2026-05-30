@@ -5,7 +5,7 @@ The ecosystem simulation is a BEAM-native blueprint that stresses MirrorNeuron w
 Path:
 
 ```text
-mn-blueprints/science_ecosystem_simulation
+mn-blueprints/ecosystem_simulation
 ```
 
 ## What It Simulates
@@ -48,25 +48,10 @@ This design keeps:
 - bounded runtime processes
 - lower Redis and sandbox overhead than per-entity workers
 
-## Generate A Quick Bundle
+## Run The Checked-In Blueprint
 
 ```bash
-python3 mn-blueprints/science_ecosystem_simulation/generate_bundle.py \
-  --quick-test \
-  --output-dir /tmp/mn-ecosystem
-```
-
-Expected output:
-
-```text
-bundle generated
-```
-
-## Validate And Run
-
-```bash
-mn validate /tmp/mn-ecosystem
-mn run /tmp/mn-ecosystem
+mn blueprint run ecosystem_simulation
 ```
 
 Expected output:
@@ -78,20 +63,10 @@ Job submitted successfully
 Inspect the job:
 
 ```bash
-mn list
-mn status <job_id>
-mn monitor <job_id>
+mn job list
+mn job status <job_id>
+mn job monitor <job_id>
 ```
-
-## Watch ASCII State
-
-The blueprint includes an ASCII watcher:
-
-```bash
-mix run mn-blueprints/science_ecosystem_simulation/watch_ascii.exs -- <job_id> --once --no-clear
-```
-
-Run this from the monorepo root with the core dependencies available.
 
 ## When To Use This Example
 

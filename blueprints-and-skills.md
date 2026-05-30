@@ -35,7 +35,7 @@ The runtime creates a cached virtualenv keyed by Python version and dependency c
 Validate the bundle:
 
 ```bash
-mn validate my_bundle
+mn blueprint validate my_bundle
 ```
 
 Expected output:
@@ -47,7 +47,7 @@ Job bundle at 'my_bundle' is valid.
 Run it:
 
 ```bash
-mn run my_bundle
+mn blueprint run --folder my_bundle
 ```
 
 Expected output:
@@ -89,12 +89,15 @@ class ResearchFlow:
         return self.agents.reviewer(request)
 ```
 
-Generate a checked-in example bundle:
+Generate the checked-in Python SDK research pipeline:
 
 ```bash
-python3 mn-blueprints/general_python_defined_basic/generate_bundle.py \
+cd mn-blueprints/python_sdk_research_pipeline
+python3 -m pip install -e ../../mn-skills/blueprint_support_skill
+python -m mn_blueprint_support.python_workflow_bundle_cli \
+  --blueprint-dir . \
   --quick-test \
-  --output-dir /tmp/mn-python-basic
+  --output-dir /tmp/mn-python-research
 ```
 
 Expected output:
@@ -106,7 +109,7 @@ bundle generated
 Validate it:
 
 ```bash
-mn validate /tmp/mn-python-basic
+mn blueprint validate /tmp/mn-python-research
 ```
 
 ## What The Python Compiler Does

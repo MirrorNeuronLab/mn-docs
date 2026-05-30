@@ -148,7 +148,7 @@ gRPC:
 
 ## Validation And Preflight
 
-`mn validate <bundle>` validates service declarations after manifest/schema checks and before input validation. `mn run <bundle>` runs the same local preflight, and core repeats service preflight before direct runtime starts.
+`mn blueprint validate <bundle>` validates service declarations after manifest/schema checks and before input validation. `mn blueprint run --folder <bundle>` runs the same local preflight, and core repeats service preflight before direct runtime starts.
 
 Failed required services stop the job before agents launch. A forced run can skip service preflight, and job metadata records the skipped check.
 

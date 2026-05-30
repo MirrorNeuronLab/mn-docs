@@ -26,20 +26,19 @@ If those are not ready yet, follow [Installation](installation.md) first.
 
 ## Step 1: Validate A Bundle
 
-From the monorepo root:
+From the workspace root:
 
 ```bash
-mn blueprint run general_message_routing_trace
+mn blueprint validate mn-blueprints/message_routing_trace
 ```
 
 Expected output:
 
 ```text
-Blueprint 'general_message_routing_trace' validated. Running...
-Job submitted successfully
+Job bundle at 'mn-blueprints/message_routing_trace' is valid.
 ```
 
-This command launches the registered blueprint through the unified blueprint CLI.
+This checks the local manifest and input contract without submitting a runtime job.
 
 ## Step 2: Start Redis
 
@@ -58,7 +57,7 @@ PONG
 ## Step 3: Start The Runtime
 
 ```bash
-mn start
+mn runtime start
 ```
 
 Expected output:
@@ -70,7 +69,7 @@ MirrorNeuron services started
 If your local command prints a different success line, verify with:
 
 ```bash
-mn nodes
+mn node list
 ```
 
 Expected output includes:
@@ -86,7 +85,7 @@ or a non-empty `nodes` list when the core runtime is reachable.
 ## Step 4: Run The Workflow
 
 ```bash
-mn blueprint run general_message_routing_trace
+mn blueprint run message_routing_trace
 ```
 
 Expected output:
@@ -100,7 +99,7 @@ The CLI may also print live events and the job id. Keep the job id for inspectio
 ## Step 5: Inspect Jobs
 
 ```bash
-mn list
+mn job list
 ```
 
 Expected output:
@@ -112,7 +111,7 @@ Job ID
 Check a single job:
 
 ```bash
-mn status <job_id>
+mn job status <job_id>
 ```
 
 Expected output includes:
@@ -123,29 +122,14 @@ Expected output includes:
 }
 ```
 
-If the job is still running, wait a moment and run `mn status <job_id>` again.
+If the job is still running, wait a moment and run `mn job status <job_id>` again.
 
 ## Step 6: Try A Python-Defined Blueprint
 
-Generate a bundle from pure Python workflow code:
+Run the checked-in Python SDK research pipeline:
 
 ```bash
-python3 mn-blueprints/general_python_defined_basic/generate_bundle.py \
-  --quick-test \
-  --output-dir /tmp/mn-python-basic
-```
-
-Expected output:
-
-```text
-bundle generated
-```
-
-Validate and run it:
-
-```bash
-mn validate /tmp/mn-python-basic
-mn run /tmp/mn-python-basic
+mn blueprint run python_sdk_research_pipeline
 ```
 
 Expected output:
@@ -153,6 +137,8 @@ Expected output:
 ```text
 Job submitted successfully
 ```
+
+For Python bundle-generation details, see [Python SDK](SDK.md).
 
 ## Security Basics
 
@@ -182,8 +168,8 @@ mn --help
 The runtime is not reachable.
 
 ```bash
-mn start
-mn nodes
+mn runtime start
+mn node list
 ```
 
 ### Redis connection errors

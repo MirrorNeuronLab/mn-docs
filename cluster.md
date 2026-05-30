@@ -23,7 +23,7 @@ All participating boxes must be able to reach each other on:
 
 | Port | Purpose |
 | --- | --- |
-| `50051` | MirrorNeuron core gRPC service. |
+| `55051` | Deployed host port for the MirrorNeuron core gRPC service. The core container listens on `50051` internally. |
 | `4369` | EPMD, used by Erlang/BEAM distribution. |
 | `4370` | Fixed BEAM distribution port used by the cluster helpers. |
 | `6379` | Redis when using a shared single Redis instance. |
@@ -67,15 +67,15 @@ MirrorNeuron supports two operator flows.
 On the main box:
 
 ```bash
-mn start
+mn runtime start
 ```
 
-Copy the token printed by `mn start`.
+Copy the token printed by `mn runtime start`.
 
 On the second box:
 
 ```bash
-mn join 192.168.4.10 --token <token>
+mn node join 192.168.4.10 --token <token>
 ```
 
 ### Option B: Main Box Adds Second Box
@@ -83,31 +83,31 @@ mn join 192.168.4.10 --token <token>
 On the second box:
 
 ```bash
-mn expose-node --host 192.168.4.20
+mn node expose --host 192.168.4.20
 ```
 
-Copy the token printed by `mn expose-node`.
+Copy the token printed by `mn node expose`.
 
 On the main box:
 
 ```bash
-mn add-node 192.168.4.20 --token <token>
+mn node add 192.168.4.20 --token <token>
 ```
 
-`mn expose-node` starts a core-only runtime that exposes gRPC, cluster ports, and secured Redis when no external `MN_REDIS_URL` is configured. It does not start the REST API, Web UI, OpenShell, context engine, or SDK helper processes.
+`mn node expose` starts a core-only runtime that exposes gRPC, cluster ports, and secured Redis when no external `MN_REDIS_URL` is configured. It does not start the REST API, Web UI, OpenShell, context engine, or SDK helper processes.
 
 ## Verify The Cluster
 
 From the main box:
 
 ```bash
-mn nodes
+mn node list
 mn resource list
 ```
 
 Expected stable signs:
 
-- both physical boxes appear in `mn nodes`
+- both physical boxes appear in `mn node list`
 - `mn resource list` shows aggregate CPU, memory, disk, and GPU capacity
 - node status is `healthy` or `joining`
 - `scheduling_eligible` is not `false`
@@ -246,7 +246,7 @@ The reconciler uses hybrid recovery:
 Operators can trigger the same path manually:
 
 ```bash
-mn reconcile-node mirror_neuron@192.168.4.20 --reason "manual recovery check" --dry-run
+mn node reconcile mirror_neuron@192.168.4.20 --reason "manual recovery check" --dry-run
 ```
 
 Expected output is JSON with counters such as `checked`, `recovered`, `paused`, `blocked`, `skipped`, and `failed`.
@@ -258,13 +258,13 @@ Maintenance mode stops new placements without moving current work.
 Enable it before rebooting or changing a box when you want existing jobs to continue in place:
 
 ```bash
-mn maintenance-node mirror_neuron@192.168.4.20 --enable --reason "reboot after current work"
+mn node maintenance mirror_neuron@192.168.4.20 --enable --reason "reboot after current work"
 ```
 
 Disable it when the node is ready:
 
 ```bash
-mn maintenance-node mirror_neuron@192.168.4.20 --disable --reason "maintenance complete"
+mn node maintenance mirror_neuron@192.168.4.20 --disable --reason "maintenance complete"
 ```
 
 Maintenance sets `scheduling_eligible` to `false` when enabled and back to `true` when disabled.
@@ -276,13 +276,13 @@ Drain mode is maintenance plus graceful movement.
 Use a dry run first:
 
 ```bash
-mn drain-node mirror_neuron@192.168.4.20 --reason "GPU driver update" --deadline 30m --dry-run
+mn node drain mirror_neuron@192.168.4.20 --reason "GPU driver update" --deadline 30m --dry-run
 ```
 
 Then run the drain:
 
 ```bash
-mn drain-node mirror_neuron@192.168.4.20 --reason "GPU driver update" --deadline 30m --wait
+mn node drain mirror_neuron@192.168.4.20 --reason "GPU driver update" --deadline 30m --wait
 ```
 
 Drain behavior:
@@ -302,26 +302,21 @@ Drain migrations are operator-requested maintenance moves. They do not consume f
 Cancel a drain:
 
 ```bash
-mn undrain-node mirror_neuron@192.168.4.20 --reason "cancel update"
+mn node undrain mirror_neuron@192.168.4.20 --reason "cancel update"
 ```
 
 A completed drain leaves the node in maintenance/ineligible state. Make it schedulable again explicitly:
 
 ```bash
-mn undrain-node mirror_neuron@192.168.4.20 --reason "ready for work" --mark-eligible
+mn node undrain mirror_neuron@192.168.4.20 --reason "ready for work" --mark-eligible
 ```
 
 ## Submit A Cluster Job
 
-Small prime test:
+Small parallel worker test:
 
 ```bash
-python3 mn-blueprints/general_prime_sweep_scale/generate_bundle.py \
-  --quick-test \
-  --output-dir /tmp/mn-prime
-
-mn validate /tmp/mn-prime
-mn run /tmp/mn-prime
+mn blueprint run parallel_worker_benchmark
 ```
 
 Expected output:
@@ -333,11 +328,11 @@ Job submitted successfully
 Inspect the job:
 
 ```bash
-mn list --running-only
-mn status <job-id>
+mn job list --running-only
+mn job status <job-id>
 ```
 
-`mn status` returns the scheduler plan, recovery fields, restart/reschedule policies, and per-agent policy state when present.
+`mn job status` returns the scheduler plan, recovery fields, restart/reschedule policies, and per-agent policy state when present.
 
 ## Common Failure Patterns
 
@@ -387,14 +382,14 @@ Usually means every known node is offline, draining, in maintenance, ineligible,
 Check:
 
 ```bash
-mn nodes
+mn node list
 mn resource list
 ```
 
 Then inspect the job scheduler plan:
 
 ```bash
-mn status <job-id>
+mn job status <job-id>
 ```
 
 ### Redis And Split Brain

@@ -76,7 +76,7 @@ Defaults:
 First deploy:
 
 ```bash
-mn deploy /path/to/bundle --key agent-api --strategy rolling --max-parallel 1
+mn deployment deploy /path/to/bundle --key agent-api --strategy rolling --max-parallel 1
 ```
 
 List deployments:
@@ -94,7 +94,7 @@ mn deployment status agent-api
 Manual canary:
 
 ```bash
-mn deploy /path/to/bundle-v2 --key agent-api --strategy canary --canary 1
+mn deployment deploy /path/to/bundle-v2 --key agent-api --strategy canary --canary 1
 mn deployment status agent-api
 mn deployment promote agent-api
 ```

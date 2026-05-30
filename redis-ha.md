@@ -201,7 +201,7 @@ Options:
 | `--remote-network` | `auto` | `auto`, `host`, or `bridge`. On Linux Docker, `auto` chooses host networking for the remote side. |
 | `--initial-primary` | `auto` | `auto`, `local`, or `remote`. `auto` falls back to remote-primary when the remote cannot reach the local Redis port. |
 
-The monorepo wrapper runs the same smoke:
+The workspace wrapper runs the same smoke:
 
 ```bash
 python3 mn-system-tests/test_all.py --redis-ha \

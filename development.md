@@ -8,14 +8,14 @@ This guide is for contributors and integrators working on MirrorNeuron itself.
 
 Important files and directories:
 
-- [mix.exs](../mix.exs)
-- [lib/mirror_neuron.ex](../lib/mirror_neuron.ex)
-- [lib/mirror_neuron/runtime](../lib/mirror_neuron/runtime)
-- [lib/mirror_neuron/builtins](../lib/mirror_neuron/builtins)
-- [lib/mirror_neuron/sandbox](../lib/mirror_neuron/sandbox)
-- [lib/mirror_neuron/execution](../lib/mirror_neuron/execution)
-- [lib/mirror_neuron/monitor.ex](../lib/mirror_neuron/monitor.ex)
-- [test](../test)
+- [mix.exs](../MirrorNeuron/mix.exs)
+- [lib/mirror_neuron.ex](../MirrorNeuron/lib/mirror_neuron.ex)
+- [lib/mirror_neuron/runtime](../MirrorNeuron/lib/mirror_neuron/runtime)
+- [lib/mirror_neuron/builtins](../MirrorNeuron/lib/mirror_neuron/builtins)
+- [lib/mirror_neuron/sandbox](../MirrorNeuron/lib/mirror_neuron/sandbox)
+- [lib/mirror_neuron/execution](../MirrorNeuron/lib/mirror_neuron/execution)
+- [lib/mirror_neuron/monitor.ex](../MirrorNeuron/lib/mirror_neuron/monitor.ex)
+- [test](../MirrorNeuron/tests)
 
 ## Development loop
 
@@ -67,14 +67,14 @@ For real sandbox behavior, you also need OpenShell running.
 
 The best starting points are:
 
-- [agent.ex](../lib/mirror_neuron/agent.ex)
-- [agent_template.ex](../lib/mirror_neuron/agent_template.ex)
-- [agent_templates.ex](../lib/mirror_neuron/agent_templates.ex)
-- [agent_templates/generic.ex](../lib/mirror_neuron/agent_templates/generic.ex)
-- [agent_templates/stream.ex](../lib/mirror_neuron/agent_templates/stream.ex)
-- [agent_templates/map.ex](../lib/mirror_neuron/agent_templates/map.ex)
-- [agent_templates/reduce.ex](../lib/mirror_neuron/agent_templates/reduce.ex)
-- [agent_templates/batch.ex](../lib/mirror_neuron/agent_templates/batch.ex)
+- [agent.ex](../MirrorNeuron/lib/mirror_neuron/agent.ex)
+- [agent_template.ex](../MirrorNeuron/lib/mirror_neuron/agent_template.ex)
+- [agent_templates.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates.ex)
+- [agent_templates/generic.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates/generic.ex)
+- [agent_templates/stream.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates/stream.ex)
+- [agent_templates/map.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates/map.ex)
+- [agent_templates/reduce.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates/reduce.ex)
+- [agent_templates/batch.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates/batch.ex)
 
 ## Agent templates
 

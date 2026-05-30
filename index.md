@@ -10,18 +10,21 @@ The documentation has two goals:
 ## Start Here
 
 1. [README](README.md): project overview, quick start, and doc map.
-2. [Quickstart](quickstart.md): validate and run your first workflow.
-3. [Installation](installation.md): install runtime dependencies and start local services.
-4. [Security Model](security.md): understand what powers you are giving the runtime.
-5. [Troubleshooting](troubleshooting.md): common setup, Redis, OpenShell, and cluster errors.
+2. [Component Guide](component-guide.md): choose the right folder and validation command.
+3. [Quickstart](quickstart.md): validate and run your first workflow.
+4. [Installation](installation.md): install runtime dependencies and start local services.
+5. [Security Model](security.md): understand what powers you are giving the runtime.
+6. [Troubleshooting](troubleshooting.md): common setup, Redis, OpenShell, and cluster errors.
 
 ## Documentation Map
 
 | Page | Type | Use it when |
 | --- | --- | --- |
+| [Component Guide](component-guide.md) | Overview | You need the repository map, folder responsibilities, and local validation commands. |
 | [Quickstart](quickstart.md) | Tutorial | You want the shortest path to first success. |
 | [Installation](installation.md) | Tutorial | You need to install Redis, OpenShell, Elixir, and Python tooling. |
 | [Examples](examples.md) | Tutorial | You want to choose the right checked-in blueprint. |
+| [Skill Catalog](skill-catalog.md) | Reference | You need centralized summaries for reusable skill packages. |
 | [Cluster Guide](cluster.md) | How-to | You need to start or inspect a multi-box runtime. |
 | [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md) | Overview | You want the status and code map for reconciliation, job types, policies, drain, services, resources, deployments, and schedules. |
 | [Redis High Availability](redis-ha.md) | How-to | You need Redis Sentinel failover. |
@@ -47,23 +50,10 @@ The documentation has two goals:
 
 ## First Safe Workflow
 
-From the monorepo root:
+After Redis and the runtime are started, run the smallest checked-in workflow:
 
 ```bash
-mn blueprint run general_message_routing_trace
-```
-
-Expected output:
-
-```text
-Blueprint 'general_message_routing_trace' validated. Running...
-Job submitted successfully
-```
-
-Run it after Redis and the runtime are started:
-
-```bash
-mn blueprint run general_message_routing_trace
+mn blueprint run message_routing_trace
 ```
 
 Expected output:

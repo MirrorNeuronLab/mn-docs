@@ -8,7 +8,7 @@ For two nodes, for example `192.168.4.25` and `192.168.4.173`, to communicate su
 
 - **Erlang Port Mapper Daemon (EPMD):** Port `4369` must be open and reachable.
 - **Erlang Distribution Port:** MirrorNeuron helpers pin BEAM distribution to port `4370` with `MN_DIST_PORT` and `ERL_AFLAGS`.
-- **gRPC:** Port `50051` must be reachable for CLI, SDK, and node operator calls.
+- **gRPC:** The deployed host gRPC port, usually `55051`, must be reachable for CLI, SDK, and node operator calls. The core container listens on `50051` internally.
 - **Redis:** Development clusters can use one shared Redis on port `6379`. Multi-box reliability should use Redis Sentinel HA so each box has a replicated Redis and MirrorNeuron reconnects to the Sentinel-elected primary.
 - **Redis Sentinel:** Sentinel uses port `26379` when HA mode is enabled.
 
@@ -47,29 +47,26 @@ See [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md), [Reliability G
 
 ### On Node 1 (The Leader / Initial Node)
 ```bash
-mn start
+mn runtime start
 ```
 *Starts Redis, the API, and sets itself up as the coordinating node. Ensure your firewall permits access to 4369, Redis/Sentinel ports, and the configured Erlang distribution ports.*
 
 ### On Node 2 (The Follower)
 ```bash
-mn join <LEADER_IP> --token <token>
-# e.g., mn join 192.168.4.25 --token <token>
+mn node join <LEADER_IP> --token <token>
+# e.g., mn node join 192.168.4.25 --token <token>
 ```
 *Will launch an attached worker node that links back to Redis or Sentinel and the Elixir swarm.*
 
 ### Verifying Connection
 ```bash
-mn nodes
+mn node list
 ```
 *You should see multiple items under `nodes`, and their respective hardware capacities pooled together in the `executor_pools`.*
 
 ## 6. Avoiding Local Resource Exhaustion
-When running on heavy distributed load tests (e.g. `general_prime_sweep_scale`), attempting to invoke 1,000 OS `python3` subprocesses concurrently across a local 2-node development setup may exhaust CPU and networking file descriptors, causing nodes to miss Erlang heartbeats (`timed out waiting for recovered agent ...`).
+When running heavy distributed load tests such as `parallel_worker_benchmark`, very high worker counts across a small two-node development setup may exhaust CPU and networking file descriptors, causing nodes to miss Erlang heartbeats (`timed out waiting for recovered agent ...`).
 
-To securely test scaling logic without overloading small development VMs, lower the worker count in the generated blueprint:
-```bash
-cd mn-blueprints/general_prime_sweep_scale
-python3 generate_bundle.py --workers 100
-```
+To test scaling logic without overloading small development VMs, lower the worker count in the blueprint configuration before running the benchmark.
+
 This enables the framework to accurately demonstrate Map/Reduce scaling topologies, Remote RPC artifact synchronization (`MirrorNeuron.Runner.HostLocal`), and cross-node swarm orchestration entirely under manageable resource constraints.

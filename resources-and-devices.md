@@ -208,7 +208,7 @@ mn resource set --cpu 75 --memory 75 --gpu 100 --disk 75
 
 ## Validation
 
-`mn validate` rejects:
+`mn blueprint validate` rejects:
 
 - malformed `devices`, `ports`, or `volumes`
 - negative memory, count, or scalar values

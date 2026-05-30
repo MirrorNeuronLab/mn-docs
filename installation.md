@@ -45,7 +45,7 @@ MirrorNeuron CLI
 
 ## Option 2: Set Up From The Monorepo
 
-From the monorepo root:
+From the workspace root:
 
 ```bash
 python3 -m venv .venv
@@ -177,23 +177,23 @@ export MN_REDIS_NAMESPACE="mirror_neuron_dev_$(date +%s)"
 
 ## Step 7: Smoke Test
 
-From the monorepo root:
+From the workspace root:
 
 ```bash
-mn blueprint run general_message_routing_trace
+mn blueprint run message_routing_trace
 ```
 
 Expected output:
 
 ```text
-Blueprint 'general_message_routing_trace' validated. Running...
+Blueprint 'message_routing_trace' validated. Running...
 ```
 
 Start services:
 
 ```bash
-mn start
-mn blueprint run general_message_routing_trace
+mn runtime start
+mn blueprint run message_routing_trace
 ```
 
 Expected output:
@@ -207,7 +207,7 @@ Job submitted successfully
 Stop MirrorNeuron:
 
 ```bash
-mn stop
+mn runtime stop
 ```
 
 Stop local Redis:
