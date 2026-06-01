@@ -7,10 +7,14 @@ This guide installs the dependencies needed to validate bundles, run local workf
 - macOS, Linux, or WSL2
 - `git`
 - Python 3.10+
-- Elixir and Erlang
-- Docker
-- Redis, usually through Docker for local development
-- OpenShell for sandboxed worker execution
+- Docker (and the docker-model runtime plugin)
+
+Docker Desktop includes the plugin on macOS and Windows. On Linux, install the runtime plugin:
+
+```bash
+sudo apt-get update
+sudo apt-get install docker-model-plugin
+```
 
 Optional:
 

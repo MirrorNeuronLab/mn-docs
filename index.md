@@ -34,6 +34,7 @@ The documentation has two goals:
 | [API Reference](api.md) | Reference | You need HTTP or Elixir API shapes. |
 | [Job Bundle Format](bundle.md) | Reference | You are writing or validating `manifest.json`. |
 | [Python SDK](SDK.md) | Reference | You want to compile Python workflow definitions into bundles. |
+| [Blueprint Standard](blueprint-standard.md) | Reference | You need the cross-blueprint contract for manifests, run stores, agents, aliases, artifacts, privacy, and UI surfaces. |
 | [Services and Health Checks](services-and-health-checks.md) | How-to | You need service declarations, registry lookup, or required service preflight. |
 | [Docker and OpenShell for Blueprints](docker_and_openshell_for_blueprints.md) | How-to | You need local files, ports, web UIs, host services, or sandbox resources to work first time. |
 | [Resources and Devices](resources-and-devices.md) | Reference | You need CUDA, Metal, GPU memory, ports, volumes, or runtime-driver placement. |

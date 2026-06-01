@@ -1215,6 +1215,8 @@ The manifest graph is the actualized-agent communication contract. It should mak
 Each node should include:
 
 - `node_id`
+- `alias`, when the node is rendered from a shared template and needs a job-specific user-facing name
+- `display_name`, when a title-cased or spaced variant is useful for UI surfaces
 - `type`
 - `role`, when useful
 - `agent_type`
@@ -1236,6 +1238,83 @@ Edges must include:
 Multi-agent workflows should keep message types stable and explicit. Avoid implicit handoffs through shared files unless the artifact is also declared in metadata or output contracts.
 
 Long-running blueprints should set top-level manifest `type: "service"`. Finite batch blueprints should omit top-level `type`.
+
+### Shared Agent Aliases
+
+Shared `mn-agents` templates often use generic implementation names such as `ingress`, `runtime`, `router`, `worker`, or `visual_detector`. A blueprint may customize those shared/template agents with `alias` and optional `display_name` so Job Details, progress views, graph views, logs, and dashboards can show domain-specific names.
+
+`alias` is the canonical field for blueprint-level renaming. It is display-only. It must not change scheduling, event routing, persisted IDs, service registration, `node_id`, `uses`, or message contracts.
+
+Display name precedence is:
+
+1. `alias`
+2. `display_name`
+3. `label`
+4. `role`
+5. stable id (`id`, `agent_id`, or `node_id`)
+
+Use aliases when a shared agent becomes a job-specific noun. Prefer concise snake_case aliases for stable product surfaces, and use `display_name` only when a human-readable title is useful.
+
+Example:
+
+```json
+{
+  "metadata": {
+    "agent_templates": {
+      "nodes": [
+        {
+          "node_id": "ingress",
+          "alias": "video_monitor",
+          "display_name": "Video Monitor",
+          "uses": "mn-agents.control_router@1.0.0"
+        },
+        {
+          "node_id": "video_frame_tick_source",
+          "alias": "frame_sampler",
+          "display_name": "Frame Sampler",
+          "uses": "mn-agents.data_module@1.0.0"
+        }
+      ]
+    }
+  }
+}
+```
+
+Workflow workers under `runtime.bindings.*.workers[]` may also declare aliases:
+
+```json
+{
+  "runtime": {
+    "bindings": {
+      "detect_visual_targets": {
+        "workers": [
+          {
+            "id": "visual_target_detector",
+            "alias": "visual_target_detector",
+            "display_name": "Visual Target Detector",
+            "role": "Run visual detection"
+          },
+          {
+            "id": "quality_controller",
+            "alias": "quality_controller",
+            "display_name": "Quality Controller",
+            "role": "Review alert quality"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+When a blueprint uses shared template nodes, preserve both identities:
+
+- Stable runtime identity: `node_id`, worker `id`, `uses`, edge endpoints, and event worker IDs.
+- User-facing identity: `alias`, then `display_name`, then existing labels and roles.
+
+Do not rename a stable runtime id just to improve UI text. If the runtime id is part of edges, persisted events, or service registration, keep it stable and add `alias`. If a workflow worker id is newly introduced and not yet part of a compatibility contract, it should already be a job-specific noun such as `video_monitor`, `frame_sampler`, `quality_controller`, or `watch_summary_writer`.
+
+Runtime infrastructure agents are not blueprint workers. If transport or wrapper agents appear in graph data, UI surfaces should label them as system/runtime infrastructure rather than showing raw names such as `runtime` as if they were domain agents.
 
 ### Custom OpenShell Image Port Note
 
@@ -1481,6 +1560,7 @@ Use this checklist to separate universal requirements from feature-specific requ
 - Blueprints with validator-consumed schemas declare schema ids for config, inputs, events, final artifacts, input skills, output skills, and handoffs.
 - Blueprints with runtime, LLM, connector, disk, or stream limits declare resource budgets.
 - Multi-agent graphs declare handoff message type, payload schema, producer, consumer, error policy, and artifact ownership.
+- Shared/template agents and workflow workers declare `alias` when their stable runtime IDs are generic or implementation-oriented.
 - Agents using customized OpenShell images declare required input/output ports and verify SSH tunnels before processing.
 - External endpoints and model settings are configurable when used.
 - LLM-using blueprints declare model usage under `llm.configs`.
