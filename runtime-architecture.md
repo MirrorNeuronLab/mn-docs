@@ -25,6 +25,34 @@ The project intentionally borrows a few control-plane ideas from Airflow while a
 
 Airflow's big lesson for this runtime is not "copy operators." It is "treat heavyweight execution capacity as scarce and schedule it explicitly."
 
+## Workflow DAG execution model
+
+MirrorNeuron now separates the user-facing problem workflow from the lower-level agent runtime. For `mn.workflow/v1` blueprints, `flow.graph` is the problem DAG: it names the source, sink, step dependencies, branch requirements, join behavior, and accepted outcomes. Top-level `nodes` and `edges` remain the runtime agent topology used by the BEAM runtime; they are not the problem workflow.
+
+The current DAG executor is a static DAG scheduler with per-step lifecycle state. It is not a full GOAP or PDDL planner yet.
+
+```text
+flow.graph + flow.steps
+  -> graph compiler
+  -> static DAG scheduler
+  -> step lifecycle state machine
+  -> runtime.bindings
+  -> agents, workers, validators, reducers
+  -> workflow events
+  -> CLI and Web UI progress snapshots
+```
+
+Execution works in layers:
+
+- The graph compiler validates source/sink, reachability, acyclicity, edge ids, join modes, retry bounds, timeout values, and parallel output path conflicts.
+- The scheduler keeps a map of step outcomes such as `done`, `partial`, `skipped`, `failed`, and `blocked`.
+- A step becomes ready only when its parent edges and join rule are satisfied. Ready steps in the same graph layer can run concurrently.
+- Each step follows a small lifecycle: `pending -> ready -> running -> done`, with terminal alternatives such as `partial`, `skipped`, `failed`, or `blocked`.
+- `runtime.bindings` maps each workflow step to one or more internal workers. A tax step, for example, may run a preparer and a validator while still appearing as one problem-workflow node.
+- The executor emits generic workflow events such as `workflow_graph_compiled`, `workflow_step_started`, `workflow_edge_satisfied`, `workflow_join_waiting`, and `workflow_finished`. The shared SDK turns these into the progress snapshots used by CLI and Web UI.
+
+GOAP/PDDL-like planning is intentionally a future layer. The manifest already has planner-friendly fields such as `requires`, `provides`, `control`, and disabled `dynamic` metadata, but the runtime currently executes the declared graph. A future planner can generate or patch `flow.graph`; the static DAG scheduler remains the executor for the currently accepted graph version.
+
 ## Control plane vs execution plane
 
 MirrorNeuron now has a sharper two-layer model.
