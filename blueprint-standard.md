@@ -749,6 +749,132 @@ Each phase should define `start_event`, `progress_event`, `completion_event`, an
 
 Long-running, stream, service, or multi-stage blueprints should emit progress or heartbeat `blueprint_status` events so users can tell whether work is still active. Web UI surfaces must read status from run-store events rather than private worker state.
 
+## Runtime Workflow Control Contract
+
+Blueprints that use `flow.steps` for multi-step execution should declare runtime workflow control so MirrorNeuron can keep progress durable, bounded, and recoverable. The source of truth is the step ledger stored on the job as `workflow_state`; nodes and agents are workers, not the durable progress authority.
+
+Required runtime shape:
+
+```json
+{
+  "runtime": {
+    "workflow_control": {
+      "schema_version": "mn.workflow.runtime_control.v1",
+      "enabled": true,
+      "source_of_truth": "flow.steps",
+      "state_ledger": {
+        "enabled": true,
+        "persisted_field": "workflow_state",
+        "step_statuses": [
+          "pending",
+          "ready",
+          "queued",
+          "running",
+          "retry_wait",
+          "blocked",
+          "completed",
+          "partial",
+          "skipped",
+          "failed"
+        ],
+        "message_ledger": true,
+        "delivery_semantics": "at_least_once_with_idempotency"
+      },
+      "attempts": {
+        "dispatch_metadata": [
+          "workflow_run_id",
+          "step_id",
+          "attempt_id",
+          "attempt",
+          "deadline_at",
+          "heartbeat_deadline_at",
+          "idempotency_key"
+        ],
+        "stale_attempt_outputs": "ignore",
+        "retry_policy_source": "flow.steps[].control.retry",
+        "timeout_source": "flow.steps[].control.timeout_seconds"
+      },
+      "liveness": {
+        "event": "agent_beacon",
+        "interval_ms": 15000,
+        "timeout_ms": 45000,
+        "required": true,
+        "missed_action": "fail_attempt"
+      },
+      "reconciliation": {
+        "interval_ms": 2000,
+        "on_timeout": "fail_attempt_then_retry",
+        "on_missed_beacon": "fail_attempt_then_retry",
+        "on_retry_exhausted": "apply_step_failure_policy"
+      },
+      "pause_cancel": {
+        "pause_mode": "stop_active_attempts",
+        "resume_mode": "reconcile_from_workflow_state",
+        "cancel_mode": "terminate_active_attempts"
+      },
+      "events": [
+        "workflow_step_attempt_started",
+        "workflow_step_beacon",
+        "workflow_step_attempt_completed",
+        "workflow_step_attempt_timed_out",
+        "workflow_step_attempt_retry_scheduled",
+        "workflow_step_blocked",
+        "workflow_step_completed",
+        "workflow_step_failed",
+        "workflow_message_dead_lettered"
+      ]
+    }
+  }
+}
+```
+
+Every `flow.steps[]` entry should declare bounded control policy:
+
+- `control.timeout_seconds`: positive integer for the current attempt deadline
+- `control.retry.max_attempts`: positive integer
+- `control.retry.backoff_seconds`: non-negative number
+- `control.failure_policy`: the result after retry exhaustion, such as fail, partial, skip, or fail-closed behavior
+
+Executor node rendering should project the same step policy into the runtime node config:
+
+- `timeout_seconds`
+- `max_attempts`
+- `retry_backoff_ms`
+- `beacon_enabled: true`
+- `beacon_interval_ms: 15000`
+- `beacon_timeout_ms: 45000`
+- `beacon_missed_action: "fail_attempt"`
+- `agent_beacon_required: true` for Python executor steps
+
+The status contract should connect UI surfaces to the workflow ledger:
+
+```json
+{
+  "metadata": {
+    "status_contract": {
+      "heartbeat_required": true,
+      "heartbeat_event": "agent_beacon",
+      "beacon_event": "agent_beacon",
+      "beacon_interval": "15s",
+      "beacon_timeout": "45s",
+      "beacon_missed_action": "fail_attempt",
+      "runtime_state_source": "workflow_state",
+      "attempt_event": "workflow_step_attempt_started",
+      "retry_event": "workflow_step_attempt_retry_scheduled",
+      "blocked_event": "workflow_step_blocked",
+      "terminal_step_events": [
+        "workflow_step_completed",
+        "workflow_step_partial",
+        "workflow_step_skipped",
+        "workflow_step_failed"
+      ]
+    }
+  }
+}
+```
+
+The UI should prefer `workflow_state` for job details. A step that is alive should show recent beacon timing, a step in backoff should show retry timing, and a dependency problem should show blocked reason rather than an indefinite running state.
+
 ## Observability Dashboard Contract
 
 Blueprint dashboards should be declared in metadata and config, then rendered by the shared web UI from run-store files.
@@ -1559,8 +1685,11 @@ Use this checklist to separate universal requirements from feature-specific requ
 - Deterministic or replayable blueprints declare seed, replay inputs/events, and mock LLM behavior.
 - Blueprints with validator-consumed schemas declare schema ids for config, inputs, events, final artifacts, input skills, output skills, and handoffs.
 - Blueprints with runtime, LLM, connector, disk, or stream limits declare resource budgets.
+- Blueprints with `flow.steps` declare `runtime.workflow_control`, use `workflow_state` as the runtime state source, and expose workflow attempt, retry, blocked, and terminal step events in `metadata.status_contract`.
+- Every `flow.steps[]` entry has positive `control.timeout_seconds`, bounded retry attempts, and a declared failure policy.
 - Multi-agent graphs declare handoff message type, payload schema, producer, consumer, error policy, and artifact ownership.
 - Shared/template agents and workflow workers declare `alias` when their stable runtime IDs are generic or implementation-oriented.
+- Python executor workflow workers require `agent_beacon` liveness and render step timeout, retry, and beacon policy into the runtime node config.
 - Agents using customized OpenShell images declare required input/output ports and verify SSH tunnels before processing.
 - External endpoints and model settings are configurable when used.
 - LLM-using blueprints declare model usage under `llm.configs`.

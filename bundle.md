@@ -333,7 +333,9 @@ Here is a simple example of a complete `manifest.json` for a Map-Reduce style wo
       "agent_type": "aggregator",
       "type": "reduce",
       "config": {
-        "complete_on_message": true
+        "complete_on_message": true,
+        "terminal_sink": true,
+        "complete_run": true
       }
     }
   ],

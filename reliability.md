@@ -32,6 +32,7 @@ Redis is the shared durable state store. MirrorNeuron persists:
 - agent snapshots and heartbeats
 - job coordinator leases such as `job:<job_id>`
 - the cluster leader lease `cluster:leader`
+- workflow step ledgers stored on jobs as `workflow_state`
 - node state, profile health, capabilities, and drain metadata
 - recovery evals used by the reconciler
 - restart/reschedule `policy_state`
@@ -39,6 +40,76 @@ Redis is the shared durable state store. MirrorNeuron persists:
 Agent snapshots are the core recovery unit. They include the assigned node, processed message count, inflight message, pending messages, encoded local state, and last heartbeat timestamp.
 
 This is enough for replay-oriented recovery. It is not a full deterministic event history.
+
+## Workflow Step Ledger
+
+Blueprints that declare `flow.steps` use a durable workflow-control layer in addition to agent snapshots. The runtime treats `flow.steps` as the source of truth for the workflow and stores per-step execution state in the job's `workflow_state` field.
+
+Step status values are:
+
+- `pending`
+- `ready`
+- `queued`
+- `running`
+- `retry_wait`
+- `blocked`
+- `completed`
+- `partial`
+- `skipped`
+- `failed`
+
+Every running step attempt is bounded work. The ledger records the `step_id`, `attempt_id`, current attempt number, assigned `agent_id`, dispatch message id, `deadline_at`, `heartbeat_deadline_at`, retry policy, idempotency key, outputs, and terminal reason. Dispatch payloads include the same workflow metadata so workers can report back with enough context for the coordinator to reject stale results.
+
+The job coordinator reconciles the ledger on a short interval, normally around 1 to 2 seconds. Reconciliation is idempotent:
+
+1. Mark dependency-satisfied steps as `ready`.
+2. Queue eligible work unless the job is pausing, paused, cancelling, or terminal.
+3. Mark dispatched attempts as `running`.
+4. Refresh liveness when the step emits a beacon.
+5. Fail only the current attempt when its deadline or heartbeat deadline is exceeded.
+6. Schedule retry/backoff while attempts remain.
+7. Apply the step failure policy after attempts are exhausted.
+8. Advance dependent steps only from accepted current-attempt outputs.
+
+Workflow messages are tracked with at-least-once delivery and idempotency. A message can move through states such as `created`, `dispatched`, `acked`, `failed`, and `dead_lettered`. If a coordinator restarts while work is queued or in flight, it reconstructs the ledger from durable state and safely redelivers eligible messages using dedupe keys.
+
+Stale outputs from old attempts are ignored. A worker result must match the current `attempt_id` and idempotency key before it can complete a step or unlock downstream dependencies.
+
+## Completion Naming
+
+Workflow completion is explicit:
+
+- `complete_step` marks the current workflow step attempt complete.
+- `complete_run` completes the whole job only from a declared terminal sink after `workflow_state` shows all required steps are terminal.
+- `complete_job` and `complete_job?` are invalid legacy names.
+
+Executor stdout may emit structured JSON with `complete_step` or `complete_run`. Runtime actions use `{:complete_step, result}` and `{:complete_run, result}`. Workflow-bound worker nodes must not declare `complete_run`; final collectors must declare `terminal_sink: true` and `complete_run: true`. A non-terminal join that uses `complete_on_message: true` must declare an `output_message_type`.
+
+## Workflow Liveness
+
+Workflow executor steps use `agent_beacon` as the standard liveness signal. The OtterDesk default is:
+
+| Field | Default |
+| --- | --- |
+| Beacon event | `agent_beacon` |
+| Beacon interval | `15s` |
+| Beacon timeout | `45s` |
+| Missed beacon action | `fail_attempt` |
+
+The host runner emits runtime beacons while a command is alive, and worker scripts can emit richer activity beacons when they know what they are doing. A missed required beacon fails the current attempt with a retryable timeout-style reason. Existing retry and failure policies decide whether the step retries, becomes partial/skipped, or fails the job.
+
+Job details should render from `workflow_state` and workflow events. A healthy long step shows fresh liveness, a retrying step shows `retry_wait` and the next retry time, and a dependency problem shows `blocked` with the dependency reason instead of silently remaining `running`.
+
+## Workflow Pause And Cancel
+
+Pause and cancel are reconciled through the same ledger:
+
+- `pause` sets the job to `pausing`, stops scheduling new attempts, and asks active attempts to stop.
+- Once active attempts stop or hit their deadline, the job becomes `paused`.
+- `resume` re-enters reconciliation from `workflow_state` and schedules only eligible steps.
+- `cancel` terminates active attempts and records a terminal reason.
+
+No step should rely only on in-memory progress. After a coordinator restart, the replacement coordinator reconstructs state from the manifest, job record, workflow ledger, and events, then resumes reconciliation.
 
 ## Coordinator And Leader Leases
 
