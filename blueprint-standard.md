@@ -846,6 +846,13 @@ Executor node rendering should project the same step policy into the runtime nod
 - `beacon_missed_action: "fail_attempt"`
 - `agent_beacon_required: true` for Python executor steps
 
+Plain-code stages must still use an executor agent. For Python scripts, prefer
+the shared `mn_blueprint_support.python_executor_template_node(...)` or
+`python_executor_runtime_binding(...)` helpers, which declare the stage through
+`mn-agents.data_python_executor@1.0.0`. Do not launch stage code through an
+untracked helper process or a blueprint-specific wrapper just to run ordinary
+Python.
+
 The status contract should connect UI surfaces to the workflow ledger:
 
 ```json

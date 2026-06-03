@@ -32,6 +32,29 @@ Blueprints that need Python packages at runtime should declare them on the execu
 
 The runtime creates a cached virtualenv keyed by Python version and dependency contents, then runs `python` or `python3` commands from that environment. Root-level blueprint `requirements.txt` files remain documentation or developer setup files unless an executor explicitly references a dependency file under `payloads/`.
 
+## Wrap Plain Code With The Shared Executor
+
+Any code execution that is part of a blueprint workflow should be represented by
+an agent. Plain Python does not need a custom wrapper; use the shared
+`mn-agents.data_python_executor@1.0.0` executor through
+`mn_blueprint_support`:
+
+```python
+from mn_blueprint_support import python_executor_template_node
+
+node = python_executor_template_node(
+    "target_discovery",
+    "scripts/stage_a.py",
+    output_message_type="targets_ready",
+)
+```
+
+The helper emits a normal manifest node using the shared generic Python executor.
+The script stays under `payloads/worker`, but the runtime sees a real agent with
+leases, lifecycle events, retry policy, beacons, and UI liveness. Prefer this
+shared executor over per-blueprint wrapper scripts or direct background process
+launches.
+
 Validate the bundle:
 
 ```bash
