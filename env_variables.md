@@ -176,7 +176,7 @@ These variables are currently used by context-memory blueprints such as
 
 Blueprint manifests decide which process environment variables are passed to workers. A variable listed here still needs to be included in a blueprint's `pass_env` or explicit env mapping before a sandboxed worker can see it.
 
-LLM-enabled blueprints use LiteLLM-style settings only. Provider-specific aliases such as OpenAI, Gemini, generic `LLM_*`, Ollama fallback, or profile-prefixed LLM variables are intentionally not part of the blueprint environment contract.
+LLM-enabled blueprints use `MN_LLM_*` settings as the primary contract. Legacy `LITELLM_*` aliases are still supported by shared skills when they are safe for the selected provider.
 
 | Variable | Default | Usage |
 | --- | --- | --- |
@@ -191,8 +191,19 @@ LLM-enabled blueprints use LiteLLM-style settings only. Provider-specific aliase
 | `MN_DISABLE_RUN_STORE` | disabled | Alias used by worker contracts to disable run-store writes. |
 | `MN_BLUEPRINT_CONFIG_PATH` | unset | Worker-contract config file override. |
 | `MN_BLUEPRINT_CONFIG_JSON` | unset | Worker-contract inline config JSON override. |
-| `LITELLM_MODEL` | `ollama/gemma4:latest` where local defaults are provided; otherwise blueprint-specific | LiteLLM model for LLM-enabled blueprint workers. Use provider prefixes such as `ollama/`, `openai/`, or `gemini/`. |
-| `LITELLM_API_BASE` | `http://localhost:11434` for local Ollama blueprints; otherwise provider default | LiteLLM provider API base URL. For local Ollama Gemma, keep this as `http://localhost:11434`. |
+| `MN_MODEL_CATALOG_PATH` | unset | Optional JSON model catalog override merged before `~/.mn/models/catalog.json`. |
+| `MN_LLM_PROVIDER` | blueprint-specific | LLM provider. `docker_model_runner` enables MirrorNeuron local model runtime behavior. |
+| `MN_LLM_MODEL` | `ai/gemma4:E2B` for Docker Model Runner, otherwise blueprint-specific | Resolved API model name for LLM-enabled blueprint workers. |
+| `MN_LLM_RUNTIME_MODEL` | `ai/gemma4:E2B` for `gemma4:e2b` | Docker Model Runner model reference used by `mn model install` and validation. |
+| `MN_LLM_API_BASE` | `http://localhost:12434/engines/v1` for HostLocal Docker Model Runner workers | OpenAI-compatible LLM API base. Container/sandbox workers use `http://model-runner.docker.internal/engines/v1`. |
+| `MN_LLM_BACKEND` | `llama.cpp` | Docker Model Runner backend selected for runtime-managed models. |
+| `MN_LLM_CONTEXT_SIZE` | model default | Context size requested for runtime-managed local models. |
+| `MN_LLM_TIMEOUT_SECONDS` | `60` where shared skills provide a default | Optional timeout used by shared LLM skill workers. |
+| `MN_LLM_MAX_TOKENS` | `800` where shared skills provide a default | Optional max output token limit used by shared LLM skill workers. |
+| `MN_LLM_NUM_RETRIES` | `2` where shared skills provide a default | Optional provider retry count. |
+| `MN_LLM_RETRY_BACKOFF_SECONDS` | `1.0` where shared skills provide a default | Optional exponential retry backoff base for direct HTTP fallbacks. |
+| `LITELLM_MODEL` | blueprint-specific | Legacy LiteLLM model alias. Prefer `MN_LLM_MODEL` in new blueprints. |
+| `LITELLM_API_BASE` | provider-specific | Legacy LiteLLM API base alias. Prefer `MN_LLM_API_BASE` in new blueprints. |
 | `LITELLM_API_KEY` | unset | Optional LiteLLM provider API key. Not required for local Ollama. |
 | `LITELLM_TIMEOUT_SECONDS` | `60` | Optional timeout used by shared LLM skill workers. |
 | `LITELLM_MAX_TOKENS` | `800` | Optional max output token limit used by shared LLM skill workers. |

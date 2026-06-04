@@ -81,6 +81,7 @@ Read:
 | Docker and OpenShell for blueprints | [docker_and_openshell_for_blueprints.md](docker_and_openshell_for_blueprints.md) |
 | Nomad-inspired runtime features | [nomad-inspired-runtime.md](nomad-inspired-runtime.md) |
 | Services and health checks | [services-and-health-checks.md](services-and-health-checks.md) |
+| Model runtime | [model-runtime.md](model-runtime.md) |
 | Resources and devices | [resources-and-devices.md](resources-and-devices.md) |
 | Deployments | [deployments.md](deployments.md) |
 | Schedules and events | [schedules-and-events.md](schedules-and-events.md) |

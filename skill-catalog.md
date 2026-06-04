@@ -17,7 +17,7 @@ package-level README files can stay short.
 | [`generate_fake_data_skill`](../mn-skills/generate_fake_data_skill/README.md) | `mirrorneuron-generate-fake-data-skill` | Generate batch or streaming fake data from JSON specs for MirrorNeuron blueprints. |
 | [`implementation_plan_skill`](../mn-skills/implementation_plan_skill/README.md) | `mirrorneuron-implementation-plan-skill` | Reusable implementation plan, milestone, dependency, and risk register helpers. |
 | [`litellm_communicate_skill`](../mn-skills/litellm_communicate_skill/README.md) | `mirrorneuron-litellm-communicate-skill` | Shared LiteLLM-compatible LLM wrapper for MirrorNeuron blueprints. |
-| [`llm_ocr_skill`](../mn-skills/llm_ocr_skill/README.md) | `mirrorneuron-llm-ocr-skill` | Shared local LLM OCR helpers using Docker Model Runner and LightOnOCR. |
+| [`llm_ocr_skill`](../mn-skills/llm_ocr_skill/README.md) | `mirrorneuron-llm-ocr-skill` | Shared local LLM OCR helpers using Docker Model Runner and LightOnOCR; use `mn model` for shared runtime model inspection and cleanup. |
 | [`market_research_skill`](../mn-skills/market_research_skill/README.md) | `mirrorneuron-market-research-skill` | Reusable market research brief, source synthesis, and outline helpers. |
 | [`marketing_email_skill`](../mn-skills/marketing_email_skill/README.md) | `mirrorneuron-marketing-email-skill` | Reusable deterministic email draft, rendering, and quality-check helpers. |
 | [`meeting_summary_skill`](../mn-skills/meeting_summary_skill/README.md) | `mirrorneuron-meeting-summary-skill` | Reusable meeting transcript parsing, action extraction, and summary formatting helpers. |

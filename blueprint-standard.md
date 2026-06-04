@@ -1605,10 +1605,13 @@ Recommended shape:
     "default_config": "primary",
     "configs": {
       "primary": {
-        "provider": "ollama",
-        "mode": "ollama",
-        "model": "ollama/nemotron3:33b",
-        "api_base": "http://192.168.4.173:11434",
+        "provider": "docker_model_runner",
+        "mode": "openai_compatible",
+        "runtime_model": "gemma4:e2b",
+        "model": "gemma4:e2b",
+        "api_base": "auto",
+        "backend": "llama.cpp",
+        "context_size": 4096,
         "mock_mode": "fake",
         "timeout_seconds": 60,
         "num_retries": 1,
@@ -1655,6 +1658,9 @@ Each `LLM_CONFIG` entry should include:
 - `mock_mode`
 - timeout, retry, and token fields when supported
 - credential reference fields when needed, such as `api_key_env`
+- for runtime-managed local models, `provider: "docker_model_runner"` plus `runtime_model`, `backend`, and optional `context_size`
+
+For local Docker Model Runner models, `api_base: "auto"` lets MirrorNeuron inject `http://localhost:12434/engines/v1` for HostLocal workers and `http://model-runner.docker.internal/engines/v1` for container or sandbox workers. The default runtime model alias is `gemma4:e2b`, resolved to Docker's `ai/gemma4:E2B`.
 
 Each agent that uses an LLM must reference a named config with `llm_config`. Agents must not repeat model values that already live in `llm.configs`.
 
@@ -1675,6 +1681,8 @@ LLM agents that generate, modify, review, browse, shell into, install dependenci
 Mock mode must be available for quick tests and offline demos.
 
 Model endpoints, credentials, and provider-specific values should be configurable through config and environment, not hard-coded inside worker logic.
+
+`mn blueprint validate` and `mn blueprint run` check runtime-managed local models after service preflight and before input validation. Missing models fail with a fix such as `mn model install gemma4:e2b`; incompatible hardware fails unless the operator explicitly uses `--force`.
 
 ## UI Contract
 

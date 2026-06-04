@@ -2,7 +2,7 @@
 
 MirrorNeuron has a native Redis-backed service registry and generic health check layer. It is inspired by Nomad's `service` and `check` blocks: jobs declare services, checks decide whether service instances are discoverable, and registration follows job or agent lifecycle.
 
-Core does not ship domain behavior for LLMs, Ollama, vLLM, vector databases, or model providers. Blueprints and skills declare those as generic services and checks.
+Service discovery remains generic: blueprints and skills declare service endpoints and health checks for Ollama, vLLM, vector databases, and provider-specific services. Local Docker Model Runner LLMs are managed separately with `mn model`; see [Model Runtime](model-runtime.md).
 
 ## Design Concept
 

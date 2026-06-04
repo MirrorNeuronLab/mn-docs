@@ -41,6 +41,12 @@ mn resource set [--cpu 75] [--gpu 100] [--memory 75] [--disk 75]
 mn service list
 mn service resolve <name>
 mn service check <bundle_path>
+mn model list [--installed] [--json]
+mn model show [MODEL] [--compatibility] [--json]
+mn model install [MODEL] [--backend auto|llama.cpp|vllm] [--context-size N] [--force]
+mn model update [MODEL|--all] [--force]
+mn model remove <MODEL> [--force]
+mn model doctor [MODEL] [--json]
 mn deployment deploy <bundle_path> --key <deployment_key>
 mn deployment list|status|promote|rollback|pause|resume|fail
 mn schedule create <bundle_path> --cron "0 2 * * *"
@@ -337,6 +343,23 @@ mn service check /path/to/bundle --output json
 ```
 
 See [Services and Health Checks](services-and-health-checks.md).
+
+## `mn model`
+
+Manage local Docker Model Runner models:
+
+```bash
+mn model list
+mn model show gemma4:e2b --compatibility
+mn model install gemma4:e2b
+mn model update gemma4:e2b
+mn model doctor gemma4:e2b
+mn model remove gemma4:e2b
+```
+
+The default model is `gemma4:e2b`, which resolves to Docker's `ai/gemma4:E2B` model. Installs block incompatible hardware unless `--force` is passed.
+
+See [Model Runtime](model-runtime.md).
 
 ## `mn deployment deploy` And `mn deployment`
 

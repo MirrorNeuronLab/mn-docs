@@ -173,6 +173,16 @@ export LITELLM_MODEL="gemini/gemini-2.5-flash-lite"
 export LITELLM_API_KEY="..."
 ```
 
+Optional for local Docker Model Runner LLM blueprints:
+
+```bash
+docker model status
+mn model install gemma4:e2b
+mn model doctor gemma4:e2b
+```
+
+`gemma4:e2b` resolves to Docker's `ai/gemma4:E2B` model and is the default MirrorNeuron local model for hosts with 8GB VRAM or 16GB unified memory.
+
 Use a unique Redis namespace when running tests beside a developer runtime:
 
 ```bash
