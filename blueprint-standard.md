@@ -425,6 +425,7 @@ Required run artifacts:
 - `config.json`: resolved runtime config.
 - `inputs.json`: resolved input payload.
 - `events.jsonl`: append-only typed runtime events.
+- `errors.jsonl`: error-only stream containing `mn.error.v1` envelopes plus run context.
 - `result.json`: complete machine-readable result.
 - `final_artifact.json`: user-facing final result or compact artifact.
 
@@ -435,11 +436,60 @@ Optional run artifacts:
 - `web/index.html`: static report or output page.
 - `ui.json`: UI state or richer dashboard metadata.
 - `logs.jsonl`: structured runtime logs when logs are persisted separately from `events.jsonl`.
+- `events.log`: optional human-readable lifecycle event mirror.
+- `errors.log`: optional human-readable error mirror.
+- `events.index.json`: index metadata for rotated lifecycle events.
 - `logs.index.json`: index metadata for rotated or segmented structured logs.
+- `errors.index.json`: index metadata for rotated error records.
 - `human.jsonl`: sparse human collaboration notices, input requests, and responses, mirrored to `events.jsonl`.
 - `resources.jsonl`: CPU, GPU, memory, and LLM token usage samples captured for the run.
 
 `result.json` should contain enough context to audit the run without reading stdout. `final_artifact.json` should contain the durable product answer, not internal logs.
+
+### Shared Failure Contract
+
+Runtime, SDK/API, and UI must normalize failures into the shared `mn.error.v1` envelope. Blueprints should emit ordinary failure events through the shared run store and workflow helpers; they should not invent blueprint-specific error schemas.
+
+```json
+{
+  "schema_version": "mn.error.v1",
+  "code": "workflow.step.timeout",
+  "desc": "Workflow step timed out",
+  "details": {
+    "message": "Step missed its heartbeat deadline.",
+    "category": "timeout",
+    "retryable": false,
+    "step_id": "prepare_income_workpapers",
+    "agent_id": "income_preparer",
+    "attempt": 2,
+    "max_attempts": 2
+  },
+  "severity": "ERROR",
+  "occurred_at": "2026-06-04T12:34:56.000Z",
+  "event_id": "evt_...",
+  "trace_id": "trc_...",
+  "span_id": "spn_...",
+  "remediation": "Check agent heartbeat, runtime node health, and step timeout settings.",
+  "links": [
+    {"rel": "errors", "artifact_id": "errors_jsonl"},
+    {"rel": "events", "artifact_id": "events_jsonl"},
+    {"rel": "logs", "artifact_id": "logs_jsonl"}
+  ]
+}
+```
+
+Limits are platform-level and apply after redaction:
+
+- `code`: 128 chars.
+- `desc`: 160 chars.
+- `details.message`: 2 KiB.
+- `remediation`: 1 KiB.
+- Full event/API `error` envelope: 16 KiB.
+- Single JSONL event, log, or error record: 64 KiB.
+
+Oversized values are replaced with a bounded object such as `{"truncated": true, "chars": 12000, "preview": "..."}` and should link to the relevant artifacts. `job_failed`, `workflow_step_failed`, `sandbox_job_failed`, retry exhaustion, scheduler failures, and recovery failures must include `error: mn.error.v1`. Existing `reason` and `status_reason` fields remain compatibility fields derived from `error.desc` when available.
+
+`events.jsonl`, `logs.jsonl`, and `errors.jsonl` rotate at 10 MiB by default and keep five rotated segments per run. Current files keep their existing names; rotated files use numbered suffixes such as `events.001.jsonl`, `logs.001.jsonl`, and `errors.001.jsonl`. Artifact indexes and API responses must expose stable artifact IDs such as `events_jsonl`, `events_jsonl_001`, `logs_jsonl_001`, and `errors_jsonl_001` with size, hash, content type, and download URL.
 
 ### Product Output Contract
 

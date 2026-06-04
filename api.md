@@ -557,6 +557,17 @@ Pub/Sub channel:
 
 This event channel is written today but not yet consumed by the terminal monitor. It is the best candidate for future live dashboards.
 
+## Failure Model
+
+Job details, workflow progress, failure events, and compact summaries expose a shared `failure` object using `mn.error.v1`. Runtime events use `error: mn.error.v1`; SDK/API progress responses normalize that into top-level `failure` plus step and agent `failure` fields. Legacy `reason` and `status_reason` remain for compatibility and should be treated as display strings derived from `failure.desc` when available.
+
+Run artifact listings include error artifacts with stable IDs and download metadata:
+
+- `events_jsonl`, `logs_jsonl`, `errors_jsonl`
+- Rotated segments such as `events_jsonl_001`, `logs_jsonl_001`, `errors_jsonl_001`
+
+Each artifact entry includes size, SHA-256 hash, content type, and URL. Clients should link to `errors.jsonl`, `events.jsonl`, and `logs.jsonl` instead of embedding large log blobs in job detail views.
+
 ## Terminal CLI
 
 The user-facing CLI is `mn`.
