@@ -31,6 +31,10 @@ By default, the API binds to port `4000`. You can change this using the `MN_API_
 | POST   | `/api/v1/jobs/:job_id/cancel`     | Cancels a running job                                   |
 | POST   | `/api/v1/jobs/cleanup`            | Clears finished/cancelled jobs from the datastore       |
 | GET    | `/api/v1/jobs/:job_id/events`     | Returns raw event history for a job                     |
+| GET    | `/api/v1/jobs/:job_id/workflow-progress` | Returns normalized progress, failure, trace, and observability summary |
+| GET    | `/api/v1/runs/:run_id/artifacts`  | Lists run artifacts with stable IDs, size, hash, content type, and URL |
+| GET    | `/api/v1/runs/:run_id/timeline`   | Returns `mn.timeline.v1` timeline records               |
+| GET    | `/api/v1/runs/:run_id/observability-summary` | Returns compact `mn.observability_summary.v1` run summary |
 | POST   | `/api/v1/bundles/:bundle_id/reload` | Manually reload a registered job bundle                 |
 | GET    | `/api/v1/resource`              | Core resource totals and configured CPU/GPU/memory/disk limits |
 | POST/PUT | `/api/v1/resource`            | Set CPU/GPU/memory/disk limits |
@@ -561,12 +565,14 @@ This event channel is written today but not yet consumed by the terminal monitor
 
 Job details, workflow progress, failure events, and compact summaries expose a shared `failure` object using `mn.error.v1`. Runtime events use `error: mn.error.v1`; SDK/API progress responses normalize that into top-level `failure` plus step and agent `failure` fields. Legacy `reason` and `status_reason` remain for compatibility and should be treated as display strings derived from `failure.desc` when available.
 
-Run artifact listings include error artifacts with stable IDs and download metadata:
+Compact job details and workflow progress also expose `trace_id` and `observability_summary` when a run store exists. The summary uses `mn.observability_summary.v1` and includes status, duration, trace id, event/log/error/warning/timeline/artifact counts, retry count, failed step or agent when known, resource peaks, token totals, and artifact links. The normalized execution timeline is available from `/api/v1/runs/:run_id/timeline` and from the run stream when the `timeline` channel is requested.
 
-- `events_jsonl`, `logs_jsonl`, `errors_jsonl`
+Run artifact listings include observability artifacts with stable IDs and download metadata:
+
+- `events_jsonl`, `logs_jsonl`, `errors_jsonl`, `timeline_jsonl`, `timeline_json`, `observability_summary_json`
 - Rotated segments such as `events_jsonl_001`, `logs_jsonl_001`, `errors_jsonl_001`
 
-Each artifact entry includes size, SHA-256 hash, content type, and URL. Clients should link to `errors.jsonl`, `events.jsonl`, and `logs.jsonl` instead of embedding large log blobs in job detail views.
+Each artifact entry includes size, SHA-256 hash, content type, and URL. Clients should link to `errors.jsonl`, `events.jsonl`, `logs.jsonl`, and `timeline.jsonl` instead of embedding large log blobs in job detail views.
 
 ## Terminal CLI
 

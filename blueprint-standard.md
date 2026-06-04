@@ -426,6 +426,8 @@ Required run artifacts:
 - `inputs.json`: resolved input payload.
 - `events.jsonl`: append-only typed runtime events.
 - `errors.jsonl`: error-only stream containing `mn.error.v1` envelopes plus run context.
+- `timeline.jsonl`: append-only normalized execution timeline using `mn.timeline.v1`.
+- `observability_summary.json`: compact closeout summary for trace, duration, counts, retries, resources, and links.
 - `result.json`: complete machine-readable result.
 - `final_artifact.json`: user-facing final result or compact artifact.
 
@@ -441,6 +443,7 @@ Optional run artifacts:
 - `events.index.json`: index metadata for rotated lifecycle events.
 - `logs.index.json`: index metadata for rotated or segmented structured logs.
 - `errors.index.json`: index metadata for rotated error records.
+- `timeline.json`: compact ordered mirror regenerated when the run closes.
 - `human.jsonl`: sparse human collaboration notices, input requests, and responses, mirrored to `events.jsonl`.
 - `resources.jsonl`: CPU, GPU, memory, and LLM token usage samples captured for the run.
 
@@ -490,6 +493,37 @@ Limits are platform-level and apply after redaction:
 Oversized values are replaced with a bounded object such as `{"truncated": true, "chars": 12000, "preview": "..."}` and should link to the relevant artifacts. `job_failed`, `workflow_step_failed`, `sandbox_job_failed`, retry exhaustion, scheduler failures, and recovery failures must include `error: mn.error.v1`. Existing `reason` and `status_reason` fields remain compatibility fields derived from `error.desc` when available.
 
 `events.jsonl`, `logs.jsonl`, and `errors.jsonl` rotate at 10 MiB by default and keep five rotated segments per run. Current files keep their existing names; rotated files use numbered suffixes such as `events.001.jsonl`, `logs.001.jsonl`, and `errors.001.jsonl`. Artifact indexes and API responses must expose stable artifact IDs such as `events_jsonl`, `events_jsonl_001`, `logs_jsonl_001`, and `errors_jsonl_001` with size, hash, content type, and download URL.
+
+### Trace, Timeline, And Summary Contract
+
+Every run must have one stable run-level `trace_id` in `run.json`. Records written through shared observability helpers must carry `trace_id` and a per-record `span_id`; callers may provide `trace_id`, `span_id`, and `parent_span_id`, and the runtime must preserve those values. Generated ids use `trc_<urlsafe-random>` and `spn_<urlsafe-random>`.
+
+`timeline.jsonl` contains normalized execution records using `mn.timeline.v1`:
+
+```json
+{
+  "schema_version": "mn.timeline.v1",
+  "ts": "2026-06-04T12:34:56.000Z",
+  "run_id": "run_...",
+  "blueprint_id": "finance_example",
+  "trace_id": "trc_...",
+  "span_id": "spn_...",
+  "parent_span_id": "spn_...",
+  "type": "workflow_step_failed",
+  "phase": "running_worker",
+  "step_id": "prepare_income_workpapers",
+  "agent_id": "income_preparer",
+  "status": "failed",
+  "duration_ms": 120000,
+  "summary": "Workflow step timed out",
+  "links": [{"rel": "errors", "artifact_id": "errors_jsonl"}],
+  "details": {}
+}
+```
+
+`observability_summary.json` is written before observability closes on success and failure. It includes status, duration, trace id, event/log/error/warning/timeline/artifact counts, retry count, failed step or agent when known, slowest phases or steps when durations are available, resource peaks, token totals, and artifact links for `events_jsonl`, `logs_jsonl`, `errors_jsonl`, `timeline_jsonl`, and `timeline_json`.
+
+The same redaction and truncation rules used for `mn.error.v1` apply to timeline details and summary fields. `timeline.jsonl` is append-only; `timeline.json` is a compact ordered mirror and may be truncated for very large runs while retaining the full JSONL stream.
 
 ### Product Output Contract
 
