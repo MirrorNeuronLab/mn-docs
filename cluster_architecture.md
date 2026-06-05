@@ -14,11 +14,12 @@ For two nodes, for example `192.168.4.25` and `192.168.4.173`, to communicate su
 
 ## 2. Docker Configuration
 
-When deploying a cluster across different host operating systems (like macOS and Linux), the networking bridge behaves differently.
-- **macOS:** `--network host` does not expose the Erlang ports to the external network due to the underlying Linux VM. Instead, the `mn` CLI automatically detects macOS (`Darwin`) and manually publishes the needed gRPC, EPMD, BEAM distribution, Redis, and Sentinel ports.
-- **Linux:** Native Docker uses `--network host` which binds the Erlang distribution safely to the physical host interfaces.
+When deploying a cluster across different host operating systems (like macOS and Linux), Docker networking behaves differently.
+- **Local Docker Compose:** MirrorNeuron uses a named bridge network and a persisted `MN_NODE_ALIAS` so the single-node BEAM identity is stable across laptop IP changes.
+- **Multi-host Docker:** Use an existing attachable Docker overlay network. The CLI validates the overlay and uses Docker DNS aliases for Erlang distribution and Redis.
+- **Legacy IP mode:** Set `MN_DOCKER_NETWORK_MODE=disabled` to use host/IP-backed Erlang names.
 
-In both cases, we inject `MN_NODE_NAME=mirror_neuron@<IP>` so the Erlang node is explicitly addressable rather than falling back to `nonode@nohost`.
+In Docker network mode, we inject `MN_NODE_NAME=mirror_neuron@<MN_NODE_ALIAS>` so the Erlang node is explicitly addressable without depending on the current LAN IP. In legacy mode, `MN_NODE_NAME=mirror_neuron@<IP>` remains available.
 
 ## 3. Remote Payload Execution (`HostLocal` Runner)
 

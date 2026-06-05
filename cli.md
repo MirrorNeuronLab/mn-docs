@@ -468,19 +468,27 @@ gRPC and cluster ports, and prints a stable token persisted at `~/.mn/network.to
 A second box can join that main runtime with:
 
 ```bash
-mn node join 192.168.4.10 --token <token>
+mn node join 192.168.4.10 --token <token> --network overlay --docker-network mirror-neuron-runtime
 ```
+
+For multi-host Docker clusters, create an attachable overlay network first, for example:
+
+```bash
+docker network create --driver overlay --attachable mirror-neuron-runtime
+```
+
+The initial gRPC handshake still uses the reachable host/IP, while Erlang node names and Redis use stable Docker DNS aliases inside the overlay. Set `MN_DOCKER_NETWORK_MODE=disabled` to keep the older IP-based Erlang node names.
 
 For the inverse flow, expose a core-only node on the second box:
 
 ```bash
-mn node expose --host 192.168.4.20
+mn node expose --host 192.168.4.20 --network overlay --docker-network mirror-neuron-runtime
 ```
 
 Then add that node from the main box:
 
 ```bash
-mn node add 192.168.4.20 --token <token>
+mn node add 192.168.4.20 --token <token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
 `mn node expose` starts only Core with gRPC, cluster ports, and secured Redis when
@@ -500,8 +508,10 @@ mn node leave mirror_neuron@192.168.4.20
 Leave by node name:
 
 ```bash
-mn node leave mirror_neuron@192.168.4.173
+mn node leave mirror_neuron@mn-node2
 ```
+
+If the node name matches this machine's persisted `MN_NODE_ALIAS`, the CLI also stops/detaches the local Docker core container. It does not remove the shared Docker network.
 
 For controlled two-box startup, prefer the scripts in [Cluster Guide](cluster.md).
 

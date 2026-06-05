@@ -75,15 +75,23 @@ Copy the token printed by `mn runtime start`.
 On the second box:
 
 ```bash
-mn node join 192.168.4.10 --token <token>
+mn node join 192.168.4.10 --token <token> --network overlay --docker-network mirror-neuron-runtime
 ```
+
+Docker multi-host clusters require an existing attachable overlay network:
+
+```bash
+docker network create --driver overlay --attachable mirror-neuron-runtime
+```
+
+The CLI validates that the network exists, uses the `overlay` driver, and is attachable. The gRPC handshake still uses the main box host/IP, but Erlang distribution and Redis are advertised through stable Docker DNS aliases such as `mirror_neuron@mn-a1b2c3d4` and `mn-a1b2c3d4-redis`.
 
 ### Option B: Main Box Adds Second Box
 
 On the second box:
 
 ```bash
-mn node expose --host 192.168.4.20
+mn node expose --host 192.168.4.20 --network overlay --docker-network mirror-neuron-runtime
 ```
 
 Copy the token printed by `mn node expose`.
@@ -91,7 +99,7 @@ Copy the token printed by `mn node expose`.
 On the main box:
 
 ```bash
-mn node add 192.168.4.20 --token <token>
+mn node add 192.168.4.20 --token <token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
 `mn node expose` starts a core-only runtime that exposes gRPC, cluster ports, and secured Redis when no external `MN_REDIS_URL` is configured. It does not start the REST API, Web UI, OpenShell, context engine, or SDK helper processes.

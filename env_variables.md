@@ -101,8 +101,11 @@ These variables are read by the Elixir core runtime.
 | `MN_NETWORK_ADVERTISE_HOST` | unset | Host returned by the network handshake for other nodes to reach this runtime. |
 | `MN_NETWORK_REDIS_HOST` | unset | Public Redis host returned by the network handshake. |
 | `MN_NETWORK_REDIS_PORT` | unset | Public Redis port returned by the network handshake. |
+| `MN_DOCKER_NETWORK_MODE` | `bridge` for local Docker Compose starts | Docker network identity mode. Use `overlay` for multi-host Docker clusters or `disabled` for legacy IP-based Erlang names. |
+| `MN_DOCKER_NETWORK_NAME` | `mirror-neuron-runtime` | Docker bridge/overlay network used for runtime aliases. |
+| `MN_NODE_ALIAS` | generated under `~/.mn/node.alias` | Stable Docker DNS alias used for alias-based node names such as `mirror_neuron@mn-a1b2c3d4`. |
 | `MN_NODE_ROLE` | `runtime` | Runtime node role. `control` starts only shared/control services; other values start runtime workers. |
-| `MN_NODE_NAME` | set by launch scripts | Erlang node name, typically `mirror_neuron@<ip>` or `mn1@<ip>`. |
+| `MN_NODE_NAME` | set by launch scripts | Erlang node name, typically `mirror_neuron@<node-alias>` for Docker network mode or `mirror_neuron@<ip>` for legacy IP mode. |
 | `MN_CLUSTER_NODES` | empty | Comma-separated Erlang node names for clustering. |
 | `MN_DIST_PORT` | `4370` in cluster scripts | Erlang distribution port used by cluster helper scripts. |
 | `MN_REDIS_SENTINEL_PORT` | `26379` in cluster scripts | Local Sentinel port used by Redis HA helper scripts. |
