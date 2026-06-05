@@ -491,8 +491,8 @@ Then add that node from the main box:
 mn node add 192.168.4.20 --token <token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
-`mn node expose` starts only Core with gRPC, cluster ports, and secured Redis when
-no external `MN_REDIS_URL` is configured. It does not start the REST API, Web UI,
+`mn node expose` starts only Core with host gRPC and Docker-internal Redis/Erlang
+cluster traffic. It does not start the REST API, Web UI,
 OpenShell, context engine, or SDK-facing helper processes.
 
 After joining or adding, use `mn node list` and `mn resource list` to see aggregate

@@ -19,17 +19,16 @@ Single Redis is fine for development. Redis Sentinel HA is recommended once two 
 
 ## Required Network Ports
 
-All participating boxes must be able to reach each other on:
+For Docker-network clusters, participating boxes need a shared attachable Docker
+network and a reachable host gRPC port:
 
 | Port | Purpose |
 | --- | --- |
 | `55051` | Deployed host port for the MirrorNeuron core gRPC service. The core container listens on `50051` internally. |
-| `4369` | EPMD, used by Erlang/BEAM distribution. |
-| `4370` | Fixed BEAM distribution port used by the cluster helpers. |
-| `6379` | Redis when using a shared single Redis instance. |
 | `26379` | Redis Sentinel when using Redis HA. |
 
-For development clusters, keep BEAM distribution on a fixed port:
+Redis, EPMD, and BEAM distribution stay inside the Docker bridge/overlay network.
+Legacy IP-based clusters can still pin BEAM distribution to a fixed port:
 
 ```bash
 export ERL_AFLAGS="-kernel inet_dist_listen_min 4370 inet_dist_listen_max 4370"
@@ -102,7 +101,7 @@ On the main box:
 mn node add 192.168.4.20 --token <token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
-`mn node expose` starts a core-only runtime that exposes gRPC, cluster ports, and secured Redis when no external `MN_REDIS_URL` is configured. It does not start the REST API, Web UI, OpenShell, context engine, or SDK helper processes.
+`mn node expose` starts a core-only runtime that exposes host gRPC and keeps Redis/Erlang cluster traffic on the Docker network. It does not start the REST API, Web UI, OpenShell, context engine, or SDK helper processes.
 
 ## Verify The Cluster
 

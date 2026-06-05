@@ -99,15 +99,15 @@ These variables are read by the Elixir core runtime.
 | `MN_NETWORK_ONLY` | `false` | Restricts public gRPC to network join and cluster/resource summaries for core-only cluster peers. |
 | `MN_NETWORK_JOIN_TOKEN` | unset | Join token required by `ClusterService.NetworkHandshake`; `mn runtime start` and `mn node expose` derive cluster cookies and network-mode Redis secrets from it. |
 | `MN_NETWORK_ADVERTISE_HOST` | unset | Host returned by the network handshake for other nodes to reach this runtime. |
-| `MN_NETWORK_REDIS_HOST` | unset | Public Redis host returned by the network handshake. |
-| `MN_NETWORK_REDIS_PORT` | unset | Public Redis port returned by the network handshake. |
+| `MN_NETWORK_REDIS_HOST` | generated internally | Docker-internal Redis host returned by the network handshake. |
+| `MN_NETWORK_REDIS_PORT` | generated internally | Docker-internal Redis port returned by the network handshake, normally `6379`. |
 | `MN_DOCKER_NETWORK_MODE` | `bridge` for local Docker Compose starts | Docker network identity mode. Use `overlay` for multi-host Docker clusters or `disabled` for legacy IP-based Erlang names. |
 | `MN_DOCKER_NETWORK_NAME` | `mirror-neuron-runtime` | Docker bridge/overlay network used for runtime aliases. |
 | `MN_NODE_ALIAS` | generated under `~/.mn/node.alias` | Stable Docker DNS alias used for alias-based node names such as `mirror_neuron@mn-a1b2c3d4`. |
 | `MN_NODE_ROLE` | `runtime` | Runtime node role. `control` starts only shared/control services; other values start runtime workers. |
-| `MN_NODE_NAME` | set by launch scripts | Erlang node name, typically `mirror_neuron@<node-alias>` for Docker network mode or `mirror_neuron@<ip>` for legacy IP mode. |
-| `MN_CLUSTER_NODES` | empty | Comma-separated Erlang node names for clustering. |
-| `MN_DIST_PORT` | `4370` in cluster scripts | Erlang distribution port used by cluster helper scripts. |
+| `MN_NODE_NAME` | generated internally | Erlang node name, typically `mirror_neuron@<node-alias>` for Docker network mode or `mirror_neuron@<ip>` for legacy IP mode. |
+| `MN_CLUSTER_NODES` | generated internally | Comma-separated Erlang node names for clustering. |
+| `MN_DIST_PORT` | internal default | Erlang distribution port inside Docker-network clusters; legacy IP scripts may still expose it. |
 | `MN_REDIS_SENTINEL_PORT` | `26379` in cluster scripts | Local Sentinel port used by Redis HA helper scripts. |
 | `MN_REDIS_SENTINEL_QUORUM` | `1` in cluster scripts | Sentinel quorum used by Redis HA helper scripts. Use at least three Sentinel voters for production. |
 | `MN_REDIS_HA_AUTOCONFIG` | `1` in `start_cluster_node.sh` | When Sentinel mode is enabled, controls whether the cluster start script runs `scripts/redis_ha.sh join`. |
