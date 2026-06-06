@@ -68,7 +68,7 @@ Required identity fields:
 
 - `blueprint_id`: snake_case directory-aligned id.
 - `name`: human-readable display name.
-- `graph_id`: versioned graph id, usually `<blueprint_id>_v1`.
+- `graph_id`: versioned workflow id, usually `<blueprint_id>_v1`.
 - `job_name`: kebab-case job name.
 - `manifest_version`: manifest schema version.
 - `standard_version`: blueprint standard version, currently `1.0`.

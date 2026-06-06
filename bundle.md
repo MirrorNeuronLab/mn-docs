@@ -28,7 +28,7 @@ The `manifest.json` is a JSON document that defines the execution graph.
 | Field | Type | Description |
 |-------|------|-------------|
 | `manifest_version` | String | **Required.** The version of the manifest format (e.g., `"1.0"`). |
-| `graph_id` | String | **Required.** A unique identifier for the agent graph. |
+| `graph_id` | String | **Required.** A unique workflow id. |
 | `job_name` | String | Optional. A human-readable name for the job. Defaults to `graph_id` if missing. |
 | `type` | String | Optional. Set to `"service"` for workflows intended to run until manually stopped. Omit for default batch workflows. `system` and `sysbatch` are selected through scheduler policy. |
 | `requiredContextEngine` | Boolean | Optional. Set to `true` when the workflow requires the Context Engine. The runtime checks `CONTEXT_ENGINE_ADDR` or port `50052` and rejects the run before scheduling agents if the service is unavailable. Defaults to `false`. |
