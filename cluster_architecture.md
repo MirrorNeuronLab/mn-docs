@@ -52,12 +52,17 @@ mn runtime start
 ```
 *Starts Redis, the API, and sets itself up as the coordinating node. Ensure your firewall permits access to 4369, Redis/Sentinel ports, and the configured Erlang distribution ports.*
 
-### On Node 2 (The Follower)
+### On Node 2 (The Worker)
 ```bash
-mn node join <LEADER_IP> --token <token>
-# e.g., mn node join 192.168.4.25 --token <token>
+mn runtime start --worker-node
 ```
-*Will launch an attached worker node that links back to Redis or Sentinel and the Elixir swarm.*
+
+### Back On Node 1
+```bash
+mn node join <WORKER_IP> --token <worker-token>
+# e.g., mn node join 192.168.4.25 --token <worker-token>
+```
+*Promotes the main runtime to cluster mode if needed, then connects the worker. If Node 1 has multiple LAN addresses, pass `--local-host <NODE_1_IP>` to choose the advertised address.*
 
 ### Verifying Connection
 ```bash

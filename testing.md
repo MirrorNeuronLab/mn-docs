@@ -174,7 +174,8 @@ Typical joined-cluster verification:
 
 ```bash
 mn runtime start
-mn node join <main-ip> --token <token>
+mn runtime start --worker-node
+mn node join <worker-ip> --token <worker-token>
 mn node list
 mn resource list
 ```
