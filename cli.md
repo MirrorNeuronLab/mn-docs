@@ -60,7 +60,7 @@ mn runtime metrics
 mn job dead-letters <job_id>
 mn runtime start
 mn runtime stop
-mn node join <main-host> --token <token>
+mn node join <worker-host> --token <worker-token>
 mn node expose
 mn node add <host> --token <token>
 mn node leave <node_name>
@@ -463,12 +463,19 @@ MirrorNeuron services stopped
 
 MirrorNeuron supports two cluster flows.
 
-Use `mn runtime start` on the main box. It starts the regular runtime, exposes the core
-gRPC and cluster ports, and prints a stable token persisted at `~/.mn/network.token`.
-A second box can join that main runtime with:
+Use `mn runtime start` on the main box. It starts the regular local runtime and
+prints a stable token persisted at `~/.mn/network.token`.
+
+For the common worker flow, start the worker box first:
 
 ```bash
-mn node join 192.168.4.10 --token <token> --network overlay --docker-network mirror-neuron-runtime
+mn runtime start --worker-node
+```
+
+Copy the worker token, then connect it from the main box:
+
+```bash
+mn node join <worker-host> --token <worker-token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
 For multi-host Docker clusters, create an attachable overlay network first, for example:
@@ -477,7 +484,13 @@ For multi-host Docker clusters, create an attachable overlay network first, for 
 docker network create --driver overlay --attachable mirror-neuron-runtime
 ```
 
-The initial gRPC handshake still uses the reachable host/IP, while Erlang node names and Redis use stable Docker DNS aliases inside the overlay. Set `MN_DOCKER_NETWORK_MODE=disabled` to keep the older IP-based Erlang node names.
+The initial gRPC handshake uses the reachable worker host/IP, while Erlang node names and Redis use stable Docker DNS aliases inside the overlay. Set `MN_DOCKER_NETWORK_MODE=disabled` to keep the older IP-based Erlang node names.
+
+When the main box is still in local-only mode, `mn node join` automatically enables cluster mode before adding the worker. The main box advertises the first detected non-loopback LAN IPv4 address by default. If the machine has multiple LAN addresses, pass the one the worker should use:
+
+```bash
+mn node join <worker-host> --local-host <main-host> --token <worker-token>
+```
 
 For the inverse flow, expose a core-only node on the second box:
 

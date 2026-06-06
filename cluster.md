@@ -61,7 +61,7 @@ See [Redis High Availability](redis-ha.md) for Sentinel setup and failover tests
 
 MirrorNeuron supports two operator flows.
 
-### Option A: Second Box Joins Main
+### Option A: Main Box Connects A Worker
 
 On the main box:
 
@@ -69,12 +69,18 @@ On the main box:
 mn runtime start
 ```
 
-Copy the token printed by `mn runtime start`.
-
-On the second box:
+On the worker box:
 
 ```bash
-mn node join 192.168.4.10 --token <token> --network overlay --docker-network mirror-neuron-runtime
+mn runtime start --worker-node
+```
+
+Copy the worker token printed by `mn runtime start --worker-node`.
+
+Back on the main box, connect the worker:
+
+```bash
+mn node join <worker-host> --token <worker-token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
 Docker multi-host clusters require an existing attachable overlay network:
@@ -83,7 +89,13 @@ Docker multi-host clusters require an existing attachable overlay network:
 docker network create --driver overlay --attachable mirror-neuron-runtime
 ```
 
-The CLI validates that the network exists, uses the `overlay` driver, and is attachable. The gRPC handshake still uses the main box host/IP, but Erlang distribution and Redis are advertised through stable Docker DNS aliases such as `mirror_neuron@mn-a1b2c3d4` and `mn-a1b2c3d4-redis`.
+The CLI validates that the network exists, uses the `overlay` driver, and is attachable. The gRPC handshake uses `<worker-host>`, but Erlang distribution and Redis are advertised through stable Docker DNS aliases such as `mirror_neuron@mn-a1b2c3d4` and `mn-a1b2c3d4-redis`.
+
+When `mn node join` first connects a worker, it promotes the main box from local-only mode into cluster mode. By default, the main box advertises the first detected non-loopback LAN IPv4 address. On most computers this is the only LAN address. If the main box has multiple LAN addresses, override the advertised address explicitly:
+
+```bash
+mn node join <worker-host> --local-host <main-host> --token <worker-token>
+```
 
 ### Option B: Main Box Adds Second Box
 
