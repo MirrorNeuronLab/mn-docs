@@ -204,6 +204,12 @@ Instead, messages should stay small and carry:
 
 This is the same core operational lesson many schedulers learn: small control messages scale much better than inline large payloads.
 
+Cluster BlobRef sharing uses a simple peer HTTP content-addressed store. Blob URLs
+are not individually bearer-token authenticated; operators should expose the
+artifact port only on trusted loopback, Docker, VPN, or LAN interfaces and use
+firewall rules or bind/publish host settings to keep it inside the intended
+cluster boundary.
+
 ## Built-in primitives
 
 MirrorNeuron keeps only a small runtime primitive set in core:

@@ -42,6 +42,7 @@ Important boundaries:
 - **Worker payload to sandbox:** OpenShell provides a stronger boundary, but policies and uploads still matter.
 - **Worker payload to external services:** outgoing calls can leak data or spend money.
 - **Cluster node to cluster node:** all nodes sharing the Erlang cookie can participate in the distributed runtime.
+- **Blob artifact HTTP:** BlobRef sharing is unauthenticated peer HTTP; keep artifact ports bound or published only inside trusted loopback, Docker, VPN, or LAN boundaries.
 - **Redis to runtime:** Redis is the lease and state authority; protect it like a control-plane database.
 
 ## Safe Defaults
