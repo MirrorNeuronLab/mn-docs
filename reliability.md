@@ -43,7 +43,7 @@ This is enough for replay-oriented recovery. It is not a full deterministic even
 
 ## Workflow Step Ledger
 
-Blueprints that declare `flow.steps` use a durable workflow-control layer in addition to agent snapshots. The runtime treats `flow.steps` as the source of truth for the workflow and stores per-step execution state in the job's `workflow_state` field.
+Blueprints that declare `workflow.steps` use a durable workflow-control layer in addition to agent snapshots. The runtime treats `workflow.steps` as the source of truth for the workflow and stores per-step execution state in the job's `workflow_state` field.
 
 Step status values are:
 

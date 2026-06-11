@@ -68,7 +68,7 @@ Required identity fields:
 
 - `blueprint_id`: snake_case directory-aligned id.
 - `name`: human-readable display name.
-- `graph_id`: versioned workflow id, usually `<blueprint_id>_v1`.
+- `workflow.workflow_id`: versioned workflow id, usually `<blueprint_id>_v1`.
 - `job_name`: kebab-case job name.
 - `manifest_version`: manifest schema version.
 - `standard_version`: blueprint standard version, currently `1.0`.
@@ -114,7 +114,7 @@ The root `index.json` should mirror the product-facing subset:
 - `path`
 - `category`
 - `description`
-- `graph_id`
+- `workflow_id`
 - `job_name`
 - `product.problem`
 - `product.input`
@@ -835,7 +835,7 @@ Long-running, stream, service, or multi-stage blueprints should emit progress or
 
 ## Runtime Workflow Control Contract
 
-Blueprints that use `flow.steps` for multi-step execution should declare runtime workflow control so MirrorNeuron can keep progress durable, bounded, and recoverable. The source of truth is the step ledger stored on the job as `workflow_state`; nodes and agents are workers, not the durable progress authority.
+Blueprints that use `workflow.steps` for multi-step execution should declare runtime workflow control so MirrorNeuron can keep progress durable, bounded, and recoverable. The source of truth is the step ledger stored on the job as `workflow_state`; nodes and agents are workers, not the durable progress authority.
 
 Required runtime shape:
 
@@ -845,7 +845,7 @@ Required runtime shape:
     "workflow_control": {
       "schema_version": "mn.workflow.runtime_control.v1",
       "enabled": true,
-      "source_of_truth": "flow.steps",
+      "source_of_truth": "workflow.steps",
       "state_ledger": {
         "enabled": true,
         "persisted_field": "workflow_state",
@@ -875,8 +875,8 @@ Required runtime shape:
           "idempotency_key"
         ],
         "stale_attempt_outputs": "ignore",
-        "retry_policy_source": "flow.steps[].control.retry",
-        "timeout_source": "flow.steps[].control.timeout_seconds"
+        "retry_policy_source": "workflow.steps[].control.retry",
+        "timeout_source": "workflow.steps[].control.timeout_seconds"
       },
       "liveness": {
         "event": "agent_beacon",
@@ -912,7 +912,7 @@ Required runtime shape:
 }
 ```
 
-Every `flow.steps[]` entry should declare bounded control policy:
+Every `workflow.steps[]` entry should declare bounded control policy:
 
 - `control.timeout_seconds`: positive integer for the current attempt deadline
 - `control.retry.max_attempts`: positive integer
@@ -1784,8 +1784,8 @@ Use this checklist to separate universal requirements from feature-specific requ
 - Deterministic or replayable blueprints declare seed, replay inputs/events, and mock LLM behavior.
 - Blueprints with validator-consumed schemas declare schema ids for config, inputs, events, final artifacts, input skills, output skills, and handoffs.
 - Blueprints with runtime, LLM, connector, disk, or stream limits declare resource budgets.
-- Blueprints with `flow.steps` declare `runtime.workflow_control`, use `workflow_state` as the runtime state source, and expose workflow attempt, retry, blocked, and terminal step events in `metadata.status_contract`.
-- Every `flow.steps[]` entry has positive `control.timeout_seconds`, bounded retry attempts, and a declared failure policy.
+- Blueprints with `workflow.steps` declare `runtime.workflow_control`, use `workflow_state` as the runtime state source, and expose workflow attempt, retry, blocked, and terminal step events in `metadata.status_contract`.
+- Every `workflow.steps[]` entry has positive `control.timeout_seconds`, bounded retry attempts, and a declared failure policy.
 - Multi-agent graphs declare handoff message type, payload schema, producer, consumer, error policy, and artifact ownership.
 - Shared/template agents and workflow workers declare `alias` when their stable runtime IDs are generic or implementation-oriented.
 - Python executor workflow workers require `agent_beacon` liveness and render step timeout, retry, and beacon policy into the runtime node config.
