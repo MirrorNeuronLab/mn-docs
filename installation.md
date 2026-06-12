@@ -24,6 +24,7 @@ Optional:
 ## Option 1: Install With The Deployment Script
 
 Use the deployment script when you want a system-wide `mn` command.
+The hosted installer defaults to GitHub mode.
 
 ```bash
 curl -fsSL https://mirrorneuron.io/install.sh | bash

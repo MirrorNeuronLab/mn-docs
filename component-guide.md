@@ -27,7 +27,7 @@ copy, or run a single blueprint folder without opening the central docs.
 | Folder | Owns | Start here | Basic validation |
 | --- | --- | --- | --- |
 | [`MirrorNeuron`](../MirrorNeuron/README.md) | Elixir/OTP runtime, gRPC services, runtime scheduling, Redis state | [`runtime-architecture.md`](runtime-architecture.md) | `mix test` |
-| [`mn-deploy`](../mn-deploy/README.md) | Installer, local service control, generated Docker Compose runtime | [`installation.md`](installation.md) | `./install_bin.sh --help` |
+| [`mn-deploy`](../mn-deploy/README.md) | Installer, local service control, generated Docker Compose runtime | [`installation.md`](installation.md) | `./install.sh --help` |
 | [`mn-cli`](../mn-cli/README.md) | `mn` command-line interface | [`cli.md`](cli.md) | `.venv/bin/python -m pytest -q` |
 | [`mn-api`](../mn-api/README.md) | FastAPI REST gateway over the runtime SDK | [`api.md`](api.md) | `.venv/bin/python -m pytest -q` |
 | [`mn-python-sdk`](../mn-python-sdk/README.md) | Python gRPC client and workflow bundle helpers | [`SDK.md`](SDK.md) | `.venv/bin/python -m pytest -q` |
@@ -47,8 +47,8 @@ Install or update the local runtime with the deployment repository:
 
 ```bash
 cd mn-deploy
-./install_bin.sh --help
-./install_bin.sh
+./install.sh --help
+./install.sh
 ```
 
 Start services after installation:
@@ -107,16 +107,16 @@ Read next:
 
 ### Deployment Scripts
 
-`mn-deploy` installs and controls a local MirrorNeuron system. The package-based
-installer is `install_bin.sh`. It can install the core release, Python SDK, CLI,
-API, Web UI, Redis, OpenShell, and the Membrane context engine depending on the
-selected options.
+`mn-deploy` installs and controls a local MirrorNeuron system. The unified
+installer is `install.sh`; its default mode installs from GitHub repositories.
+It can install the core, Python SDK, CLI, API, Web UI, Redis, OpenShell, and the
+Membrane context engine depending on the selected options.
 
 Useful commands:
 
 ```bash
 cd mn-deploy
-./install_bin.sh --help
+./install.sh --help
 ./server.sh status
 ./server.sh start
 ./server.sh stop
