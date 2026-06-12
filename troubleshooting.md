@@ -60,7 +60,7 @@ nc -vz -w 3 192.168.4.25 46379
 If this fails, let the smoke test auto-select the remote side as the initial primary:
 
 ```bash
-python3 mn-system-tests/test_all.py --redis-ha \
+.venv/bin/python mn-system-tests/test_all.py --redis-ha \
   --redis-ha-remote-host 192.168.4.173 \
   --redis-ha-local-ip 192.168.4.25 \
   --redis-ha-remote-ip 192.168.4.173
@@ -268,7 +268,7 @@ Symptoms:
 Check:
 
 ```bash
-python3 --version
+python3.11 --version
 ```
 
 Try to keep both boxes on a compatible Python version.

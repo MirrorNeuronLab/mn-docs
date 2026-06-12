@@ -11,7 +11,7 @@ The MirrorNeuron Python SDK provides:
 From the workspace root:
 
 ```bash
-python3 -m pip install -e mn-python-sdk
+.venv/bin/python -m pip install -e mn-python-sdk
 ```
 
 Expected output:
@@ -93,7 +93,7 @@ Generate the checked-in Python SDK research pipeline:
 
 ```bash
 cd mn-blueprints/python_sdk_research_pipeline
-python3 -m pip install -e ../../mn-skills/blueprint_support_skill
+.venv/bin/python -m pip install -e ../../mn-skills/blueprint_support_skill
 python -m mn_blueprint_support.python_workflow_bundle_cli \
   --blueprint-dir . \
   --quick-test \
@@ -231,7 +231,7 @@ If a worker import depends on local files that are not included, the bundle may 
 
 ```bash
 cd mn-python-sdk
-python3 -m pytest tests
+.venv/bin/python -m pytest tests
 ```
 
 Expected output:

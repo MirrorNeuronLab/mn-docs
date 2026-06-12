@@ -15,12 +15,14 @@ MirrorNeuron is an Elixir/BEAM runtime with Python tooling for running message-d
 ## Prerequisites
 
 - macOS, Linux, or WSL2.
-- Python 3.11+ for CLI, SDK, API, system tests, and Python-defined blueprints.
+- Python 3.11.x for CLI, SDK, API, system tests, host-local Python workers, and Python-defined blueprints.
 - Docker for the default local Redis and core workflow.
 - Redis for runtime state.
 - OpenShell when running sandboxed workers.
 
 Elixir/Erlang are required for core runtime development. Released-package installs use OTP tarballs instead of building the core from source.
+
+Use `python3.11 -m venv .venv` when creating local environments, then prefer `.venv/bin/python` for installs and tests. Bare `python3` is reserved for explicit Docker/OpenShell sandbox contracts such as `/usr/bin/python3` inside a container image or sandbox policy.
 
 ## Quick Start
 

@@ -28,17 +28,17 @@ copy, or run a single blueprint folder without opening the central docs.
 | --- | --- | --- | --- |
 | [`MirrorNeuron`](../MirrorNeuron/README.md) | Elixir/OTP runtime, gRPC services, runtime scheduling, Redis state | [`runtime-architecture.md`](runtime-architecture.md) | `mix test` |
 | [`mn-deploy`](../mn-deploy/README.md) | Installer, local service control, generated Docker Compose runtime | [`installation.md`](installation.md) | `./install_bin.sh --help` |
-| [`mn-cli`](../mn-cli/README.md) | `mn` command-line interface | [`cli.md`](cli.md) | `python3 -m pytest -q` |
-| [`mn-api`](../mn-api/README.md) | FastAPI REST gateway over the runtime SDK | [`api.md`](api.md) | `python3 -m pytest -q` |
-| [`mn-python-sdk`](../mn-python-sdk/README.md) | Python gRPC client and workflow bundle helpers | [`SDK.md`](SDK.md) | `python3 -m pytest -q` |
+| [`mn-cli`](../mn-cli/README.md) | `mn` command-line interface | [`cli.md`](cli.md) | `.venv/bin/python -m pytest -q` |
+| [`mn-api`](../mn-api/README.md) | FastAPI REST gateway over the runtime SDK | [`api.md`](api.md) | `.venv/bin/python -m pytest -q` |
+| [`mn-python-sdk`](../mn-python-sdk/README.md) | Python gRPC client and workflow bundle helpers | [`SDK.md`](SDK.md) | `.venv/bin/python -m pytest -q` |
 | [`mn-web-ui`](../mn-web-ui/README.md) | Browser UI for jobs, graphs, runtime state, and blueprint runs | [`monitor.md`](monitor.md) | `npm run lint && npm test -- --run` |
-| [`mn-blueprints`](../mn-blueprints/README.md) | Runnable workflow blueprints and catalog metadata | [`blueprints-and-skills.md`](blueprints-and-skills.md) | `python3 -m pytest -q` |
-| [`mn-agents`](../mn-agents/README.md) | Shared agent templates used by blueprints | [`blueprints-and-skills.md`](blueprints-and-skills.md) | `python3 tools/validate_agents.py --json` |
-| [`mn-skills`](../mn-skills/README.md) | Installable Python skill packages used by blueprint payloads | [`blueprints-and-skills.md`](blueprints-and-skills.md) | Package-specific `python3 -m pytest -q` |
-| [`mn-system-tests`](../mn-system-tests/README.md) | Cross-repository smoke, integration, e2e, and benchmark tests | [`testing.md`](testing.md) | `python3 test_all.py --help` |
+| [`mn-blueprints`](../mn-blueprints/README.md) | Runnable workflow blueprints and catalog metadata | [`blueprints-and-skills.md`](blueprints-and-skills.md) | `.venv/bin/python -m pytest -q` |
+| [`mn-agents`](../mn-agents/README.md) | Shared agent templates used by blueprints | [`blueprints-and-skills.md`](blueprints-and-skills.md) | `.venv/bin/python tools/validate_agents.py --json` |
+| [`mn-skills`](../mn-skills/README.md) | Installable Python skill packages used by blueprint payloads | [`blueprints-and-skills.md`](blueprints-and-skills.md) | Package-specific `.venv/bin/python -m pytest -q` |
+| [`mn-system-tests`](../mn-system-tests/README.md) | Cross-repository smoke, integration, e2e, and benchmark tests | [`testing.md`](testing.md) | `.venv/bin/python test_all.py --help` |
 | [`Membrane`](../Membrane/README.md) | Rust context engine, Python SDK, context compression tooling | [`runtime-architecture.md`](runtime-architecture.md) | `cargo test` and package pytest suites |
-| [`Synapse`](../Synapse/README.md) | Blueprint-composition planner and MCP wrapper | [`architect.md`](architect.md) | `python3 -m pytest -q` in each package |
-| [`otterdesk-blueprints`](../otterdesk-blueprints/README.md) | OtterDesk-facing blueprint catalog | [`blueprints-and-skills.md`](blueprints-and-skills.md) | `python3 -m pytest -q` |
+| [`Synapse`](../Synapse/README.md) | Blueprint-composition planner and MCP wrapper | [`architect.md`](architect.md) | `.venv/bin/python -m pytest -q` in each package |
+| [`otterdesk-blueprints`](../otterdesk-blueprints/README.md) | OtterDesk-facing blueprint catalog | [`blueprints-and-skills.md`](blueprints-and-skills.md) | `.venv/bin/python -m pytest -q` |
 | [`otterdesk-desktop-app`](../otterdesk-desktop-app/README.md) | Electron desktop app that launches and monitors worker blueprints | [`deployments.md`](deployments.md) | `npm run doctor` |
 
 ## Quick Local Path
@@ -141,10 +141,10 @@ Developer setup:
 
 ```bash
 cd mn-cli
-python3 -m venv .venv
+python3.11 -m venv .venv
 . .venv/bin/activate
-python3 -m pip install -e .
-python3 -m pytest -q
+.venv/bin/python -m pip install -e .
+.venv/bin/python -m pytest -q
 ```
 
 Common commands:
@@ -172,10 +172,10 @@ Developer setup:
 
 ```bash
 cd mn-api
-python3 -m venv .venv
+python3.11 -m venv .venv
 . .venv/bin/activate
-python3 -m pip install -e ".[test]"
-python3 -m pytest -q
+.venv/bin/python -m pip install -e ".[test]"
+.venv/bin/python -m pytest -q
 mn-api
 ```
 
@@ -203,10 +203,10 @@ Developer setup:
 
 ```bash
 cd mn-python-sdk
-python3 -m venv .venv
+python3.11 -m venv .venv
 . .venv/bin/activate
-python3 -m pip install -e .
-python3 -m pytest -q
+.venv/bin/python -m pip install -e .
+.venv/bin/python -m pytest -q
 ```
 
 Minimal client example:
@@ -294,15 +294,15 @@ Validate the catalog:
 
 ```bash
 cd mn-agents
-python3 -m pip install -r requirements-test.txt
-python3 tools/validate_agents.py --json
-python3 -m pytest -q
+.venv/bin/python -m pip install -r requirements-test.txt
+.venv/bin/python tools/validate_agents.py --json
+.venv/bin/python -m pytest -q
 ```
 
 Simulate one fixture:
 
 ```bash
-python3 tools/simulate_agent.py data_python_executor/fixtures/minimal.instance.json
+.venv/bin/python tools/simulate_agent.py data_python_executor/fixtures/minimal.instance.json
 ```
 
 Read next:
@@ -320,14 +320,14 @@ Install one package from source:
 
 ```bash
 cd mn-skills
-python3 -m pip install -e generate_fake_data_skill
+.venv/bin/python -m pip install -e generate_fake_data_skill
 ```
 
 Run package tests from the package folder when tests exist:
 
 ```bash
 cd generate_fake_data_skill
-python3 -m pytest -q
+.venv/bin/python -m pytest -q
 ```
 
 Read next:
@@ -345,19 +345,19 @@ Set up dependencies:
 
 ```bash
 cd mn-system-tests
-python3 -m pip install -r requirements.txt
+.venv/bin/python -m pip install -r requirements.txt
 ```
 
 Inspect the test runner:
 
 ```bash
-python3 test_all.py --help
+.venv/bin/python test_all.py --help
 ```
 
 Fast benchmark fixture tests:
 
 ```bash
-python3 -m pytest benchmarks -q
+.venv/bin/python -m pytest benchmarks -q
 ```
 
 Live integration and e2e tests are intentionally gated. Set
@@ -386,16 +386,16 @@ Python SDK validation:
 
 ```bash
 cd Membrane/mn-context-engine-python-sdk
-python3 -m pip install -e ".[dev]"
-python3 -m pytest -q
+.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/python -m pytest -q
 ```
 
 Optimizer validation:
 
 ```bash
 cd Membrane/mn-context-auto-optimizer
-python3 -m pip install -e ".[dev]"
-python3 -m pytest -q
+.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/python -m pytest -q
 ```
 
 Read next:
@@ -413,7 +413,7 @@ Try the orchestrator:
 
 ```bash
 cd Synapse/mn-orchastrator
-PYTHONPATH=src python3 -m mn_orchastrator.cli compose \
+PYTHONPATH=src .venv/bin/python -m mn_orchastrator.cli compose \
   "Build a support triage workflow that ranks escalation risk and writes a report." \
   --workspace-root ../..
 ```
@@ -444,7 +444,7 @@ Use its root tests before changing catalog metadata or manifests:
 
 ```bash
 cd otterdesk-blueprints
-python3 -m pytest -q
+.venv/bin/python -m pytest -q
 ```
 
 Read next:

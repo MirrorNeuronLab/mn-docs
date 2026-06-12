@@ -75,7 +75,7 @@ Risk:
 ```json
 {
   "runner": "host_local",
-  "command": "python3 worker.py"
+  "command": "python3.11 worker.py"
 }
 ```
 

@@ -17,14 +17,14 @@ generation for runtime evaluation.
 
 ```bash
 cd mn-system-tests
-python3 -m pytest benchmarks -q
+.venv/bin/python -m pytest benchmarks -q
 ```
 
 ## Generate A Report
 
 ```bash
 cd mn-system-tests
-python3 -m benchmarks.agent_runtime_benchmark --output-dir /tmp/mn-agent-runtime-benchmark
+.venv/bin/python -m benchmarks.agent_runtime_benchmark --output-dir /tmp/mn-agent-runtime-benchmark
 ```
 
 The report includes completion, recovery, tool/action correctness, cost, human

@@ -16,9 +16,9 @@ Thanks for helping improve MirrorNeuron. The best first contribution is usually 
 From the workspace root:
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 . .venv/bin/activate
-python3 -m pip install -r mn-system-tests/requirements.txt
+.venv/bin/python -m pip install -r mn-system-tests/requirements.txt
 ```
 
 Expected result:
@@ -60,37 +60,37 @@ PONG
 Fast Python and blueprint checks:
 
 ```bash
-python3 mn-system-tests/test_all.py --fast
+.venv/bin/python mn-system-tests/test_all.py --fast
 ```
 
 Unit and component tests:
 
 ```bash
-python3 mn-system-tests/test_all.py --unit
+.venv/bin/python mn-system-tests/test_all.py --unit
 ```
 
 Blueprint quick generation:
 
 ```bash
-python3 mn-system-tests/test_all.py --blueprints
+.venv/bin/python mn-system-tests/test_all.py --blueprints
 ```
 
 Core runtime e2e:
 
 ```bash
-python3 mn-system-tests/test_all.py --runtime-e2e
+.venv/bin/python mn-system-tests/test_all.py --runtime-e2e
 ```
 
 Redis Sentinel HA smoke tests:
 
 ```bash
-python3 mn-system-tests/test_all.py --redis-ha
+.venv/bin/python mn-system-tests/test_all.py --redis-ha
 ```
 
 Two-box Redis Sentinel HA smoke test:
 
 ```bash
-python3 mn-system-tests/test_all.py --redis-ha \
+.venv/bin/python mn-system-tests/test_all.py --redis-ha \
   --redis-ha-remote-host 192.168.4.173 \
   --redis-ha-local-ip 192.168.4.25 \
   --redis-ha-remote-ip 192.168.4.173

@@ -128,7 +128,7 @@ Script:
 ```json
 {
   "type": "script",
-  "command": ["python3", "payloads/check_model_cache.py"],
+  "command": ["python3.11", "payloads/check_model_cache.py"],
   "timeout_ms": 5000
 }
 ```

@@ -30,7 +30,7 @@ Blueprints that need Python packages at runtime should declare them on the execu
 }
 ```
 
-The runtime creates a cached virtualenv keyed by Python version and dependency contents, then runs `python` or `python3` commands from that environment. Root-level blueprint `requirements.txt` files remain documentation or developer setup files unless an executor explicitly references a dependency file under `payloads/`.
+The runtime creates a cached virtualenv keyed by Python version and dependency contents, then rewrites `python`, `python3`, or `python3.11` commands to run from that environment. Root-level blueprint `requirements.txt` files remain documentation or developer setup files unless an executor explicitly references a dependency file under `payloads/`.
 
 ## Wrap Plain Code With The Shared Executor
 
@@ -116,7 +116,7 @@ Generate the checked-in Python SDK research pipeline:
 
 ```bash
 cd mn-blueprints/python_sdk_research_pipeline
-python3 -m pip install -e ../../mn-skills/blueprint_support_skill
+.venv/bin/python -m pip install -e ../../mn-skills/blueprint_support_skill
 python -m mn_blueprint_support.python_workflow_bundle_cli \
   --blueprint-dir . \
   --quick-test \
@@ -200,7 +200,7 @@ Run SDK tests:
 
 ```bash
 cd mn-python-sdk
-python3 -m pytest tests
+.venv/bin/python -m pytest tests
 ```
 
 Expected output:
@@ -212,7 +212,7 @@ Expected output:
 Run blueprint quick generation:
 
 ```bash
-python3 mn-system-tests/test_all.py --blueprints
+.venv/bin/python mn-system-tests/test_all.py --blueprints
 ```
 
 Expected output:

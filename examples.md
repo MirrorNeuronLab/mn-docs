@@ -79,7 +79,7 @@ Generate a quick deterministic bundle with the shared support generator:
 
 ```bash
 cd mn-blueprints/python_sdk_research_pipeline
-python3 -m pip install -e ../../mn-skills/blueprint_support_skill
+.venv/bin/python -m pip install -e ../../mn-skills/blueprint_support_skill
 python -m mn_blueprint_support.python_workflow_bundle_cli \
   --blueprint-dir . \
   --quick-test \

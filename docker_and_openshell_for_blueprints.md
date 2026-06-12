@@ -81,7 +81,7 @@ HostLocal copies files from the submitted payload into an agent workspace:
   "upload_path": "worker",
   "upload_as": "worker",
   "workdir": "/sandbox/job/worker",
-  "command": ["python3", "scripts/run_blueprint.py"]
+  "command": ["python3.11", "scripts/run_blueprint.py"]
 }
 ```
 
@@ -222,7 +222,7 @@ Reference payload-local files in the manifest:
   "upload_path": "worker",
   "sandbox_upload_path": "/sandbox/job",
   "workdir": "/sandbox/job/worker",
-  "command": ["python3", "scripts/run.py"]
+  "command": ["/usr/bin/python3", "scripts/run.py"]
 }
 ```
 

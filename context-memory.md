@@ -8,9 +8,9 @@ selection, context compression, and benchmark evaluation.
 | Folder | Purpose | Main validation |
 | --- | --- | --- |
 | [`Membrane/mn-context-engine`](../Membrane/mn-context-engine) | Rust gRPC context engine. | `cargo test` |
-| [`Membrane/mn-context-engine-python-sdk`](../Membrane/mn-context-engine-python-sdk/README.md) | Python SDK shell and utilities for the Rust engine. | `python3 -m pytest -q` |
-| [`Membrane/mn-context-auto-optimizer`](../Membrane/mn-context-auto-optimizer/README.md) | Deterministic graph/NLP context compression and optional model tooling. | `python3 -m pytest -q` |
-| [`Membrane/mn-context-auto-optimizer-benchmark`](../Membrane/mn-context-auto-optimizer-benchmark/README.md) | Benchmark and telemetry package for context compression models. | `python3 -m pytest -q` |
+| [`Membrane/mn-context-engine-python-sdk`](../Membrane/mn-context-engine-python-sdk/README.md) | Python SDK shell and utilities for the Rust engine. | `.venv/bin/python -m pytest -q` |
+| [`Membrane/mn-context-auto-optimizer`](../Membrane/mn-context-auto-optimizer/README.md) | Deterministic graph/NLP context compression and optional model tooling. | `.venv/bin/python -m pytest -q` |
+| [`Membrane/mn-context-auto-optimizer-benchmark`](../Membrane/mn-context-auto-optimizer-benchmark/README.md) | Benchmark and telemetry package for context compression models. | `.venv/bin/python -m pytest -q` |
 
 ## Python SDK
 
@@ -18,15 +18,15 @@ Install the Membrane Python SDK from source:
 
 ```bash
 cd Membrane/mn-context-engine-python-sdk
-python3 -m pip install -e ".[dev]"
-python3 -m pytest -q
+.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/python -m pytest -q
 ```
 
 Optional extras are package-specific:
 
 ```bash
-python3 -m pip install -e ".[compression]"
-python3 -m pip install -e ".[qdrant]"
+.venv/bin/python -m pip install -e ".[compression]"
+.venv/bin/python -m pip install -e ".[qdrant]"
 ```
 
 Use `qdrant` and `qdrant-gpu` in separate environments because their FastEmbed
@@ -38,8 +38,8 @@ Install the deterministic optimizer:
 
 ```bash
 cd Membrane/mn-context-auto-optimizer
-python3 -m pip install -e ".[dev]"
-python3 -m pytest -q
+.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/python -m pytest -q
 ```
 
 Inspect runtime capabilities:
@@ -72,7 +72,7 @@ Install the benchmark package:
 
 ```bash
 cd Membrane/mn-context-auto-optimizer-benchmark
-python3 -m pip install -e ".[dev]"
+.venv/bin/python -m pip install -e ".[dev]"
 ```
 
 Run the default graph benchmark:

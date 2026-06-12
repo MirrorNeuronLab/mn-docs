@@ -252,7 +252,7 @@ When you configure an executor node to run a script, you declare it in the `conf
         "target": "/sandbox/process_data.py"
       }
     ],
-    "command": ["python3", "/sandbox/process_data.py"]
+    "command": ["/usr/bin/python3", "/sandbox/process_data.py"]
   }
 }
 ```
@@ -272,7 +272,7 @@ In this example, the runtime will look for `my_job_bundle/payloads/process_data.
     "upload_path": "person_detector",
     "upload_as": "person_detector",
     "workdir": "/sandbox/job/person_detector",
-    "command": ["python3", "scripts/analyze_door_camera_frame.py"],
+    "command": ["python3.11", "scripts/analyze_door_camera_frame.py"],
     "python_environment": {
       "requirements": "person_detector/requirements.txt",
       "packages": ["opencv-python-headless>=4.10,<5"]
@@ -325,7 +325,7 @@ Here is a simple example of a complete `manifest.json` for a Map-Reduce style wo
             "target": "/app/summarize.py"
           }
         ],
-        "command": ["python3", "/app/summarize.py"]
+        "command": ["/usr/bin/python3", "/app/summarize.py"]
       }
     },
     {

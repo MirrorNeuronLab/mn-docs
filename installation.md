@@ -52,9 +52,9 @@ MirrorNeuron CLI
 From the workspace root:
 
 ```bash
-python3 -m venv .venv
+python3.11 -m venv .venv
 . .venv/bin/activate
-python3 -m pip install -r mn-system-tests/requirements.txt
+.venv/bin/python -m pip install -r mn-system-tests/requirements.txt
 ```
 
 Expected result:

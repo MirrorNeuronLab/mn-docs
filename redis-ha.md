@@ -204,7 +204,7 @@ Options:
 The workspace wrapper runs the same smoke:
 
 ```bash
-python3 mn-system-tests/test_all.py --redis-ha \
+.venv/bin/python mn-system-tests/test_all.py --redis-ha \
   --redis-ha-remote-host 192.168.4.173 \
   --redis-ha-local-ip 192.168.4.25 \
   --redis-ha-remote-ip 192.168.4.173

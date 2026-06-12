@@ -26,50 +26,50 @@ Current component mapping:
 Fast local signal:
 
 ```bash
-python3 mn-system-tests/test_all.py --fast
+.venv/bin/python mn-system-tests/test_all.py --fast
 ```
 
 Component unit tests, including Node and core when dependencies are present:
 
 ```bash
-python3 mn-system-tests/test_all.py --unit
+.venv/bin/python mn-system-tests/test_all.py --unit
 ```
 
 Blueprint quick checks without external APIs:
 
 ```bash
-python3 mn-system-tests/test_all.py --blueprints
+.venv/bin/python mn-system-tests/test_all.py --blueprints
 ```
 
 Core runtime e2e, including stream/live backpressure:
 
 ```bash
-python3 mn-system-tests/test_all.py --runtime-e2e
+.venv/bin/python mn-system-tests/test_all.py --runtime-e2e
 ```
 
 Security checks in reporting mode:
 
 ```bash
-python3 mn-system-tests/test_all.py --security --skip-core --skip-node --skip-blueprints
+.venv/bin/python mn-system-tests/test_all.py --security --skip-core --skip-node --skip-blueprints
 ```
 
 Strict security mode fails on dependency-audit or secret-scan findings:
 
 ```bash
-python3 mn-system-tests/test_all.py --security --strict-security --skip-core --skip-node --skip-blueprints
+.venv/bin/python mn-system-tests/test_all.py --security --strict-security --skip-core --skip-node --skip-blueprints
 ```
 
 Live integration/e2e against running services:
 
 ```bash
-python3 mn-system-tests/test_all.py --integration --live
-python3 mn-system-tests/test_all.py --e2e --live
+.venv/bin/python mn-system-tests/test_all.py --integration --live
+.venv/bin/python mn-system-tests/test_all.py --e2e --live
 ```
 
 Full default non-live suite:
 
 ```bash
-python3 mn-system-tests/test_all.py
+.venv/bin/python mn-system-tests/test_all.py
 ```
 
 ## Manual Live E2E
@@ -98,7 +98,7 @@ Then run:
 MN_GRPC_TARGET=localhost:55200 \
 MN_API_BASE_URL=http://localhost:4001/api/v1 \
 RUN_MN_SYSTEM_TESTS=1 \
-python3 -m pytest mn-system-tests/integration mn-system-tests/e2e
+.venv/bin/python -m pytest mn-system-tests/integration mn-system-tests/e2e
 ```
 
 ## Redis HA Tests
@@ -135,7 +135,7 @@ The two-box test starts Redis and Sentinel on both machines, writes MirrorNeuron
 Run the same path through the workspace test runner:
 
 ```bash
-python3 mn-system-tests/test_all.py --redis-ha \
+.venv/bin/python mn-system-tests/test_all.py --redis-ha \
   --redis-ha-remote-host 192.168.4.173 \
   --redis-ha-local-ip 192.168.4.25 \
   --redis-ha-remote-ip 192.168.4.173
