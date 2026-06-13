@@ -2,10 +2,10 @@
 
 The ecosystem simulation is a BEAM-native blueprint that stresses MirrorNeuron with stateful regions, animal populations, cross-region messages, and a final leaderboard.
 
-Path:
+Catalog id:
 
 ```text
-mn-blueprints/ecosystem_simulation
+ecosystem_simulation
 ```
 
 ## What It Simulates
@@ -48,7 +48,7 @@ This design keeps:
 - bounded runtime processes
 - lower Redis and sandbox overhead than per-entity workers
 
-## Run The Checked-In Blueprint
+## Run The Catalog Blueprint
 
 ```bash
 mn blueprint run ecosystem_simulation

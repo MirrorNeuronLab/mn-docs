@@ -1,66 +1,53 @@
 # Validate And Run Your First Workflow
 
-This tutorial gets you from a fresh checkout to one validated workflow and one submitted job.
+This tutorial gets you from a fresh checkout to one validated workflow and one
+submitted job using a checked-in OtterDesk blueprint.
 
 ## What You Will Do
 
 By the end, you will have:
 
-- validated a checked-in job bundle
-- started Redis
+- validated a local blueprint bundle
 - started the MirrorNeuron runtime
 - submitted one workflow
-- inspected job state
+- inspected job and run state
 
 ## Before You Start
 
 You need:
 
 - macOS, Linux, or WSL2
-- Python 3.10+
-- Elixir/Erlang
+- Python 3.11+
 - Docker
-- the `mn` CLI on your PATH
+- the `mn` CLI on your `PATH`
 
-If those are not ready yet, follow [Installation](installation.md) first.
+Elixir/Erlang are needed only when developing the BEAM runtime directly. If the
+CLI or local services are not ready yet, follow [Installation](installation.md).
 
-## Step 1: Validate A Bundle
+## Step 1: Validate A Checked-In Blueprint
 
 From the workspace root:
 
 ```bash
-mn blueprint validate mn-blueprints/message_routing_trace
+mn blueprint validate otterdesk-blueprints/tax_form_ocr_capture_assistant
 ```
 
-Expected output:
+Expected output includes:
 
 ```text
-Job bundle at 'mn-blueprints/message_routing_trace' is valid.
+valid
 ```
 
-This checks the local manifest and input contract without submitting a runtime job.
+This checks the manifest, service declarations, model requirements, and input
+contract without submitting a runtime job.
 
-## Step 2: Start Redis
-
-```bash
-docker rm -f mirror-neuron-redis 2>/dev/null || true
-docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
-docker exec mirror-neuron-redis redis-cli ping
-```
-
-Expected output:
-
-```text
-PONG
-```
-
-## Step 3: Start The Runtime
+## Step 2: Start The Runtime
 
 ```bash
 mn runtime start
 ```
 
-Expected output:
+Expected output includes:
 
 ```text
 MirrorNeuron services started
@@ -69,43 +56,44 @@ MirrorNeuron services started
 If your local command prints a different success line, verify with:
 
 ```bash
+mn runtime health
 mn node list
+```
+
+Expected output includes a healthy runtime and either an empty local node list
+or one or more reachable runtime nodes.
+
+## Step 3: Run The Workflow
+
+```bash
+mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
 ```
 
 Expected output includes:
 
-```json
-{
-  "nodes": []
-}
-```
-
-or a non-empty `nodes` list when the core runtime is reachable.
-
-## Step 4: Run The Workflow
-
-```bash
-mn blueprint run message_routing_trace
-```
-
-Expected output:
-
 ```text
-Job submitted successfully
+Job submitted
 ```
 
-The CLI may also print live events and the job id. Keep the job id for inspection commands.
+The CLI may print live events, a job id, and a blueprint run id. Keep both ids
+for inspection commands.
 
-## Step 5: Inspect Jobs
+## Step 4: Inspect Jobs
 
 ```bash
 mn job list
 ```
 
-Expected output:
+Expected output includes either:
 
 ```text
 Job ID
+```
+
+or:
+
+```text
+No jobs found
 ```
 
 Check a single job:
@@ -114,43 +102,63 @@ Check a single job:
 mn job status <job_id>
 ```
 
-Expected output includes:
+Expected output includes a `status` field such as `running`, `completed`,
+`failed`, or `cancelled`.
 
-```json
-{
-  "status": "completed"
-}
-```
+## Step 5: Inspect Blueprint Runs
 
-If the job is still running, wait a moment and run `mn job status <job_id>` again.
-
-## Step 6: Try A Python-Defined Blueprint
-
-Run the checked-in Python SDK research pipeline:
+Show recent blueprint runs:
 
 ```bash
-mn blueprint run python_sdk_research_pipeline
+mn blueprint monitor
 ```
 
-Expected output:
+Inspect logs and events for one run:
+
+```bash
+mn blueprint tail <run_id>
+mn blueprint logs <run_id>
+mn blueprint export <run_id> --format markdown
+```
+
+Most run artifacts are written under:
 
 ```text
-Job submitted successfully
+~/.mn/runs/<run_id>/
 ```
 
-For Python bundle-generation details, see [Python SDK](SDK.md).
+## Step 6: Try The Catalog Flow
+
+List catalog blueprints:
+
+```bash
+mn blueprint list
+```
+
+Run a catalog blueprint by id:
+
+```bash
+mn blueprint run portfolio_risk_review_assistant
+```
+
+Use `--update` when you want to refresh the cached blueprint repository first:
+
+```bash
+mn blueprint run portfolio_risk_review_assistant --update
+```
 
 ## Security Basics
 
 Before running bigger or third-party workflows:
 
 - Review `manifest.json` and `payloads/`.
-- Check whether a node uses `host_local` or OpenShell.
+- Check whether a node uses HostLocal, DockerWorker, or OpenShell.
 - Check `pass_env` before secrets are exposed to workers.
-- Use dry-run options for email, Slack, or other external delivery flows.
-- Treat live messages and model outputs as untrusted input.
+- Use mock, sample, or dry-run settings before external email, Slack, browser, or delivery adapters.
+- Treat live messages, browser data, and model outputs as untrusted input.
 
-Read [Security Model](security.md) before exposing a runtime to other users or machines.
+Read [Security Model](security.md) before exposing a runtime to other users or
+machines.
 
 ## Troubleshooting
 
@@ -163,27 +171,23 @@ which mn
 mn --help
 ```
 
-### gRPC connection refused
+### Runtime connection refused
 
 The runtime is not reachable.
 
 ```bash
 mn runtime start
+mn runtime health
 mn node list
 ```
 
-### Redis connection errors
+### Model requirement failures
 
-Check:
+Install or inspect the required Docker Model Runner model:
 
 ```bash
-docker exec mirror-neuron-redis redis-cli ping
-```
-
-Expected output:
-
-```text
-PONG
+mn model list
+mn model doctor gemma4:e2b
 ```
 
 ## Next Steps

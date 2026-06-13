@@ -1,10 +1,13 @@
 # MirrorNeuron Documentation
 
-MirrorNeuron is a durable runtime and control plane for adaptive, message-driven AI workflows. It runs on a laptop, on edge boxes, or across a small cluster.
+MirrorNeuron is a durable runtime and control plane for adaptive,
+message-driven AI workflows. It runs on a laptop, on edge boxes, or across a
+small cluster. OtterDesk adds a local desktop/operator surface and a
+self-contained blueprint catalog for real workflows.
 
 The documentation has two goals:
 
-- A new user should install, configure, run, and safely test MirrorNeuron in under 10 minutes.
+- A new user should install, configure, run, and safely inspect a blueprint in under 10 minutes.
 - A new contributor should understand the architecture well enough to make a small pull request in under one hour.
 
 ## Start Here
@@ -12,29 +15,30 @@ The documentation has two goals:
 1. [README](README.md): project overview, quick start, and doc map.
 2. [Component Guide](component-guide.md): choose the right folder and validation command.
 3. [Quickstart](quickstart.md): validate and run your first workflow.
-4. [Installation](installation.md): install runtime dependencies and start local services.
+4. [Examples](examples.md): choose a checked-in OtterDesk blueprint.
 5. [Security Model](security.md): understand what powers you are giving the runtime.
-6. [Troubleshooting](troubleshooting.md): common setup, Redis, OpenShell, and cluster errors.
+6. [Troubleshooting](troubleshooting.md): common setup, Redis, OpenShell, model, and cluster errors.
 
 ## Documentation Map
 
 | Page | Type | Use it when |
 | --- | --- | --- |
 | [Component Guide](component-guide.md) | Overview | You need the repository map, folder responsibilities, and local validation commands. |
+| [Change Log](change_log.md) | Tracker | You want the weekly top-five growth summary. |
 | [Quickstart](quickstart.md) | Tutorial | You want the shortest path to first success. |
-| [Installation](installation.md) | Tutorial | You need to install Redis, OpenShell, Elixir, and Python tooling. |
-| [Examples](examples.md) | Tutorial | You want to choose the right checked-in blueprint. |
+| [Installation](installation.md) | Tutorial | You need to install Redis, OpenShell, Elixir, Docker Model Runner, and Python tooling. |
+| [Examples](examples.md) | Tutorial | You want to choose the right checked-in OtterDesk blueprint. |
 | [Skill Catalog](skill-catalog.md) | Reference | You need centralized summaries for reusable skill packages. |
 | [Cluster Guide](cluster.md) | How-to | You need to start or inspect a multi-box runtime. |
-| [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md) | Overview | You want the status and code map for reconciliation, job types, policies, drain, services, resources, deployments, and schedules. |
+| [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md) | Overview | You want the status and code map for reconciliation, services, resources, deployments, and schedules. |
 | [Redis High Availability](redis-ha.md) | How-to | You need Redis Sentinel failover. |
 | [Monitor Guide](monitor.md) | How-to | You need to inspect live jobs and events. |
 | [CLI Reference](cli.md) | Reference | You need exact CLI commands and options. |
 | [Environment Variables](env_variables.md) | Reference | You need config names, defaults, and effects. |
-| [API Reference](api.md) | Reference | You need HTTP or Elixir API shapes. |
+| [API Reference](api.md) | Reference | You need FastAPI, gRPC, or Elixir API shapes. |
 | [Job Bundle Format](bundle.md) | Reference | You are writing or validating `manifest.json`. |
 | [Python SDK](SDK.md) | Reference | You want to compile Python workflow definitions into bundles. |
-| [Blueprint Standard](blueprint-standard.md) | Reference | You need the cross-blueprint contract for manifests, run stores, agents, aliases, artifacts, privacy, and UI surfaces. |
+| [Blueprint Standard](blueprint-standard.md) | Reference | You need the cross-blueprint contract for manifests, run stores, agents, artifacts, privacy, and UI surfaces. |
 | [Services and Health Checks](services-and-health-checks.md) | How-to | You need service declarations, registry lookup, or required service preflight. |
 | [Model Runtime](model-runtime.md) | How-to | You need to install, inspect, validate, or use local Docker Model Runner LLMs. |
 | [Docker and OpenShell for Blueprints](docker_and_openshell_for_blueprints.md) | How-to | You need local files, ports, web UIs, host services, or sandbox resources to work first time. |
@@ -52,21 +56,30 @@ The documentation has two goals:
 
 ## First Safe Workflow
 
-After Redis and the runtime are started, run the smallest checked-in workflow:
+After Redis and the runtime are started, run a checked-in local blueprint:
 
 ```bash
-mn blueprint run message_routing_trace
+mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
 ```
 
-Expected output:
+Expected output includes:
 
 ```text
-Job submitted successfully
+Job submitted
+```
+
+Use the catalog flow when the blueprint library is installed or cached:
+
+```bash
+mn blueprint list
+mn blueprint run portfolio_risk_review_assistant
 ```
 
 ## Security Quick Read
 
-MirrorNeuron can run local commands, create sandboxes, call APIs, pass selected secrets into workers, and coordinate jobs across boxes. Before using it in a shared or production environment:
+MirrorNeuron can run local commands, create sandboxes, call APIs, pass selected
+secrets into workers, and coordinate jobs across boxes. Before using it in a
+shared or production environment:
 
 - Review every bundle before running it.
 - Keep `pass_env` narrow.

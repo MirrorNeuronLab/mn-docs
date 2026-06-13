@@ -112,10 +112,10 @@ class ResearchFlow:
         return self.agents.reviewer(request)
 ```
 
-Generate the checked-in Python SDK research pipeline:
+Generate a Python-defined blueprint from a local source-mode blueprint folder:
 
 ```bash
-cd mn-blueprints/python_sdk_research_pipeline
+cd path/to/python-source-blueprint
 .venv/bin/python -m pip install -e ../../mn-skills/blueprint_support_skill
 python -m mn_blueprint_support.python_workflow_bundle_cli \
   --blueprint-dir . \
@@ -176,7 +176,7 @@ Some skills are copied into blueprint payloads. Others are installed as local Py
 Use this split:
 
 - Runtime scheduling, leases, events, and recovery belong in `MirrorNeuron`.
-- Workflow-specific code belongs in `mn-blueprints`.
+- Workflow-specific code belongs in a blueprint catalog such as `otterdesk-blueprints`.
 - Reusable worker helpers belong in `mn-skills`.
 - Python workflow authoring helpers belong in `mn-python-sdk`.
 - CLI and API integration belongs in `mn-cli` and `mn-api`.

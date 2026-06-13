@@ -1,7 +1,7 @@
 # Choose A Blueprint Example
 
-This guide helps you choose a checked-in blueprint for a first run, smoke test,
-or runtime demonstration.
+This guide helps you choose a checked-in OtterDesk blueprint for a first run,
+smoke test, or runtime demonstration.
 
 Run commands from the workspace root unless a step says otherwise.
 
@@ -19,217 +19,172 @@ Name
 Job Name
 ```
 
-Blueprint availability depends on your local blueprint index and checkout. The
-catalog source of truth is [`mn-blueprints/index.json`](../mn-blueprints/index.json).
+Catalog availability depends on your cached blueprint repository. The checked-in
+local catalog for this workspace is [`otterdesk-blueprints/index.json`](../otterdesk-blueprints/index.json).
 
 ## Recommended Order
 
 | Order | Blueprint | Use it when |
 | --- | --- | --- |
-| 1 | `message_routing_trace` | You want the smallest local routing workflow. |
-| 2 | `python_sdk_research_pipeline` | You want to review a Python-defined batch workflow. |
-| 3 | `python_sdk_research_service` | You want a long-running Python service pattern. |
-| 4 | `openshell_sandbox_worker_pipeline` | You want sandboxed worker execution and artifact handoff. |
-| 5 | `parallel_worker_benchmark` | You want fan-out/fan-in scheduler pressure. |
-| 6 | `stream_backpressure_simulation` | You want bounded stream and backpressure behavior. |
-| 7 | `ecosystem_simulation` | You want a larger stateful simulation. |
-| 8 | `liquidity_risk_monitor` | You want a finance workflow with optional external integrations. |
+| 1 | `tax_form_ocr_capture_assistant` | You want a small document/OCR workflow with public sample metadata. |
+| 2 | `portfolio_risk_review_assistant` | You want a finance workflow with deterministic simulation and LLM report writing. |
+| 3 | `video_watch_assistant` | You want a service-style video monitoring workflow. |
+| 4 | `gtm_ai_workflow` | You want a long-running GTM automation loop with CRM and outreach artifacts. |
+| 5 | `personal_financial_advisor` | You want a folder-watching service with OCR, public browser research, and review-only reports. |
+| 6 | `generic_customer_service_voice_coworker` | You want a local voice service backed by the NVIDIA/Spark stack. |
 
-## 1. Message Routing Trace
+## 1. Tax Form OCR Capture Assistant
 
 Path:
 
 ```text
-mn-blueprints/message_routing_trace
+otterdesk-blueprints/tax_form_ocr_capture_assistant
 ```
 
 Use it when:
 
-- you want the smallest local workflow;
-- you want to validate routing and manifest shape;
-- you do not want external APIs.
+- you want a compact checked-in blueprint;
+- you want document intake and OCR-style artifact output;
+- you want a review-only workflow with public dataset notes.
 
 Run:
 
 ```bash
-mn blueprint run message_routing_trace
+mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
 ```
 
-Expected output:
+Direct runner smoke test:
 
-```text
-Job submitted successfully
+```bash
+cd otterdesk-blueprints/tax_form_ocr_capture_assistant
+python3.11 payloads/document_workflow/scripts/run_blueprint.py --runs-root /tmp/mn-runs --run-id tax-form-demo
 ```
 
-## 2. Python SDK Research Pipeline
+## 2. Portfolio Risk Review Assistant
 
 Path:
 
 ```text
-mn-blueprints/python_sdk_research_pipeline
+otterdesk-blueprints/portfolio_risk_review_assistant
 ```
 
 Use it when:
 
-- you want to author workflows in Python;
-- you want the SDK compiler to generate a normal bundle;
-- you want a deterministic research pipeline example.
-
-Generate a quick deterministic bundle with the shared support generator:
-
-```bash
-cd mn-blueprints/python_sdk_research_pipeline
-.venv/bin/python -m pip install -e ../../mn-skills/blueprint_support_skill
-python -m mn_blueprint_support.python_workflow_bundle_cli \
-  --blueprint-dir . \
-  --quick-test \
-  --output-dir /tmp/mirror-neuron-bundles
-```
-
-## 3. Python SDK Research Service
-
-Path:
-
-```text
-mn-blueprints/python_sdk_research_service
-```
-
-Use it when:
-
-- you want a service-style Python workflow;
-- you want repeated stateful turns;
-- you want a long-running workflow that can be cancelled.
-
-Run:
-
-```bash
-mn blueprint run python_sdk_research_service
-```
-
-Cancel when done:
-
-```bash
-mn job cancel <job_id>
-```
-
-## 4. OpenShell Sandbox Worker Pipeline
-
-Path:
-
-```text
-mn-blueprints/openshell_sandbox_worker_pipeline
-```
-
-Use it when:
-
-- you want sandboxed shell or Python execution;
-- you want to test OpenShell setup;
-- you want to inspect payload staging.
-
-Run:
-
-```bash
-mn blueprint run openshell_sandbox_worker_pipeline
-```
-
-If the run fails before worker code starts, check OpenShell:
-
-```bash
-openshell status
-```
-
-## 5. Parallel Worker Benchmark
-
-Path:
-
-```text
-mn-blueprints/parallel_worker_benchmark
-```
-
-Use it when:
-
-- you want fan-out/fan-in executor behavior;
-- you want to exercise pools and backpressure;
-- you want a local or cluster scale smoke test.
+- you want public market data plus deterministic risk simulation;
+- you want the LLM limited to interpretation and report writing;
+- you want a clear review-only human approval policy.
 
 Run from the catalog:
 
 ```bash
-mn blueprint run parallel_worker_benchmark
+mn blueprint run portfolio_risk_review_assistant
 ```
 
 Run from the local folder:
 
 ```bash
-cd mn-blueprints/parallel_worker_benchmark
-mn blueprint run --folder .
+mn blueprint run --folder otterdesk-blueprints/portfolio_risk_review_assistant
 ```
 
-## 6. Stream Backpressure Simulation
+## 3. Video Watch Assistant
 
 Path:
 
 ```text
-mn-blueprints/stream_backpressure_simulation
+otterdesk-blueprints/video_watch_assistant
 ```
 
 Use it when:
 
-- you want a stream workflow;
-- you want bounded queue behavior;
-- you want retry-later and pressure signals.
+- you want a service blueprint;
+- you want visual detection events and cooldown state;
+- you want to inspect live run status and service artifacts.
 
 Run:
 
 ```bash
-mn blueprint run stream_backpressure_simulation
+mn blueprint run --folder otterdesk-blueprints/video_watch_assistant --web-ui
 ```
 
-## 7. Ecosystem Simulation
+Cancel the service when done:
+
+```bash
+mn job cancel <job_id>
+```
+
+## 4. GTM AI Workflow
 
 Path:
 
 ```text
-mn-blueprints/ecosystem_simulation
+otterdesk-blueprints/gtm_ai_workflow
 ```
 
 Use it when:
 
-- you want a larger stateful simulation;
-- you want to test many messages and actors;
-- you want a richer cluster workload.
+- you want a long-running account research and outreach loop;
+- you want local CSV CRM and market-insight artifacts;
+- you want to test email/inbox integrations in dry-run or test-recipient mode first.
 
 Run:
 
 ```bash
-mn blueprint run ecosystem_simulation
+mn blueprint run --folder otterdesk-blueprints/gtm_ai_workflow
 ```
 
-## 8. Liquidity Risk Monitor
+Inspect run state:
+
+```bash
+mn blueprint monitor --follow
+```
+
+## 5. Personal Financial Advisor
 
 Path:
 
 ```text
-mn-blueprints/liquidity_risk_monitor
+otterdesk-blueprints/personal_financial_advisor
 ```
 
 Use it when:
 
-- you want a market-signal workflow;
-- you want optional LLM or Slack integration;
-- you want dry-run delivery before live adapters.
+- you want a continuous local folder-watch service;
+- you want OCR plus public, privacy-safe browser research;
+- you want review-only household finance reports and risk reminders.
 
-Run in local/mock configuration first:
+Bounded direct runner smoke test:
 
 ```bash
-mn blueprint run liquidity_risk_monitor
+cd otterdesk-blueprints/personal_financial_advisor
+python3.11 payloads/document_workflow/scripts/run_blueprint.py --runs-root /tmp/mn-runs --run-id personal-finance-demo --watch --max-cycles 1
+```
+
+## 6. Pizza Order Voice AI Co-worker
+
+Path:
+
+```text
+otterdesk-blueprints/generic_customer_service_voice_coworker
+```
+
+Use it when:
+
+- you want a real-time voice service;
+- you have the local NVIDIA/Spark stack ready;
+- you want editable menu knowledge and a localhost HTTPS voice page.
+
+Run with longer cold-start timeouts when the NVIDIA stack needs to warm up:
+
+```bash
+MN_PRE_LAUNCH_TIMEOUT_SECONDS=900 NEMOTRON_PRELAUNCH_WAIT_SECONDS=900 mn blueprint run generic_customer_service_voice_coworker
 ```
 
 ## Security Notes
 
 - Review `manifest.json` before running any blueprint.
 - Check `pass_env` before passing secrets.
-- Use mock, quick-test, and dry-run modes before external delivery.
+- Use mock, sample, quick-test, and dry-run modes before external delivery.
+- Treat financial, tax, legal, healthcare, and safety outputs as review-only until a qualified human approves them.
 - Cancel service jobs when you are done.
 
 ## Related Pages

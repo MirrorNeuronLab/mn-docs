@@ -89,10 +89,10 @@ class MarketingResearchFlow:
         return self.agents.reviewer(request)
 ```
 
-Generate the checked-in Python SDK research pipeline:
+Generate a Python-defined blueprint from a local source-mode blueprint folder:
 
 ```bash
-cd mn-blueprints/python_sdk_research_pipeline
+cd path/to/python-source-blueprint
 .venv/bin/python -m pip install -e ../../mn-skills/blueprint_support_skill
 python -m mn_blueprint_support.python_workflow_bundle_cli \
   --blueprint-dir . \
@@ -240,10 +240,9 @@ Expected output:
 12 passed
 ```
 
-For the checked-in source-mode examples, repeat the same
-`mn_blueprint_support.python_workflow_bundle_cli` command in
-`mn-blueprints/python_sdk_research_pipeline` and
-`mn-blueprints/python_sdk_research_service`.
+For checked-in source-mode examples, use the same
+`mn_blueprint_support.python_workflow_bundle_cli` command from the owning
+blueprint folder and write generated bundles outside the source tree.
 
 ## Related Pages
 

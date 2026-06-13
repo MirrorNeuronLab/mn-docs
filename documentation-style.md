@@ -9,7 +9,8 @@ Use this guide when adding or changing pages in `mn-docs`.
 - Friendly
 - Direct
 
-Avoid vague sentences such as "configure it as needed." Say what to configure, where to configure it, and how to verify it worked.
+Avoid vague sentences such as "configure it as needed." Say what to configure,
+where to configure it, and how to verify it worked.
 
 ## Page Types
 
@@ -43,7 +44,7 @@ Avoid:
 Always use fenced code blocks:
 
 ```bash
-mn blueprint run message_routing_trace
+mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
 ```
 
 Include the working directory when it matters:
@@ -52,6 +53,8 @@ Include the working directory when it matters:
 cd MirrorNeuron
 mix test
 ```
+
+Use current CLI command names. Prefer `mn blueprint run` for blueprint launches.
 
 ## Expected Output
 
@@ -74,27 +77,30 @@ Use warnings for security, data loss, public network exposure, and irreversible 
 Example:
 
 ```md
-Warning: `--purge-local` can delete Redis data. Use it only for disposable test state.
+Warning: `mn job clear` affects persisted Redis job records. Use a test namespace when experimenting.
 ```
 
 ## Examples
 
-Prefer examples from checked-in blueprints:
+Prefer examples from checked-in OtterDesk blueprints:
 
-- `mn-blueprints/message_routing_trace`
-- `mn-blueprints/python_sdk_research_pipeline`
-- `mn-blueprints/stream_backpressure_simulation`
-- `mn-blueprints/parallel_worker_benchmark`
+- `otterdesk-blueprints/tax_form_ocr_capture_assistant`
+- `otterdesk-blueprints/portfolio_risk_review_assistant`
+- `otterdesk-blueprints/video_watch_assistant`
+- `otterdesk-blueprints/gtm_ai_workflow`
+- `otterdesk-blueprints/personal_financial_advisor`
+
+Use catalog-only ids when documenting the cached blueprint library.
 
 ## Folder README Standard
 
 Most folder-level `README.md` files should stay quick. Put durable detail in
 `mn-docs` and link to it.
 
-Exception: blueprint folders in `mn-blueprints` and `otterdesk-blueprints`
-should stay self-contained. Their README files may include local catalog,
-input/output, safety, and validation detail because users often inspect a
-blueprint folder without opening the central docs.
+Exception: blueprint folders, including `otterdesk-blueprints`, should stay
+self-contained. Their README files may include local catalog, input/output,
+safety, and validation detail because users often inspect a blueprint folder
+without opening the central docs.
 
 A quick README should include:
 
@@ -112,7 +118,8 @@ READMEs. Move that material to a durable page such as
 
 ## Links
 
-End each page with the next useful page. Good docs should help readers continue without guessing.
+End each page with the next useful page. Good docs should help readers continue
+without guessing.
 
 ## Docs PR Checklist
 

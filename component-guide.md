@@ -18,9 +18,9 @@ Most non-blueprint folder READMEs should answer four questions only:
 Long-lived setup, configuration, architecture, security, troubleshooting,
 testing, and release notes belong in `mn-docs`.
 
-Blueprint folders in `mn-blueprints` and `otterdesk-blueprints` are the
-exception. Keep those README files self-contained because users often review,
-copy, or run a single blueprint folder without opening the central docs.
+Blueprint folders in `otterdesk-blueprints` are the exception. Keep those
+README files self-contained because users often review, copy, or run a single
+blueprint folder without opening the central docs.
 
 ## Workspace Map
 
@@ -32,7 +32,6 @@ copy, or run a single blueprint folder without opening the central docs.
 | [`mn-api`](../mn-api/README.md) | FastAPI REST gateway over the runtime SDK | [`api.md`](api.md) | `.venv/bin/python -m pytest -q` |
 | [`mn-python-sdk`](../mn-python-sdk/README.md) | Python gRPC client and workflow bundle helpers | [`SDK.md`](SDK.md) | `.venv/bin/python -m pytest -q` |
 | [`mn-web-ui`](../mn-web-ui/README.md) | Browser UI for jobs, graphs, runtime state, and blueprint runs | [`monitor.md`](monitor.md) | `npm run lint && npm test -- --run` |
-| [`mn-blueprints`](../mn-blueprints/README.md) | Runnable workflow blueprints and catalog metadata | [`blueprints-and-skills.md`](blueprints-and-skills.md) | `.venv/bin/python -m pytest -q` |
 | [`mn-agents`](../mn-agents/README.md) | Shared agent templates used by blueprints | [`blueprints-and-skills.md`](blueprints-and-skills.md) | `.venv/bin/python tools/validate_agents.py --json` |
 | [`mn-skills`](../mn-skills/README.md) | Installable Python skill packages used by blueprint payloads | [`blueprints-and-skills.md`](blueprints-and-skills.md) | Package-specific `.venv/bin/python -m pytest -q` |
 | [`mn-system-tests`](../mn-system-tests/README.md) | Cross-repository smoke, integration, e2e, and benchmark tests | [`testing.md`](testing.md) | `.venv/bin/python test_all.py --help` |
@@ -61,7 +60,7 @@ mn node list
 Run a checked-in blueprint:
 
 ```bash
-mn blueprint run message_routing_trace
+mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
 mn blueprint monitor --follow
 ```
 
@@ -152,7 +151,7 @@ Common commands:
 ```bash
 mn --version
 mn node list
-mn blueprint run message_routing_trace
+mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
 mn job status <job_id>
 mn blueprint monitor --follow
 ```
@@ -258,23 +257,24 @@ Read next:
 
 ### Blueprint Library
 
-`mn-blueprints` is the runnable blueprint catalog. The root `index.json` is the
-catalog source of truth. Each blueprint folder contains a manifest, default
-config, payloads, a quick README, a customer-facing `SPEC.md`, and tests or
-fixtures when available.
+The default catalog is cached under `~/.mn/blueprints` by `mn blueprint install`,
+`mn blueprint update`, or the first catalog run. The checked-in local catalog in
+this workspace is `otterdesk-blueprints`. Each blueprint folder contains a
+manifest, default config, payloads, a quick README, user-facing `SPEC.md`, and
+tests or fixtures when available.
 
-Run a catalog blueprint:
+Run from the catalog:
 
 ```bash
-cd mn-blueprints
-mn blueprint run message_routing_trace
+mn blueprint list
+mn blueprint run portfolio_risk_review_assistant
 mn blueprint monitor --follow
 ```
 
-Run from a local folder:
+Run from a checked-in local folder:
 
 ```bash
-mn blueprint run --folder ./message_routing_trace
+mn blueprint run --folder otterdesk-blueprints/portfolio_risk_review_assistant
 ```
 
 Read next:

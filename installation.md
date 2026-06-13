@@ -6,7 +6,7 @@ This guide installs the dependencies needed to validate bundles, run local workf
 
 - macOS, Linux, or WSL2
 - `git`
-- Python 3.10+
+- Python 3.11+
 - Docker (and the docker-model runtime plugin)
 
 Docker Desktop includes the plugin on macOS and Windows. On Linux, install the runtime plugin:
@@ -195,26 +195,26 @@ export MN_REDIS_NAMESPACE="mirror_neuron_dev_$(date +%s)"
 From the workspace root:
 
 ```bash
-mn blueprint run message_routing_trace
+mn blueprint validate otterdesk-blueprints/tax_form_ocr_capture_assistant
 ```
 
 Expected output:
 
 ```text
-Blueprint 'message_routing_trace' validated. Running...
+valid
 ```
 
 Start services:
 
 ```bash
 mn runtime start
-mn blueprint run message_routing_trace
+mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
 ```
 
 Expected output:
 
 ```text
-Job submitted successfully
+Job submitted
 ```
 
 ## Uninstall Local Services

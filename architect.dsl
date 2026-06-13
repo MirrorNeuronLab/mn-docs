@@ -5,9 +5,9 @@ workspace "MirrorNeuron" "Architecture of the MirrorNeuron runtime" {
 
         mirror_neuron = softwareSystem "MirrorNeuron" "Elixir/BEAM runtime for orchestrating multi-agent workflows with bounded sandbox execution." {
             
-            cli = container "CLI Tool (mn)" "Provides terminal-first tooling for interacting with MirrorNeuron." "Elixir Escript"
+            cli = container "CLI Tool (mn)" "Provides terminal-first tooling for interacting with MirrorNeuron." "Python / Typer"
             
-            api = container "REST API" "HTTP API for inspection, control, and external integration (e.g., Web UI)." "Plug / Bandit"
+            api = container "REST API" "HTTP API for inspection, control, and external integration (e.g., Web UI)." "FastAPI"
 
             core_runtime = container "Core Runtime" "Handles orchestration, supervision, message routing, clustering, and persistence." "Elixir / BEAM" {
                 job_coordinator = component "Job Coordinator" "Manages the lifecycle of a job, including starting agents, handling terminal states, and cleanup." "GenServer"

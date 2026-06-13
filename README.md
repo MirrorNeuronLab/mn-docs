@@ -1,28 +1,39 @@
 # MirrorNeuron Docs
 
-Documentation for MirrorNeuron, including installation, architecture, CLI usage, blueprint development, security, and troubleshooting.
+Documentation for MirrorNeuron and OtterDesk: local installation, runtime
+operations, API and CLI usage, blueprint development, model/runtime services,
+security, and troubleshooting.
 
 ## Project Scope
 
-MirrorNeuron is an Elixir/BEAM runtime with Python tooling for running message-driven workflow graphs. The documentation covers:
+MirrorNeuron is an Elixir/BEAM runtime with Python tooling for durable,
+message-driven AI workflows. OtterDesk is the desktop/operator layer that
+launches and monitors worker blueprints on top of that runtime.
 
-- Runtime architecture and clustering.
-- Local installation and first-run setup.
-- CLI, API, SDK, Web UI, blueprints, and skills.
-- Security considerations for running worker payloads.
+The documentation covers:
+
+- Runtime architecture, clustering, resources, services, schedules, and deployments.
+- Local installation, first-run setup, and runtime health checks.
+- CLI, FastAPI gateway, Python SDK, Web UI, OtterDesk, blueprints, and skills.
+- Docker Model Runner local model management.
+- Security considerations for host-local, Docker, and OpenShell worker payloads.
 - Troubleshooting and contribution guidance.
 
 ## Prerequisites
 
 - macOS, Linux, or WSL2.
-- Python 3.11.x for CLI, SDK, API, system tests, host-local Python workers, and Python-defined blueprints.
-- Docker for the default local Redis and core workflow.
+- Python 3.11.x for the CLI, SDK, API, system tests, HostLocal workers, and Python-defined blueprints.
+- Docker for local Redis, the generated runtime, DockerWorker payloads, and Docker Model Runner.
 - Redis for runtime state.
 - OpenShell when running sandboxed workers.
 
-Elixir/Erlang are required for core runtime development. Released-package installs use OTP tarballs instead of building the core from source.
+Elixir/Erlang are required for core runtime development. Released-package
+installs use OTP tarballs instead of building the core from source.
 
-Use `python3.11 -m venv .venv` when creating local environments, then prefer `.venv/bin/python` for installs and tests. Bare `python3` is reserved for explicit Docker/OpenShell sandbox contracts such as `/usr/bin/python3` inside a container image or sandbox policy.
+Use `python3.11 -m venv .venv` when creating local environments, then prefer
+`.venv/bin/python` for installs and tests. Bare `python3` is reserved for
+explicit Docker/OpenShell sandbox contracts such as `/usr/bin/python3` inside a
+container image or sandbox policy.
 
 ## Quick Start
 
@@ -32,15 +43,22 @@ Install MirrorNeuron from released packages:
 curl -fsSL https://mirrorneuron.io/install.sh | bash
 ```
 
-Start the runtime and run a sample blueprint:
+Start the runtime and run a catalog blueprint:
 
 ```bash
 mn runtime start
-mn blueprint run message_routing_trace
+mn blueprint list
+mn blueprint run portfolio_risk_review_assistant
 mn blueprint monitor
 ```
 
-Check jobs:
+Run a checked-in OtterDesk blueprint directly from this workspace:
+
+```bash
+mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
+```
+
+Check jobs and nodes:
 
 ```bash
 mn job list
@@ -50,16 +68,16 @@ mn node list
 ## Architecture Summary
 
 ```text
-CLI / API / Web UI
+OtterDesk / CLI / FastAPI / Web UI
       |
       v
 BEAM runtime: jobs, agents, routing, leases, recovery, events
       |
       v
-Execution runners: HostLocal, OpenShell, Python, shell, worker payloads
+Execution runners: HostLocal, DockerWorker, OpenShell, Python, shell
       |
       v
-Redis durable state and optional Redis Sentinel HA
+Redis durable state, run-store artifacts, optional Redis Sentinel HA
 ```
 
 Read:
@@ -74,6 +92,7 @@ Read:
 | Topic | Document |
 | --- | --- |
 | Repository/component guide | [component-guide.md](component-guide.md) |
+| Weekly growth tracker | [change_log.md](change_log.md) |
 | Skill catalog | [skill-catalog.md](skill-catalog.md) |
 | Getting started | [quickstart.md](quickstart.md) |
 | Installation | [installation.md](installation.md) |
@@ -96,20 +115,23 @@ Read:
 
 ## Security Notes
 
-MirrorNeuron can run local code, create sandboxes, call external services, connect to model providers, and pass selected environment variables to worker payloads.
+MirrorNeuron can run local code, create sandboxes, call external services,
+connect to model providers, and pass selected environment variables to worker
+payloads.
 
 Before running third-party bundles or exposing a cluster:
 
 - Keep runtime API and gRPC ports bound to trusted networks.
-- Review bundle `manifest.json`, `payloads/`, `pass_env`, and runner policies.
+- Review bundle `manifest.json`, `payloads/`, `pass_env`, runner policies, and service declarations.
 - Use OpenShell policies for untrusted network access.
 - Do not pass broad secrets into workers.
 - Prefer Redis Sentinel HA over single Redis for multi-box deployments.
-- Treat incoming live messages, emails, Slack events, and model outputs as untrusted input.
+- Treat incoming live messages, emails, Slack events, browser data, and model outputs as untrusted input.
 
 ## Contributing
 
-Keep docs concise and command examples copyable. When documenting behavior, link to the relevant component README or source file when practical.
+Keep docs concise and command examples copyable. When documenting behavior, link
+to the relevant component README or source file when practical.
 
 ## License
 

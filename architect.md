@@ -58,7 +58,7 @@ graph LR
       style 14 fill:#438dd5,stroke:#2e6295,color:#ffffff
       3("<div style='font-weight: bold'>CLI Tool (mn)</div><div style='font-size: 70%; margin-top: 0px'>[Container: Elixir Escript]</div><div style='font-size: 80%; margin-top:10px'>Provides terminal-first<br />tooling for interacting with<br />MirrorNeuron.</div>")
       style 3 fill:#438dd5,stroke:#2e6295,color:#ffffff
-      4("<div style='font-weight: bold'>REST API</div><div style='font-size: 70%; margin-top: 0px'>[Container: Plug / Bandit]</div><div style='font-size: 80%; margin-top:10px'>HTTP API for inspection,<br />control, and external<br />integration (e.g., Web UI).</div>")
+      4("<div style='font-weight: bold'>REST API</div><div style='font-size: 70%; margin-top: 0px'>[Container: FastAPI]</div><div style='font-size: 80%; margin-top:10px'>HTTP API for inspection,<br />control, and external<br />integration (e.g., Web UI).</div>")
       style 4 fill:#438dd5,stroke:#2e6295,color:#ffffff
       5("<div style='font-weight: bold'>Core Runtime</div><div style='font-size: 70%; margin-top: 0px'>[Container: Elixir / BEAM]</div><div style='font-size: 80%; margin-top:10px'>Handles orchestration,<br />supervision, message routing,<br />clustering, and persistence.</div>")
       style 5 fill:#438dd5,stroke:#2e6295,color:#ffffff

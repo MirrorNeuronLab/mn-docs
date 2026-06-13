@@ -85,7 +85,7 @@ Build a blueprint-derived benchmark suite from the local catalog:
 
 ```bash
 mn-context-build-blueprint-suite \
-  --blueprint-root ../../mn-blueprints \
+  --blueprint-root ../../otterdesk-blueprints \
   --packet-output artifacts/data/blueprint_packet_results.json \
   --working-memory-output artifacts/data/blueprint_working_memory_cases.json \
   --coverage-output artifacts/data/blueprint_suite_coverage.json \

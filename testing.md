@@ -19,7 +19,7 @@ Current component mapping:
 - `MirrorNeuron/tests/regression`: script-style regression repros.
 - `mn-api/tests`, `mn-cli/tests`, `mn-python-sdk/tests`, `mn-web-ui/src/test`: component unit tests today. Split these into `unit/`, `integration/`, `regression/`, and `e2e/` as each package grows.
 - `mn-system-tests/integration` and `mn-system-tests/e2e`: live cross-component tests. These are opt-in because they need running services.
-- `mn-blueprints/*/tests` and `mn-skills/*/tests`: blueprint and skill package tests.
+- `otterdesk-blueprints/tests` and `mn-skills/*/tests`: blueprint catalog and skill package tests.
 
 ## Common Commands
 
