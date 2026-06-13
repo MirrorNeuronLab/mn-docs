@@ -20,6 +20,39 @@ cd mn-system-tests
 .venv/bin/python -m pytest benchmarks -q
 ```
 
+Run the key interface performance benchmark:
+
+```bash
+cd mn-system-tests
+.venv/bin/python test_all.py --performance
+```
+
+This writes `results/performance.txt` and `results/performance.json`.
+The report covers injected API HTTP routes, SDK/gRPC-boundary calls, CLI runtime
+status, and the LLM stream parser. It also records hardware, software, Python
+package versions, git revisions, and skipped/live probe reasons.
+
+Live endpoint measurements are opt-in:
+
+```bash
+RUN_MN_PERF_LIVE=1 \
+MN_API_BASE_URL=http://127.0.0.1:54001/api/v1 \
+MN_GRPC_TARGET=127.0.0.1:55051 \
+MN_LLM_BASE_URL=http://127.0.0.1:12434/engines/v1 \
+MN_LLM_MODEL=ai/gemma3 \
+MN_WEB_UI_URL=http://127.0.0.1:55173 \
+.venv/bin/python test_all.py --performance
+```
+
+The parallel-worker benchmark contract is generated in `mn-system-tests`
+rather than loaded from a blueprint repository. Offline tests validate the
+manifest shape; live tests submit a temporary fanout manifest when explicitly
+enabled.
+
+```bash
+MN_BENCHMARK_WORKER_COUNT=100 .venv/bin/python -m pytest integration -k parallel_worker
+```
+
 ## Generate A Report
 
 ```bash

@@ -339,7 +339,8 @@ Read next:
 ### System Tests
 
 `mn-system-tests` coordinates checks across the core, SDK, CLI, API, Web UI,
-blueprints, and installers.
+installers, the current `otterdesk-blueprints` catalog, live flows, and
+deterministic benchmark fixtures.
 
 Set up dependencies:
 
@@ -354,11 +355,26 @@ Inspect the test runner:
 .venv/bin/python test_all.py --help
 ```
 
-Fast benchmark fixture tests:
+Fast injected contract tests:
 
 ```bash
-.venv/bin/python -m pytest benchmarks -q
+.venv/bin/python test_all.py --contracts
 ```
+
+Offline development gate:
+
+```bash
+.venv/bin/python test_all.py --fast --skip-core --skip-node
+```
+
+Key interface performance benchmark:
+
+```bash
+.venv/bin/python test_all.py --performance
+```
+
+Runner-driven suites write summaries under `mn-system-tests/results/`,
+including `system-tests.txt` and `performance.txt`.
 
 Live integration and e2e tests are intentionally gated. Set
 `RUN_MN_SYSTEM_TESTS=1` and use the `--live` runner options only when local
@@ -367,6 +383,7 @@ services are available.
 Read next:
 
 - [Testing](testing.md)
+- [`mn-system-tests/REGRESSION_MATRIX.md`](../mn-system-tests/REGRESSION_MATRIX.md)
 - [`mn-system-tests/benchmarks/README.md`](../mn-system-tests/benchmarks/README.md)
 
 ### Membrane

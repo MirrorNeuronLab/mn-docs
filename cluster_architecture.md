@@ -71,8 +71,8 @@ mn node list
 *You should see multiple items under `nodes`, and their respective hardware capacities pooled together in the `executor_pools`.*
 
 ## 6. Avoiding Local Resource Exhaustion
-When running heavy distributed load tests such as `parallel_worker_benchmark`, very high worker counts across a small two-node development setup may exhaust CPU and networking file descriptors, causing nodes to miss Erlang heartbeats (`timed out waiting for recovered agent ...`).
+When running heavy distributed load tests such as the generated `mn-system-tests` parallel-worker smoke test, very high worker counts across a small two-node development setup may exhaust CPU and networking file descriptors, causing nodes to miss Erlang heartbeats (`timed out waiting for recovered agent ...`).
 
-To test scaling logic without overloading small development VMs, lower the worker count in the blueprint configuration before running the benchmark.
+To test scaling logic without overloading small development VMs, keep the default worker count. Set `MN_BENCHMARK_WORKER_COUNT=100` only for stress or nightly validation.
 
 This enables the framework to accurately demonstrate Map/Reduce scaling topologies, Remote RPC artifact synchronization (`MirrorNeuron.Runner.HostLocal`), and cross-node swarm orchestration entirely under manageable resource constraints.

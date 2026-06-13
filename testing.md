@@ -18,6 +18,7 @@ Current component mapping:
 - `MirrorNeuron/tests/e2e`: runtime and stream/live execution e2e tests.
 - `MirrorNeuron/tests/regression`: script-style regression repros.
 - `mn-api/tests`, `mn-cli/tests`, `mn-python-sdk/tests`, `mn-web-ui/src/test`: component unit tests today. Split these into `unit/`, `integration/`, `regression/`, and `e2e/` as each package grows.
+- `mn-system-tests/contracts`: fast injected API/CLI/SDK contract tests that do not need Redis, Elixir, Docker, or gRPC.
 - `mn-system-tests/integration` and `mn-system-tests/e2e`: live cross-component tests. These are opt-in because they need running services.
 - `otterdesk-blueprints/tests` and `mn-skills/*/tests`: blueprint catalog and skill package tests.
 
@@ -27,6 +28,12 @@ Fast local signal:
 
 ```bash
 .venv/bin/python mn-system-tests/test_all.py --fast
+```
+
+Injected cross-component contracts:
+
+```bash
+.venv/bin/python mn-system-tests/test_all.py --contracts
 ```
 
 Component unit tests, including Node and core when dependencies are present:
@@ -39,6 +46,22 @@ Blueprint quick checks without external APIs:
 
 ```bash
 .venv/bin/python mn-system-tests/test_all.py --blueprints
+```
+
+Key interface performance benchmark:
+
+```bash
+.venv/bin/python mn-system-tests/test_all.py --performance
+```
+
+This records `mn-system-tests/results/performance.txt` and
+`mn-system-tests/results/performance.json` with hardware, software, package,
+git, latency, and throughput metadata.
+
+Changed workspace checks:
+
+```bash
+.venv/bin/python mn-system-tests/test_all.py --changed
 ```
 
 Core runtime e2e, including stream/live backpressure:
@@ -71,6 +94,18 @@ Full default non-live suite:
 ```bash
 .venv/bin/python mn-system-tests/test_all.py
 ```
+
+Offline pytest gate:
+
+```bash
+cd mn-system-tests
+.venv/bin/python -m pytest contracts benchmarks installer -q
+```
+
+`test_all.py` records every runner-driven suite under
+`mn-system-tests/results/`: `system-tests.txt`, `system-tests.json`,
+`pytest-*.json`, and raw per-step logs in `results/logs/`. Use
+`--results-dir PATH` or `MN_SYSTEM_TEST_RESULTS_DIR` to redirect artifacts in CI.
 
 ## Manual Live E2E
 
@@ -200,8 +235,12 @@ Useful test isolation vars:
 - `MN_REDIS_NAMESPACE`: isolate Redis keys per test run.
 - `MN_ENV=test`: use test-mode validation where appropriate.
 - `MN_API_TOKEN`: test API bearer auth.
+- `MN_BENCHMARK_WORKER_COUNT`: worker count for the generated live parallel-worker smoke test; defaults small for local runs and can be set to `100` for stress checks.
+- `MN_PERF_ITERATIONS`: measured iterations per performance probe; defaults to `30`.
+- `MN_PERF_WARMUP`: warmup iterations per performance probe; defaults to `5`.
+- `RUN_MN_PERF_LIVE`: set to `1` to add live API, gRPC, LLM, or Web UI interface probes.
 
-Live tests are opt-in. If `RUN_MN_SYSTEM_TESTS=1` is not set, `mn-system-tests` marks integration/e2e tests skipped.
+Live tests are opt-in. If `RUN_MN_SYSTEM_TESTS=1` is not set, `mn-system-tests` marks `live` tests skipped.
 
 ## What To Add Next
 
@@ -209,3 +248,4 @@ Live tests are opt-in. If `RUN_MN_SYSTEM_TESTS=1` is not set, `mn-system-tests` 
 - Convert useful `MirrorNeuron/tests/regression/*.script` repros into ExUnit tests where possible.
 - Add Web UI visual/layout regression tests when Playwright is introduced.
 - Add a real secret scanner such as `gitleaks` or `detect-secrets` once the team chooses a tool.
+- For cross-component regressions, prefer `mn-system-tests/contracts` with injected clients/openers before adding a live test.

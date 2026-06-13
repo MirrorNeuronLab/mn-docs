@@ -332,16 +332,18 @@ mn node undrain mirror_neuron@192.168.4.20 --reason "ready for work" --mark-elig
 
 ## Submit A Cluster Job
 
-Small parallel worker test:
+Small parallel worker test from the generated system-test fixture:
 
 ```bash
-mn blueprint run parallel_worker_benchmark
+cd mn-system-tests
+RUN_MN_SYSTEM_TESTS=1 .venv/bin/python -m pytest integration -k parallel_worker
 ```
 
-Expected output:
+Stress-style run:
 
-```text
-Job submitted successfully
+```bash
+MN_BENCHMARK_WORKER_COUNT=100 RUN_MN_SYSTEM_TESTS=1 \
+  .venv/bin/python -m pytest integration -k parallel_worker
 ```
 
 Inspect the job:
