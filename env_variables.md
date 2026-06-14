@@ -118,8 +118,6 @@ These variables are read by the Elixir core runtime.
 | `MN_COOKIE` | `mirrorneuron` | Erlang distribution cookie. Must be changed in `prod`. |
 | `MN_OPENSHELL_BIN` | `openshell` | OpenShell executable name or path. |
 | `MN_TEMP_DIR` | `/tmp/mirror_neuron` | Runtime temporary directory. |
-| `MN_API_ENABLED` | `true` | Enables the runtime's built-in API listener. False values are `0`, `false`, `FALSE`, `False`, or empty. |
-| `MN_API_PORT` | `4000` in core, `4001` in Python API | HTTP API port. The core runtime and Python API have different defaults. |
 | `MN_GRPC_PORT` | `50051` | Core gRPC server port. |
 | `MN_NETWORK_ONLY` | `false` | Restricts public gRPC to network join and cluster/resource summaries for core-only cluster peers. |
 | `MN_NETWORK_JOIN_TOKEN` | unset | Join token required by `ClusterService.NetworkHandshake`; `mn runtime start` and `mn node expose` derive cluster cookies and network-mode Redis secrets from it. |
