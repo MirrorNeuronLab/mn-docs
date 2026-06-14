@@ -476,7 +476,6 @@ Common environment variables include:
 | Variable | Used by | Purpose |
 | --- | --- | --- |
 | `MN_GRPC_TARGET` | CLI, API, SDK | Runtime gRPC target. |
-| `MN_CORE_GRPC_TARGET` | CLI, API, SDK | Fallback runtime gRPC target. |
 | `MN_API_PORT` | API, deploy scripts | REST API port, defaulting to `54001` in local deployments. |
 | `MN_RUNS_ROOT` | Core, API, CLI, blueprints | Shared run-artifact store. |
 | `MN_API_TOKEN` | API, Web UI | Bearer token for protected REST deployments. |

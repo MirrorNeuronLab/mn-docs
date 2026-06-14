@@ -36,11 +36,36 @@ These variables control how CLI, SDK, and API clients connect to the core gRPC r
 | Variable | Default | Used by | Usage |
 | --- | --- | --- | --- |
 | `MN_GRPC_TARGET` | `localhost:55051` | CLI, Python SDK, API | gRPC target for the local deployed runtime. |
-| `MN_CORE_GRPC_TARGET` | `localhost:55051` | API | Fallback gRPC target used by the API when `MN_GRPC_TARGET` is unset. |
 | `MN_GRPC_TIMEOUT_SECONDS` | `10` | CLI, Python SDK, API | Per-RPC timeout. `0`, `none`, or an empty value disables the timeout. |
 | `MN_GRPC_AUTH_TOKEN` | empty | CLI, Python SDK | Optional bearer token metadata for protected gRPC gateways. |
 | `MN_NETWORK_JOIN_TOKEN` | `~/.mn/network.token` for `mn runtime start` and `mn node expose` | CLI, Python SDK | Stable token used by cluster join handshakes. |
 | `MN_CLI_OUTPUT` | `rich` | CLI | Set to `plain` to avoid Rich output formatting. |
+
+## Blueprint catalog source
+
+These variables are resolved by the Python SDK and shared by `mn-cli` and `mn-api`. Precedence is process environment, `.env.<MN_ENV>`, `.env`, `~/.mn/docker-compose.env`, then defaults.
+
+| Variable | Default | Usage |
+| --- | --- | --- |
+| `MN_BLUEPRINT_SOURCE` | `github` | Selects the catalog source. Supported values are `github` and `local`. |
+| `MN_BLUEPRINT_REPO` | `https://github.com/MirrorNeuronLab/mn-blueprints.git` | Git URL used when `MN_BLUEPRINT_SOURCE=github`. Local filesystem paths should use `MN_BLUEPRINT_LOCAL`. |
+| `MN_BLUEPRINT_LOCAL` | empty | Local catalog directory used when `MN_BLUEPRINT_SOURCE=local`. The directory must contain `index.json`. |
+
+Development example in `.env.dev`:
+
+```dotenv
+MN_ENV=dev
+MN_BLUEPRINT_SOURCE=local
+MN_BLUEPRINT_LOCAL=/Users/me/Projects/mirror-neuron-set/mn-blueprints
+```
+
+Production example in `.env.prod`:
+
+```dotenv
+MN_ENV=prod
+MN_BLUEPRINT_SOURCE=github
+MN_BLUEPRINT_REPO=https://github.com/MirrorNeuronLab/mn-blueprints.git
+```
 
 ## CLI, API, SDK, and skill logs
 
@@ -213,36 +238,6 @@ LLM-enabled blueprints use `MN_LLM_*` settings as the primary contract. Legacy `
 | `LITELLM_NUM_RETRIES` | `2` | Optional provider retry count. Passed to LiteLLM when available. |
 | `LITELLM_RETRY_BACKOFF_SECONDS` | `1.0` | Optional exponential retry backoff base for direct HTTP fallbacks. |
 
-## Email and web integration variables
-
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `RESEND_API_KEY` | unset | Resend API key for email sending skills. |
-| `RESEND_FROM_EMAIL` | unset | Sender email for Resend delivery. |
-| `RESEND_API_BASE_URL` | `https://api.resend.com` | Resend API base URL. |
-| `AGENTMAIL_API_KEY` | unset | AgentMail API key for email receive/delivery skills. |
-| `AGENTMAIL_INBOX` | unset | AgentMail inbox ID. |
-| `AGENTMAIL_API_BASE_URL` | `https://api.agentmail.to` | AgentMail API base URL. |
-| `SCRAPINGBEE_API_KEY` | unset | ScrapingBee API key used by the web fetch skill when configured. |
-| `MN_SLACK_BOT_TOKEN` | unset | Slack bot token used by email delivery skills. Falls back to `SLACK_BOT_TOKEN` in those skills. |
-| `MN_SLACK_DEFAULT_CHANNEL` | unset | Default Slack channel for email delivery skills. Falls back to `SLACK_DEFAULT_CHANNEL`. |
-| `MN_SLACK_API_BASE_URL` | Slack API default | Slack API base URL override for email delivery skills. |
-| `SLACK_BOT_TOKEN` | unset | Slack bot token fallback used by Slack-related skills and the finance Slack monitor blueprint. |
-| `SLACK_DEFAULT_CHANNEL` | `#claw` in finance Slack monitor | Slack channel fallback used by Slack-related skills and the finance Slack monitor blueprint. |
-
-## Business email blueprint variables
-
-These are specific to `business_customer_lifecycle_email_copilot`.
-
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `SYNAPTIC_DB_CONNECTION` | unset | External database connection string. |
-| `SYNAPTIC_DB_PATH` | blueprint default or required by worker | SQLite database path override. |
-| `SYNAPTIC_QUICK_TEST_MODE` | disabled | Enables reduced quick-test behavior. |
-| `SYNAPTIC_EMAIL_DRY_RUN` | disabled | Prevents real email delivery when enabled. |
-| `SYNAPTIC_EMAIL_DELIVERY_MODE` | blueprint-specific | Controls email delivery mode. |
-| `SYNAPTIC_TEST_EMAIL_TO` | unset | Test recipient override. |
-| `SYNAPTIC_EMIT_CYCLE_TRIGGER` | `true` | Set to `false` to suppress cycle trigger emission. |
 
 ## Runtime-injected worker variables
 
@@ -270,18 +265,10 @@ These variables are used by tests or helper scripts, not by normal production ru
 | Variable | Default | Usage |
 | --- | --- | --- |
 | `MN_SECURITY_STRICT` | `0` | System tests fail hard on security findings when set to `1`. |
-| `RUN_AGENTMAIL_E2E` | disabled | Enables real AgentMail e2e tests when set to `1`. |
-| `RUN_AGENTMAIL_INTEGRATION` | disabled | Enables business email AgentMail integration tests when set to `1`. |
-| `AGENTMAIL_E2E_TIMEOUT_SECONDS` | `60` | Timeout for AgentMail e2e tests. |
-| `RESEND_TEST_TO` | unset | Recipient used by live Resend email tests and business email test config. |
-| `RUN_RESEND_E2E` | disabled | Enables real Resend e2e tests when set to `1`. |
 | `MN_HOME` | unset | Installation path referenced by docs/examples when running blueprints from a separate checkout. |
 | `MN_LOG_PATH` | script-specific | Log file path used by cluster e2e helper scripts. |
 | `MN_REMOTE_ROOT` | script-specific | Remote project root used by cluster e2e scripts. |
 | `MN_STREAM_WAIT_TIMEOUT_SECONDS` | `120` | Wait timeout used by streaming cluster e2e scripts. |
-| `MN_LLM_WAIT_TIMEOUT_SECONDS` | `300` | Wait timeout for LLM codegen cluster e2e scripts. |
-| `MN_SIM_WAIT_TIMEOUT_SECONDS` | `420` | Wait timeout for ecosystem simulation cluster e2e scripts. |
-| `MN_GEMINI_MODEL` | `gemini-2.5-flash-lite` | Gemini model used by LLM codegen cluster e2e scripts. |
 | `MN_REDIS_PORT` | `6379` | Redis port used by cluster helper scripts. |
 | `MN_REDIS_TEST_IMAGE` | `redis:7` | Redis Docker image used by Sentinel HA smoke tests. |
 | `MN_REDIS_HA_LOCAL_IP` | unset | Local IP override for `test_redis_sentinel_two_box_ha.sh`. |
