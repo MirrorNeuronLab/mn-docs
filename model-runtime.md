@@ -56,7 +56,7 @@ At launch, MirrorNeuron resolves the config to:
 The built-in catalog can be extended or overridden with JSON entries from:
 
 - `MN_MODEL_CATALOG_PATH`
-- `~/.mn/models/catalog.json`
+- `$MN_HOME/models/catalog.json`
 
 The file may contain a list, a `{ "models": [...] }` object, or an object keyed by model id. Local entries win over built-in entries with the same `id`.
 

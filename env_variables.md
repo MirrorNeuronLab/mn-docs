@@ -4,6 +4,13 @@ This page documents the environment variables used by Mirror Neuron, the CLI, th
 
 Boolean values generally accept `1`, `true`, `yes`, or `on` for true and `0`, `false`, `no`, or `off` for false when parsed by the shared config helpers. Some legacy toggles only check a smaller set; those differences are called out below.
 
+`MN_HOME` is the single host runtime-state root. It defaults to `~/.mn` on macOS
+and Linux. The legacy `.mirror_neuron` state directory and the
+`MN_MIRROR_NEURON_GRPC_ADMIN_TOKEN`, `MN_HOST_MN_DIR`,
+`MN_HOST_SHARED_ARTIFACT_ROOT`, and `MN_CONTAINER_SHARED_ARTIFACT_ROOT` aliases
+are no longer read; use `MN_GRPC_ADMIN_TOKEN`, `MN_HOME`,
+`MN_HOST_SHARED_STORAGE_ROOT`, and `MN_CONTAINER_SHARED_STORAGE_ROOT` instead.
+
 ## Run command logging
 
 These variables are read by the shared CLI runner used by both `mn blueprint run --folder <bundle>` and `mn blueprint run <blueprint_id>`. They are evaluated on the client side and do not need to be listed in a blueprint manifest `pass_env`.
@@ -38,12 +45,12 @@ These variables control how CLI, SDK, and API clients connect to the core gRPC r
 | `MN_GRPC_TARGET` | `localhost:55051` | CLI, Python SDK, API | gRPC target for the local deployed runtime. |
 | `MN_GRPC_TIMEOUT_SECONDS` | `10` | CLI, Python SDK, API | Per-RPC timeout. `0`, `none`, or an empty value disables the timeout. |
 | `MN_GRPC_AUTH_TOKEN` | empty | CLI, Python SDK | Optional bearer token metadata for protected gRPC gateways. |
-| `MN_NETWORK_JOIN_TOKEN` | `~/.mn/network.token` for `mn runtime start` and `mn node expose` | CLI, Python SDK | Stable token used by cluster join handshakes. |
+| `MN_NETWORK_JOIN_TOKEN` | `$MN_HOME/network.token` for `mn runtime start` and `mn node expose` | CLI, Python SDK | Stable token used by cluster join handshakes. |
 | `MN_CLI_OUTPUT` | `rich` | CLI | Set to `plain` to avoid Rich output formatting. |
 
 ## Blueprint catalog source
 
-These variables are resolved by the Python SDK and shared by `mn-cli` and `mn-api`. Precedence is process environment, `.env.<MN_ENV>`, `.env`, `~/.mn/docker-compose.env`, then defaults.
+These variables are resolved by the Python SDK and shared by `mn-cli` and `mn-api`. Precedence is process environment, `.env.<MN_ENV>`, `.env`, `$MN_HOME/docker-compose.env`, then defaults.
 
 | Variable | Default | Usage |
 | --- | --- | --- |
@@ -74,12 +81,14 @@ These variables control process-level log files. They are separate from per-run 
 | Variable | Default | Used by | Usage |
 | --- | --- | --- | --- |
 | `MN_LOG_LEVEL` | `INFO` | CLI, API, SDK, shared skills, some blueprints | Process logger level. |
+| `MN_HOME` | `~/.mn` | CLI, API, SDK, runtime, Otterdesk runtime integration | Host runtime-state root. Runtime env, endpoint files, token files, logs, model metadata, and default run artifacts are derived from this path. |
+| `MN_LOGS_ROOT` | `$MN_HOME/logs` | CLI, API, SDK, shared skills | Process log root used when a component-specific log path is not set. |
 | `MN_LOG_MAX_BYTES` | `1048576` | CLI, API, SDK, shared skills, some blueprints | Maximum log file size before rotation. |
 | `MN_LOG_BACKUP_COUNT` | `5` | CLI, API, SDK, shared skills, some blueprints | Number of rotated process log files to keep. |
-| `MN_CLI_LOG_PATH` | `~/.mn/logs/cli.log` | CLI | CLI process log path. |
-| `MN_API_LOG_PATH` | `~/.mn/logs/api.log` | API | API process log path. |
-| `MN_SDK_LOG_PATH` | `~/.mn/logs/sdk.log` | Python SDK | SDK process log path. |
-| `MN_SKILL_LOG_PATH` | `~/.mn/logs/skills.log` | Shared skills | Shared skill log path. |
+| `MN_CLI_LOG_PATH` | `$MN_LOGS_ROOT/cli.log` | CLI | CLI process log path. |
+| `MN_API_LOG_PATH` | `$MN_LOGS_ROOT/api.log` | API | API process log path. |
+| `MN_SDK_LOG_PATH` | `$MN_LOGS_ROOT/sdk.log` | Python SDK | SDK process log path. |
+| `MN_SKILL_LOG_PATH` | `$MN_LOGS_ROOT/skills.log` | Shared skills | Shared skill log path. |
 | `MN_BLUEPRINT_LOG_PATH` | `/tmp/mn-business-email.log` | Business email blueprint | Business email blueprint log path. |
 | `MN_BLUEPRINT_LOG_LEVEL` | unset | Blueprint manifest mappings | Generic blueprint log-level input mapped by many checked-in manifests. |
 
@@ -126,7 +135,7 @@ These variables are read by the Elixir core runtime.
 | `MN_NETWORK_REDIS_PORT` | generated internally | Docker-internal Redis port returned by the network handshake, normally `6379`. |
 | `MN_DOCKER_NETWORK_MODE` | `bridge` for local Docker Compose starts | Docker network identity mode. Use `overlay` for multi-host Docker clusters or `disabled` for legacy IP-based Erlang names. |
 | `MN_DOCKER_NETWORK_NAME` | `mirror-neuron-runtime` | Docker bridge/overlay network used for runtime aliases. |
-| `MN_NODE_ALIAS` | generated under `~/.mn/node.alias` | Stable Docker DNS alias used for alias-based node names such as `mirror_neuron@mn-a1b2c3d4`. |
+| `MN_NODE_ALIAS` | generated under `$MN_HOME/node.alias` | Stable Docker DNS alias used for alias-based node names such as `mirror_neuron@mn-a1b2c3d4`. |
 | `MN_NODE_ROLE` | `runtime` | Runtime node role. `control` starts only shared/control services; other values start runtime workers. |
 | `MN_NODE_NAME` | generated internally | Erlang node name, typically `mirror_neuron@<node-alias>` for Docker network mode or `mirror_neuron@<ip>` for legacy IP mode. |
 | `MN_CLUSTER_NODES` | generated internally | Comma-separated Erlang node names for clustering. |
@@ -166,12 +175,12 @@ These variables are read by `mn-api`.
 
 | Variable | Default | Usage |
 | --- | --- | --- |
-| `MN_API_HOST` | `0.0.0.0` | Python API bind host. |
-| `MN_API_PORT` | `4001` | Python API bind port. |
+| `MN_API_HOST` | `localhost` | Python API bind host. |
+| `MN_API_PORT` | `54001` | Python API bind port. |
 | `MN_API_TOKEN` | empty | Enables bearer-token auth when set. Required when `MN_ENV=prod`. |
 | `MN_API_REQUEST_SIZE_LIMIT_BYTES` | `5242880` | Maximum request body size. Must be greater than `0`. |
 | `MN_API_CORS_ALLOW_ORIGINS` | empty | Comma-separated CORS allowlist. |
-| `MN_API_BASE_URL` | `http://localhost:4001/api/v1` | Used by system e2e tests as the API base URL. |
+| `MN_API_BASE_URL` | `http://localhost:54001/api/v1` | Used by system e2e tests as the API base URL. |
 
 ## Context Engine
 
@@ -209,15 +218,15 @@ LLM-enabled blueprints use `MN_LLM_*` settings as the primary contract. Legacy `
 | `MN_BLUEPRINT_QUICK_TEST` | disabled | Enables quick/test mode in blueprint helpers when set to `1`, `true`, `yes`, or `on`. |
 | `MN_BLUEPRINT_ID` | unset | Explicit blueprint identity injected by catalog runs and used for resource ownership/cleanup. |
 | `MN_BLUEPRINT_RESOURCE_STALE_SECONDS` | `3600` | Minimum age before `mn blueprint cleanup` removes stale incomplete blueprint resources, orphaned generated bundles, or setup locks. |
-| `MN_GENERATED_BLUEPRINT_BUNDLES_DIR` | `~/.mn/generated_blueprint_bundles` | Root for generated Python workflow bundles and cleanup of source-mode blueprint artifacts. |
-| `MN_CONFIG_PATH` | `~/.mn/config.json` | Shared blueprint-support user config path. |
+| `MN_GENERATED_BLUEPRINT_BUNDLES_DIR` | `$MN_HOME/generated_blueprint_bundles` | Root for generated Python workflow bundles and cleanup of source-mode blueprint artifacts. |
+| `MN_CONFIG_PATH` | `$MN_HOME/config.json` | Shared blueprint-support user config path. |
 | `MN_RUN_ID` | generated | Optional stable run ID for blueprint runs and specialized worker contracts. |
-| `MN_RUNS_ROOT` | `~/.mn/runs` | Overrides the local run-store root. |
+| `MN_RUNS_ROOT` | `$MN_HOME/runs` | Overrides the local run-store root. |
 | `MN_NO_RUN_STORE` | disabled | Disables run-store writes when set to a truthy value. |
 | `MN_DISABLE_RUN_STORE` | disabled | Alias used by worker contracts to disable run-store writes. |
 | `MN_BLUEPRINT_CONFIG_PATH` | unset | Worker-contract config file override. |
 | `MN_BLUEPRINT_CONFIG_JSON` | unset | Worker-contract inline config JSON override. |
-| `MN_MODEL_CATALOG_PATH` | unset | Optional JSON model catalog override merged before `~/.mn/models/catalog.json`. |
+| `MN_MODEL_CATALOG_PATH` | unset | Optional JSON model catalog override merged before `$MN_HOME/models/catalog.json`. |
 | `MN_LLM_PROVIDER` | blueprint-specific | LLM provider. `docker_model_runner` enables MirrorNeuron local model runtime behavior. |
 | `MN_LLM_MODEL` | `ai/gemma4:E2B` for Docker Model Runner, otherwise blueprint-specific | Resolved API model name for LLM-enabled blueprint workers. |
 | `MN_LLM_RUNTIME_MODEL` | `ai/gemma4:E2B` for `gemma4:e2b` | Docker Model Runner model reference used by `mn model install` and validation. |
@@ -263,7 +272,6 @@ These variables are used by tests or helper scripts, not by normal production ru
 | Variable | Default | Usage |
 | --- | --- | --- |
 | `MN_SECURITY_STRICT` | `0` | System tests fail hard on security findings when set to `1`. |
-| `MN_HOME` | unset | Installation path referenced by docs/examples when running blueprints from a separate checkout. |
 | `MN_LOG_PATH` | script-specific | Log file path used by cluster e2e helper scripts. |
 | `MN_REMOTE_ROOT` | script-specific | Remote project root used by cluster e2e scripts. |
 | `MN_STREAM_WAIT_TIMEOUT_SECONDS` | `120` | Wait timeout used by streaming cluster e2e scripts. |

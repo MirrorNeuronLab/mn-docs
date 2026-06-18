@@ -187,7 +187,7 @@ Environment controls:
 | `MN_RUN_LOG_MAX_BYTES` | `2097152` | Run log rotation size. |
 | `MN_RUN_EVENT_LOG_MAX_BYTES` | `10485760` | Event log rotation size. |
 
-Blueprint run artifacts are written under `MN_RUNS_ROOT` or `~/.mn/runs`.
+Blueprint run artifacts are written under `MN_RUNS_ROOT` or `$MN_HOME/runs`.
 Transient job logs may also be written under `/tmp/mn_<job_id>/`.
 
 ### `mn blueprint update`, `cleanup`, And `uninstall`
@@ -212,7 +212,7 @@ mn blueprint uninstall --dry-run
 mn blueprint uninstall portfolio_risk_review_assistant --keep-resources
 ```
 
-Cleanup can remove cached Python virtualenvs, `~/.mn/runs/<run_id>` records,
+Cleanup can remove cached Python virtualenvs, `$MN_HOME/runs/<run_id>` records,
 generated bundles, local bundle-cache entries, web UI processes, and Docker
 resources labelled for removed blueprints. Use `--dry-run` first.
 
@@ -411,7 +411,7 @@ mn node undrain mirror_neuron@192.168.4.20 --mark-eligible --reason "ready"
 ### Cluster Node Flows
 
 Use `mn runtime start` on the main box. It starts the regular local runtime and
-prints a stable token persisted at `~/.mn/network.token`.
+prints a stable token persisted at `$MN_HOME/network.token`.
 
 For the common worker flow, start the worker box first:
 
@@ -555,7 +555,7 @@ See [Schedules and Events](schedules-and-events.md).
 | `MN_GRPC_TARGET` | `localhost:55051` | Core gRPC endpoint for the local deployed runtime. |
 | `MN_GRPC_TIMEOUT_SECONDS` | `10` | Per-RPC timeout. |
 | `MN_GRPC_AUTH_TOKEN` | unset | Optional bearer token metadata. |
-| `MN_NETWORK_JOIN_TOKEN` | `~/.mn/network.token` for `mn runtime start` and `mn node expose` | Stable token used to derive cluster cookies and network-mode Redis secrets. |
+| `MN_NETWORK_JOIN_TOKEN` | `$MN_HOME/network.token` for `mn runtime start` and `mn node expose` | Stable token used to derive cluster cookies and network-mode Redis secrets. |
 | `MN_CLI_OUTPUT` | `rich` | Set to `plain` for less formatting. |
 
 ## Troubleshooting

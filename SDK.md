@@ -43,7 +43,7 @@ Important environment variables:
 | `MN_GRPC_TARGET` | `localhost:55051` | Runtime gRPC endpoint for the local deployed runtime. |
 | `MN_GRPC_TIMEOUT_SECONDS` | `10` | Per-RPC timeout. |
 | `MN_GRPC_AUTH_TOKEN` | unset | Optional bearer token metadata. |
-| `MN_SDK_LOG_PATH` | `~/.mn/logs/sdk.log` | SDK log path. |
+| `MN_SDK_LOG_PATH` | `$MN_HOME/logs/sdk.log` | SDK log path. |
 
 ## Python-Defined Workflows
 

@@ -124,7 +124,7 @@ mn blueprint export <run_id> --format markdown
 Most run artifacts are written under:
 
 ```text
-~/.mn/runs/<run_id>/
+$MN_HOME/runs/<run_id>/
 ```
 
 ## Step 6: Try The Catalog Flow

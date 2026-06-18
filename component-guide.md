@@ -67,7 +67,7 @@ mn blueprint monitor --follow
 Most run artifacts are written under:
 
 ```text
-~/.mn/runs/<run_id>/
+$MN_HOME/runs/<run_id>/
 ```
 
 ## Component Details
@@ -121,8 +121,9 @@ cd mn-deploy
 ./server.sh stop
 ```
 
-Default runtime state lives in `~/.mn`. Generated service settings, ports,
-tokens, and shared run paths are stored in `~/.mn/docker-compose.env`.
+Default runtime state lives in `MN_HOME`, which defaults to `~/.mn`. Generated
+service settings, ports, tokens, and shared run paths are stored in
+`$MN_HOME/docker-compose.env`.
 
 Read next:
 

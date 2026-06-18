@@ -416,7 +416,7 @@ Every blueprint must always write local logs, events, and run artifacts through 
 Default run root:
 
 ```text
-~/.mn/runs/<run_id>/
+$MN_HOME/runs/<run_id>/
 ```
 
 Required run artifacts:
