@@ -107,7 +107,8 @@ Read next:
 ### Deployment Scripts
 
 `mn-deploy` installs and controls a local MirrorNeuron system. The unified
-installer is `install.sh`; its default mode installs from GitHub repositories.
+installer is `install.sh`; its default mode installs released artifacts and
+Python packages non-interactively with default yes selections.
 It can install the core, Python SDK, CLI, API, Web UI, Redis, OpenShell, and the
 Membrane context engine depending on the selected options.
 
@@ -116,6 +117,7 @@ Useful commands:
 ```bash
 cd mn-deploy
 ./install.sh --help
+./install.sh --interactive
 ./server.sh status
 ./server.sh start
 ./server.sh stop

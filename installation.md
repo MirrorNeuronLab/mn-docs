@@ -24,7 +24,9 @@ Optional:
 ## Option 1: Install With The Deployment Script
 
 Use the deployment script when you want a system-wide `mn` command.
-The hosted installer defaults to GitHub mode.
+The hosted installer defaults to binary mode, installing released artifacts and
+Python packages. It runs non-interactively with default yes selections unless
+you pass `--interactive`.
 
 ```bash
 curl -fsSL https://mirrorneuron.io/install.sh | bash
