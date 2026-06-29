@@ -13,6 +13,7 @@ mn model install gemma4:e2b
 mn model update gemma4:e2b
 mn model remove gemma4:e2b
 mn model doctor gemma4:e2b
+mn model proxy --config mn-docs/examples/openai-compatible-model-proxy.json
 mn model remote add ai/qwen3-coder --base-url http://192.168.4.173:12434/v1 --name spark
 mn model remote list
 mn model remote remove spark
@@ -21,6 +22,61 @@ mn model remote remove spark
 Use `--json` on `list`, `show`, and `doctor` for machine-readable output.
 
 Installs and blueprint validation block incompatible hardware by default. Use `--force` only when you accept slow CPU execution or a partial accelerator path.
+
+## LiteLLM Proxy Models
+
+Use a LiteLLM proxy when a model should appear in `mn model list` and blueprint validation without a local Docker Model Runner install. Proxy models are stored in `$MN_HOME/models/proxies.json`, show as installed, and display `backend` as `proxy`.
+
+Create and start a proxy:
+
+```bash
+export OPENAI_API_KEY=...
+mn model proxy --config mn-docs/examples/openai-compatible-model-proxy.json
+mn model list --installed
+```
+
+The command generates a LiteLLM config under `$MN_HOME/models/proxies/`, starts `ghcr.io/berriai/litellm:main-latest`, and registers each configured model. Use `--no-start` to only generate config and register the models, or `--replace` to replace an existing proxy container with the same generated name.
+
+Example config:
+
+```json
+{
+  "provider": {
+    "openai-compatible": {
+      "options": {
+        "baseURL": "https://api.openai.com/v1",
+        "apiKeyEnv": "OPENAI_API_KEY"
+      },
+      "models": {
+        "openai/gpt-5.4-mini": {
+          "name": "OpenAI GPT 5.4 Mini",
+          "model": "openai/gpt-5.4-mini",
+          "rate_limit_rpm": 30,
+          "timeout_seconds": 120
+        }
+      }
+    }
+  }
+}
+```
+
+After registration, blueprint configs can refer to the proxy model by id:
+
+```json
+{
+  "llm": {
+    "enabled": true,
+    "configs": {
+      "primary": {
+        "provider": "docker_model_runner",
+        "runtime_model": "openai/gpt-5.4-mini"
+      }
+    }
+  }
+}
+```
+
+Validation treats proxy models as ready service-backed models. Hardware compatibility checks are skipped because the model is served by the configured upstream provider, not installed locally.
 
 ## Cross-Box Model Endpoints
 

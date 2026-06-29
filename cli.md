@@ -72,6 +72,7 @@ mn model install [MODEL] [--backend auto|llama.cpp|vllm] [--context-size N] [--f
 mn model update [MODEL|--all] [--force]
 mn model remove <MODEL> [--force]
 mn model doctor [MODEL] [--json]
+mn model proxy --config <config.json> [--port 4000] [--host 127.0.0.1] [--no-start] [--replace]
 mn deployment deploy <bundle_path> --key <deployment_key>
 mn deployment list|status|promote|rollback|pause|resume|fail
 mn schedule create <bundle_path> --cron "0 2 * * *"
@@ -489,12 +490,15 @@ mn model list
 mn model show gemma4:e2b --compatibility
 mn model install gemma4:e2b
 mn model update gemma4:e2b
+mn model proxy --config mn-docs/examples/openai-compatible-model-proxy.json
 mn model doctor gemma4:e2b
 mn model remove gemma4:e2b
 ```
 
 The default model is `gemma4:e2b`, which resolves to Docker's `ai/gemma4:E2B`
 model. Installs block incompatible hardware unless `--force` is passed.
+
+Use `mn model proxy` to register external OpenAI-compatible models through a LiteLLM proxy. Proxy models appear as installed in `mn model list --installed` with `backend` set to `proxy`, and blueprint validation skips local hardware checks for them.
 
 See [Model Runtime](model-runtime.md).
 

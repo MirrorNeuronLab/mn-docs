@@ -1,0 +1,19 @@
+{
+  "provider": {
+    "openai-compatible": {
+      "name": "OpenAI-compatible endpoint",
+      "options": {
+        "baseURL": "https://api.openai.com/v1",
+        "apiKeyEnv": "OPENAI_API_KEY"
+      },
+      "models": {
+        "openai/gpt-5.4-mini": {
+          "name": "OpenAI GPT 5.4 Mini",
+          "model": "openai/gpt-5.4-mini",
+          "rate_limit_rpm": 30,
+          "timeout_seconds": 120
+        }
+      }
+    }
+  }
+}
