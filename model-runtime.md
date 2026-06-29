@@ -13,11 +13,30 @@ mn model install gemma4:e2b
 mn model update gemma4:e2b
 mn model remove gemma4:e2b
 mn model doctor gemma4:e2b
+mn model remote add ai/qwen3-coder --base-url http://192.168.4.173:12434/v1 --name spark
+mn model remote list
+mn model remote remove spark
 ```
 
 Use `--json` on `list`, `show`, and `doctor` for machine-readable output.
 
 Installs and blueprint validation block incompatible hardware by default. Use `--force` only when you accept slow CPU execution or a partial accelerator path.
+
+## Cross-Box Model Endpoints
+
+Blueprints should name the model they need. They do not need to know whether that model is served locally or by another cluster node.
+
+When a Docker Model Runner model is already advertised by a runtime node, launch preparation treats it as ready and passes a neutral `MN_MODEL_ENDPOINTS_JSON` mapping to workers. This mapping is separate from `MN_LLM_API_BASE`, `MN_LLM_MODEL`, `LITELLM_*`, and `OPENAI_*`, so blueprints with multiple LLM configs can resolve each model independently.
+
+Operators can declare unmanaged remote endpoints:
+
+```bash
+mn model remote add ai/qwen3-coder \
+  --base-url http://192.168.4.173:12434/v1 \
+  --name spark
+```
+
+Remote declarations are stored in `$MN_HOME/model-remotes.json` or `~/.mn/model-remotes.json`. The runtime advertises those declarations as `docker-model-runner` services on node advertisement, and the CLI can use them immediately during blueprint preparation.
 
 ## Blueprint Config
 
