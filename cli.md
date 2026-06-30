@@ -448,6 +448,17 @@ mn node add 192.168.4.20 --token <token> --network overlay --docker-network mirr
 cluster traffic. It does not start the REST API, Web UI, OpenShell, context
 engine, or SDK-facing helper processes.
 
+When the second box must read files submitted on the main box, start it directly
+as a joined runtime so the primary NFS export is mounted before Docker creates
+the Core container:
+
+```bash
+mn runtime start --join-host 192.168.4.10 --token <main-token> --host 192.168.4.20
+```
+
+`MN_NFS_ENABLED=auto` warns and continues if host NFS setup is unavailable.
+`MN_NFS_REQUIRED=1` fails startup/join instead.
+
 Remove a node from the cluster:
 
 ```bash

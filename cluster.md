@@ -99,6 +99,19 @@ mn node join <worker-host> --local-host <main-host> --token <worker-token>
 
 ### Option B: Main Box Adds Second Box
 
+For shared documents and large blueprint payloads, keep the main box's
+`MN_HOST_SHARED_STORAGE_ROOT` as the canonical NFS export. The CLI starts the
+export during `mn runtime start` and mounts it before a joined runtime container
+starts. On the second box, prefer starting directly against the main box when it
+needs to read primary-local inputs:
+
+```bash
+mn runtime start --join-host 192.168.4.10 --token <main-token> --host 192.168.4.20
+```
+
+Set `MN_NFS_REQUIRED=1` when a missing export or mount should stop startup
+instead of continuing with a warning.
+
 On the second box:
 
 ```bash
