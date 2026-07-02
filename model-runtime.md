@@ -4,6 +4,20 @@ MirrorNeuron can manage local LLMs through Docker Model Runner. The model runtim
 
 The default local model is `gemma4:e2b`, which resolves to Docker's `ai/gemma4:E2B` model. It uses the Docker Model Runner llama.cpp backend by default.
 
+## Ownership Boundary
+
+Model definition, catalog resolution, aliases, hardware compatibility checks, Docker Model Runner install/update/remove operations, remote model declarations, proxy model records, and model-to-service expansion are owned by `mn-python-sdk`, `mn-cli`, and `mn-api`.
+
+MirrorNeuron Core does not own the model catalog and does not install models directly. Core receives already-expanded runtime facts, checks concrete service availability, schedules jobs, and runs agents. If a required model or service is not ready, Core reports a preflight or scheduling error instead of preparing the resource itself.
+
+Launch preparation should translate blueprint model references into concrete service requirements before submission:
+
+- concrete `requires_services` entries
+- service tags for `docker-model-runner` or proxy endpoints
+- placement requirements for the node that can serve the model
+- endpoint environment such as `MN_MODEL_ENDPOINTS_JSON`
+- prepared-model metadata owned by the SDK/API/CLI layer
+
 ## Commands
 
 ```bash
@@ -82,6 +96,10 @@ Validation treats proxy models as ready service-backed models. Hardware compatib
 
 Blueprints should name the model they need. They do not need to know whether that model is served locally or by another cluster node.
 
+For cluster launches, the SDK/API/CLI chooses the target node from the cluster resource summary, then sends `PrepareRuntimeModel` to that node's advertised Core gRPC endpoint. That node's Core only relays the request to its node-local SDK gRPC sidecar. The SDK sidecar on that same host performs Docker Model Runner operations and returns concrete endpoint facts.
+
+This path is intentionally gRPC-only between runtime nodes. Operators should not rely on SSH to install models on another box during normal blueprint launch.
+
 When a Docker Model Runner model is already advertised by a runtime node, launch preparation treats it as ready and passes a neutral `MN_MODEL_ENDPOINTS_JSON` mapping to workers. This mapping is separate from `MN_LLM_API_BASE`, `MN_LLM_MODEL`, `LITELLM_*`, and `OPENAI_*`, so blueprints with multiple LLM configs can resolve each model independently.
 
 Operators can declare unmanaged remote endpoints:
@@ -128,12 +146,12 @@ At launch, MirrorNeuron resolves the config to:
 
 ## Catalog Overrides
 
-The built-in catalog can be extended or overridden with JSON entries from:
+The SDK built-in catalog can be extended or overridden with JSON entries from:
 
 - `MN_MODEL_CATALOG_PATH`
 - `$MN_HOME/models/catalog.json`
 
-The file may contain a list, a `{ "models": [...] }` object, or an object keyed by model id. Local entries win over built-in entries with the same `id`.
+The file may contain a list, a `{ "models": [...] }` object, or an object keyed by model id. Local SDK entries win over built-in entries with the same `id`. These overrides are resolved before Core receives a submitted job.
 
 ## Hardware Validation
 
@@ -152,8 +170,10 @@ The file may contain a list, a `{ "models": [...] }` object, or an object keyed 
 
 ## Validation
 
-`mn blueprint validate` and `mn blueprint run` check runtime-managed models after service checks and before input validation. Missing models fail with a fix like:
+`mn blueprint validate` and `mn blueprint run` check and prepare runtime-managed models before Core submission whenever the selected flow is allowed to prepare native host resources. Missing models fail with a fix like:
 
 ```bash
 mn model install gemma4:e2b
 ```
+
+After submission, Core only checks the concrete service requirements provided by the SDK/API/CLI. It does not resolve aliases, choose model backends, inspect model hardware compatibility, or install Docker Model Runner models.

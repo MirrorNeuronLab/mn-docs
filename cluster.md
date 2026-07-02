@@ -25,6 +25,7 @@ network and a reachable host gRPC port:
 | Port | Purpose |
 | --- | --- |
 | `55051` | Deployed host port for the MirrorNeuron core gRPC service. The core container listens on `50051` internally. |
+| `55052` | Host-local SDK gRPC sidecar for native preparation, such as Docker Model Runner model install. This is consumed by Core through the Compose service `mn-native-sdk-grpc`, not exposed as a public cluster API. |
 | `26379` | Redis Sentinel when using Redis HA. |
 
 Redis, EPMD, and BEAM distribution stay inside the Docker bridge/overlay network.
@@ -36,6 +37,21 @@ export MN_DIST_PORT="4370"
 ```
 
 This makes firewall and failure debugging much simpler than random dynamic distribution ports.
+
+## gRPC Advertisement And Node-Local SDK Sidecars
+
+Each node advertises host-reachable Core gRPC facts in cluster summaries:
+
+- `grpc_host`
+- `grpc_port`
+
+In Docker Compose deployments, Core listens on its container port, while the host publishes a separate external port. `MN_GRPC_ADVERTISE_PORT` is the external port other machines and SDK clients should dial. It is distinct from `MN_GRPC_PORT`, which is the Core listener port inside the container.
+
+Native preparation is node-local. When the SDK/API/CLI needs to prepare a model on another node, it sends `PrepareRuntimeModel` to that node's advertised Core gRPC endpoint. The target Core does not perform the install. It relays the request to `MN_NATIVE_SDK_GRPC_TARGET`, which should normally be the Compose service `mn-native-sdk-grpc:55052`.
+
+The `mn-native-sdk-grpc` Compose service is a small TCP proxy inside the runtime Compose network. It forwards container traffic to the host-side SDK sidecar on that same node, usually `127.0.0.1:55052` from the host perspective. This matches the model-service pattern: containers consume a stable Compose service name, while SDK/CLI owns host-native Docker and model operations.
+
+Do not use SSH as the normal model-install path for a remote runtime node. SSH can still be useful for operator maintenance or deployment, but model preparation during launch should go over the target node's gRPC runtime path.
 
 ## Required Environment
 
@@ -127,7 +143,7 @@ On the main box:
 mn node add 192.168.4.20 --token <token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
-`mn node expose` starts a core-only runtime that exposes host gRPC and keeps Redis/Erlang cluster traffic on the Docker network. It does not start the REST API, Web UI, OpenShell, context engine, or SDK helper processes.
+`mn node expose` starts a core-only runtime that exposes host gRPC and keeps Redis/Erlang cluster traffic on the Docker network. It does not start the REST API, Web UI, OpenShell, or context engine. If that node is expected to prepare host-native resources such as Docker Model Runner models, a node-local SDK gRPC sidecar must also be available for Core to relay to.
 
 ## Verify The Cluster
 

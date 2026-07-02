@@ -88,6 +88,45 @@ The execution plane lives in OpenShell:
 
 This work is comparatively expensive. It should be bounded and scheduled, not launched without limit.
 
+## Native preparation boundary
+
+Core is responsible for running jobs on a single node or across a cluster. It is not responsible for preparing host-native resources.
+
+Native preparation includes:
+
+- model catalog and alias resolution
+- model hardware compatibility checks
+- Docker Model Runner install, update, and remove operations
+- model proxy and remote endpoint records
+- Docker Compose file edits for helper services
+- Docker image build or pull decisions for prepared workers
+- host filesystem setup and ownership ledgers
+
+Those operations belong to `mn-python-sdk`, `mn-cli`, and `mn-api`, because they run outside the Core container and can safely interact with the native operating system, Docker daemon, and host filesystem.
+
+Core consumes concrete facts prepared by those layers:
+
+- service instances and tags
+- `requires_services`
+- placement requirements
+- endpoint environment values
+- prepared-resource metadata
+
+If a required resource is missing, Core reports the failure. It should not silently install models, edit Docker Compose files, choose model backends, or perform host-level setup.
+
+For model preparation, the gRPC flow is:
+
+```text
+SDK/API/CLI
+  -> target node Core gRPC PrepareRuntimeModel
+  -> Core relay to MN_NATIVE_SDK_GRPC_TARGET
+  -> Compose service mn-native-sdk-grpc
+  -> host-side SDK gRPC sidecar
+  -> Docker Model Runner / host-native preparation
+```
+
+The relay keeps the Core boundary small. Core only knows that a prepared sidecar target exists. The SDK sidecar owns the model operation and returns concrete service facts for later scheduling and worker environment injection.
+
 ## Logical workers vs physical execution leases
 
 This is the most important runtime distinction.
