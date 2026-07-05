@@ -243,6 +243,8 @@ LLM-enabled blueprints use `MN_LLM_*` settings as the primary contract. Legacy `
 | `MN_BLUEPRINT_CONFIG_PATH` | unset | Worker-contract config file override. |
 | `MN_BLUEPRINT_CONFIG_JSON` | unset | Worker-contract inline config JSON override. |
 | `MN_MODEL_CATALOG_PATH` | unset | Optional JSON model catalog override merged before `$MN_HOME/models/catalog.json`. |
+| `MN_RAG_DB_ROOT` | `$MN_HOME/rag` | Root for per-blueprint Milvus Lite RAG DB files, stored as `<namespace>/<blueprint_id>.db`. |
+| `MN_RAG_NAMESPACE` | `mirror_neuron_rag` | Namespace used to group per-blueprint RAG DB paths and Milvus collection names. |
 | `MN_LLM_PROVIDER` | blueprint-specific | LLM provider. `docker_model_runner` enables MirrorNeuron local model runtime behavior. |
 | `MN_LLM_MODEL` | `ai/gemma4:E2B` for Docker Model Runner, otherwise blueprint-specific | Resolved API model name for LLM-enabled blueprint workers. |
 | `MN_LLM_RUNTIME_MODEL` | `ai/gemma4:E2B` for `gemma4:e2b` | Docker Model Runner model reference used by `mn model install` and validation. |
@@ -251,6 +253,8 @@ LLM-enabled blueprints use `MN_LLM_*` settings as the primary contract. Legacy `
 | `MN_LLM_CONTEXT_SIZE` | model default | Context size requested for runtime-managed local models. |
 | `MN_LLM_TIMEOUT_SECONDS` | `60` where shared skills provide a default | Optional timeout used by shared LLM skill workers. |
 | `MN_LLM_MAX_TOKENS` | `800` where shared skills provide a default | Optional max output token limit used by shared LLM skill workers. |
+
+Blueprint exports may carry generated Milvus Lite RAG caches under `__mn_runtime/rag/`; imports restore those files to the `MN_RAG_DB_ROOT`/`MN_HOME` runtime path instead of storing them in blueprint source.
 | `MN_LLM_NUM_RETRIES` | `2` where shared skills provide a default | Optional provider retry count. |
 | `MN_LLM_RETRY_BACKOFF_SECONDS` | `1.0` where shared skills provide a default | Optional exponential retry backoff base for direct HTTP fallbacks. |
 | `LITELLM_MODEL` | blueprint-specific | Legacy LiteLLM model alias. Prefer `MN_LLM_MODEL` in new blueprints. |
