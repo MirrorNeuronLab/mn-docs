@@ -42,10 +42,11 @@ protected deployments.
 | `GET` | `/blueprints/{blueprint_id}` | Get one catalog blueprint. |
 | `POST` | `/blueprints/{blueprint_id}/install` | Install required runtime models for a blueprint. |
 | `POST` | `/blueprints/{blueprint_id}/validate` | Validate catalog blueprint inputs and requirements. |
-| `POST` | `/blueprints/{blueprint_id}/runs` | Launch a catalog blueprint run. |
+| `POST` | `/blueprints/{blueprint_id}/runs` | Launch a catalog blueprint run asynchronously. |
 | `POST` | `/blueprints/launch/validate` | Validate a launch source such as an uploaded bundle. |
-| `POST` | `/blueprints/launch/runs` | Launch an uploaded or local bundle source. |
+| `POST` | `/blueprints/launch/runs` | Launch an uploaded or local bundle source asynchronously. |
 | `GET` | `/blueprints/launch/progress/{progress_id}` | Read model-install, validation, and submit progress. |
+| `WS` | `/realtime` | Subscribe to realtime events such as launch progress. |
 | `GET` | `/runs/{run_id}/result` | Read run result metadata. |
 | `GET` | `/runs/{run_id}/final-artifact` | Read the final run artifact. |
 | `GET` | `/runs/{run_id}/artifacts` | List run-store artifacts with metadata and URLs. |
@@ -143,8 +144,82 @@ curl -s -X POST http://localhost:54001/api/v1/blueprints/portfolio_risk_review_a
   -d '{"force": false}'
 ```
 
-Expected response includes `job_id`, `run_id`, validation state, and model
-install state.
+Expected response is returned immediately with `202 Accepted` and includes
+`run_id`, `progress_id`, and `progress_url`. The final `job_id`, validation
+state, and model-install state are reported through the progress resource.
+
+```json
+{
+  "status": "launching",
+  "run_id": "portfolio_risk_review_assistant-20260707T140000000000Z",
+  "progress_id": "portfolio_risk_review_assistant-20260707T140000000000Z-20260707T140000Z-a1b2c3d4",
+  "progress_url": "/api/v1/blueprints/launch/progress/portfolio_risk_review_assistant-20260707T140000000000Z-20260707T140000Z-a1b2c3d4",
+  "job_id": null
+}
+```
+
+REST is the source of truth for progress state:
+
+```bash
+curl -s http://localhost:54001/api/v1/blueprints/launch/progress/<progress_id>
+```
+
+Clients that want low-latency progress updates may also subscribe through the
+shared realtime WebSocket:
+
+```text
+ws://localhost:54001/api/v1/realtime
+```
+
+If API auth is enabled, pass the bearer token in the `Authorization` header or
+as `?token=<MN_API_TOKEN>` for WebSocket clients that cannot set headers.
+
+Subscribe to launch progress using topic `launch_progress:<progress_id>`:
+
+```json
+{
+  "requestId": "req-001",
+  "action": "subscribe",
+  "topic": "launch_progress:<progress_id>",
+  "after": 0
+}
+```
+
+The WebSocket emits idempotent topic events:
+
+```json
+{
+  "id": "launch_progress:<progress_id>:1",
+  "topic": "launch_progress:<progress_id>",
+  "type": "blueprint.launch_progress.model_install.running",
+  "version": 1,
+  "occurredAt": "2026-07-07T14:00:00Z",
+  "patch": {
+    "latest": {
+      "phase": "model_install",
+      "status": "running"
+    },
+    "status": "running",
+    "completed": false
+  }
+}
+```
+
+Use the event `version` as an exclusive cursor when reconnecting:
+
+```json
+{
+  "requestId": "req-002",
+  "action": "subscribe",
+  "topic": "launch_progress:<progress_id>",
+  "after": 12
+}
+```
+
+After reconnecting, clients should call the REST progress URL once, apply any
+missed events, then resume the WebSocket subscription. Duplicate events are safe
+to ignore when their `version` is less than or equal to the last applied
+version.
 
 ### Read Run Observability
 
