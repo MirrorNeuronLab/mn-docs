@@ -161,7 +161,7 @@ If you need durable long-running behavior, set the workflow type to `service` an
 | `resources` | CPU, memory, disk, GPU/device, port, volume, and runtime-driver requirements. |
 | `services` | Agent-scoped service declarations. |
 | `requires_services` | Node-scoped service requirements used by the scheduler. |
-| `raw_config` | Escape hatch for manifest fields not yet modeled by the SDK. |
+| `raw_config` | Escape hatch for manifest fields not represented by the SDK. |
 
 Keep `pass_env` narrow. See [Security Model](security.md).
 
@@ -196,9 +196,9 @@ from mn_sdk import Client
 
 client = Client()
 
-client.reconcile_node("mirror_neuron@192.168.4.20", reason="manual check", dry_run=True)
-client.drain_node("mirror_neuron@192.168.4.20", reason="reboot", deadline_ms=1_800_000)
-client.set_node_maintenance("mirror_neuron@192.168.4.20", True, reason="maintenance")
+client.reconcile_node("mirror_neuron@<node-host>", reason="manual check", dry_run=True)
+client.drain_node("mirror_neuron@<node-host>", reason="reboot", deadline_ms=1_800_000)
+client.set_node_maintenance("mirror_neuron@<node-host>", True, reason="maintenance")
 
 client.list_services()
 client.resolve_service("ollama", tags=["llm"])

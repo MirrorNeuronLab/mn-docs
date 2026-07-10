@@ -28,7 +28,7 @@ mn model update gemma4:e2b
 mn model remove gemma4:e2b
 mn model doctor gemma4:e2b
 mn model proxy --config mn-docs/examples/openai-compatible-model-proxy.json
-mn model remote add ai/qwen3-coder --base-url http://192.168.4.173:12434/v1 --name spark
+mn model remote add ai/qwen3-coder --base-url http://<remote-model-host>:12434/v1 --name <remote-name>
 mn model remote list
 mn model remote remove spark
 ```
@@ -106,8 +106,8 @@ Operators can declare unmanaged remote endpoints:
 
 ```bash
 mn model remote add ai/qwen3-coder \
-  --base-url http://192.168.4.173:12434/v1 \
-  --name spark
+  --base-url http://<remote-model-host>:12434/v1 \
+  --name <remote-name>
 ```
 
 Remote declarations are stored in `$MN_HOME/model-remotes.json` or `~/.mn/model-remotes.json`. The runtime advertises those declarations as `docker-model-runner` services on node advertisement, and the CLI can use them immediately during blueprint preparation.

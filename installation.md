@@ -1,264 +1,137 @@
 # Install MirrorNeuron Locally
 
-This guide installs the dependencies needed to validate bundles, run local workflows, and execute the test suite.
+This is the canonical installation procedure for maintainers, contributors, and operators. It documents the deployment installer, local workspace mode, validation signals, state locations, and safe removal behavior.
 
-## Requirements
+## Reader and outcome
 
-- macOS, Linux, or WSL2
-- `git`
-- Python 3.11+
-- Docker (and the docker-model runtime plugin)
+- **Reader:** operator or contributor preparing a local runtime.
+- **Outcome:** the `mn` CLI is available, the local runtime is healthy, and the operator knows where state and listeners live.
+- **Page type:** installation how-to.
+- **Source of truth:** `mn-deploy/install.sh`, `mn-deploy/server.sh`, `mn-cli/mn_cli/libs/sys_cmds.py`, and the API/CLI configuration schemas.
 
-Docker Desktop includes the plugin on macOS and Windows. On Linux, install the runtime plugin:
+## Before you begin
+
+- Supported local environments are macOS, Linux, and Windows with WSL2.
+- Docker must be installed and running.
+- `git` is required for checkout-based installation.
+- Python 3.11+ and Elixir/Erlang are required for editable workspace development, not for every released-package installation.
+- Docker Model Runner is required only for blueprints that use local models. Docker Desktop provides it on macOS and Windows; Linux operators must install the plugin when they need that capability.
+
+## Install released components
+
+Use the deployment repository for a reviewable installation path:
 
 ```bash
-sudo apt-get update
-sudo apt-get install docker-model-plugin
+cd mn-deploy
+./install.sh --help
+./install.sh
 ```
 
-Optional:
+The installer uses default selections without prompts unless `--interactive` is passed. Use `--version <release-tag>` when you need a matching released set of Core, CLI, SDK, API, Web UI, and support files.
 
-- model provider keys for LLM blueprints
-- two machines with SSH access for cluster and Redis HA smoke tests
-
-## Option 1: Install With The Deployment Script
-
-Use the deployment script when you want a system-wide `mn` command.
-The hosted installer defaults to binary mode, installing released artifacts and
-Python packages. It runs non-interactively with default yes selections unless
-you pass `--interactive`.
+The hosted installer is available when a local checkout is not practical:
 
 ```bash
 curl -fsSL https://mirrorneuron.io/install.sh | bash
 ```
 
-Expected result:
+Warning: this command downloads and executes a script immediately. Prefer `mn-deploy/install.sh` when you need to inspect the script, select a mode, or retain an auditable local copy.
 
-```text
-mn installed
+## Install an editable workspace runtime
+
+Run local mode from the deployment component when you are developing against the current workspace:
+
+```bash
+cd mn-deploy
+./install.sh --mode local
 ```
 
-Verify:
+For an explicit Git-based installation, use:
+
+```bash
+cd mn-deploy
+./install.sh --mode github
+```
+
+Git mode uses component repositories rather than editable paths from this checkout. Do not use it when your goal is to test uncommitted workspace changes.
+
+## Verify the runtime
+
+Run these commands after any installation or upgrade:
 
 ```bash
 mn --help
+mn runtime start
+mn runtime health
+mn runtime status
+mn node list
 ```
 
-Expected output includes:
+Verification criteria:
 
-```text
-MirrorNeuron CLI
-```
+- `mn --help` displays the command groups.
+- `mn runtime health` reports the Core, REST API, and Web UI health checks without a failed required component.
+- `mn runtime status` reports the resolved endpoints, runtime state, nodes, jobs, and shared storage.
+- `mn node list` returns the local runtime-node view or the configured cluster view.
 
-## Option 2: Set Up From The Monorepo
+If a command fails, collect its output and continue with [Troubleshooting](troubleshooting.md) rather than deleting local state.
 
-From the workspace root:
+## Local state, ports, and configuration
+
+| Item | Default | Owner |
+| --- | --- | --- |
+| Runtime state root | `~/.mn` | CLI, API, SDK, runtime services. |
+| REST API | `http://localhost:54001/api/v1` | `mn-api`; override with `MN_API_PORT`. |
+| Core gRPC endpoint | `localhost:55051` | MirrorNeuron Core; override with `MN_GRPC_PORT` and client target settings. |
+| Docker Model Runner/LiteLLM gateway | port `4000` when enabled | Model runtime. |
+| Web UI | port `55173` by default | Web UI runtime. |
+| Blueprint run records | `~/.mn/runs/<run_id>/` | Blueprint run-store contract. |
+
+See [Environment Variables](env_variables.md) for the full configuration reference. Do not publish `~/.mn/docker-compose.env`, tokens, or generated endpoint files because they can contain deployment-specific configuration.
+
+## Prepare a local model only when a blueprint requires it
+
+Blueprint validation identifies declared model requirements. Install and diagnose a local model only after a preflight reports it or after you have reviewed the blueprint configuration:
 
 ```bash
-python3.11 -m venv .venv
-. .venv/bin/activate
-.venv/bin/python -m pip install -r mn-system-tests/requirements.txt
-```
-
-Expected result:
-
-```text
-Successfully installed
-```
-
-The system-test requirements install the local Python SDK and CLI in editable mode.
-
-## Step 1: Install Elixir And Erlang
-
-On macOS with Homebrew:
-
-```bash
-brew install elixir
-elixir --version
-mix --version
-```
-
-Expected output includes:
-
-```text
-Elixir
-Mix
-```
-
-On Linux, use your package manager or `asdf` and verify with the same commands.
-
-## Step 2: Fetch Core Dependencies
-
-```bash
-cd MirrorNeuron
-mix deps.get
-mix compile
-```
-
-Expected output:
-
-```text
-Generated mirror_neuron app
-```
-
-If dependencies are already compiled, Mix may print less output. A zero exit code is the success signal.
-
-## Step 3: Start Redis
-
-The simplest local Redis path is Docker:
-
-```bash
-docker rm -f mirror-neuron-redis 2>/dev/null || true
-docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
-docker exec mirror-neuron-redis redis-cli ping
-```
-
-Expected output:
-
-```text
-PONG
-```
-
-## Step 4: Install OpenShell
-
-```bash
-curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | sh
-~/.local/bin/openshell --version
-```
-
-Expected output includes:
-
-```text
-openshell
-```
-
-If `openshell` is not on your `PATH`:
-
-```bash
-export PATH="$HOME/.local/bin:$PATH"
-```
-
-Or point MirrorNeuron directly to the binary:
-
-```bash
-export MN_OPENSHELL_BIN="$HOME/.local/bin/openshell"
-```
-
-## Step 5: Start The OpenShell Gateway
-
-```bash
-openshell gateway start
-openshell status
-```
-
-Expected output includes:
-
-```text
-Status: Connected
-```
-
-If OpenShell is not needed for your first pure-router workflow, you can skip this until you run executor blueprints.
-
-## Step 6: Configure Local Environment
-
-Recommended local defaults:
-
-```bash
-export MN_REDIS_URL="redis://127.0.0.1:6379/0"
-export MN_EXECUTOR_MAX_CONCURRENCY="4"
-export MN_COOKIE="mirrorneuron"
-```
-
-Optional for LLM-enabled blueprints:
-
-```bash
-export LITELLM_MODEL="gemini/gemini-2.5-flash-lite"
-export LITELLM_API_KEY="..."
-```
-
-Optional for local Docker Model Runner LLM blueprints:
-
-```bash
-docker model status
+mn model list
 mn model install gemma4:e2b
 mn model doctor gemma4:e2b
 ```
 
-`gemma4:e2b` resolves to Docker's `ai/gemma4:E2B` model and is the default MirrorNeuron local model for hosts with 8GB VRAM or 16GB unified memory.
+`mn model install` can fail on an incompatible machine. Do not use `--force` as a routine fix; first choose a model and blueprint profile that match the available hardware.
 
-Use a unique Redis namespace when running tests beside a developer runtime:
+## Stop, uninstall, and retain evidence
 
-```bash
-export MN_REDIS_NAMESPACE="mirror_neuron_dev_$(date +%s)"
-```
-
-## Step 7: Smoke Test
-
-From the workspace root:
-
-```bash
-mn blueprint validate otterdesk-blueprints/tax_form_ocr_capture_assistant
-```
-
-Expected output:
-
-```text
-valid
-```
-
-Start services:
-
-```bash
-mn runtime start
-mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
-```
-
-Expected output:
-
-```text
-Job submitted
-```
-
-## Uninstall Local Services
-
-Stop MirrorNeuron:
+Stop runtime services:
 
 ```bash
 mn runtime stop
 ```
 
-Stop local Redis:
+For a hosted installation, use the matching uninstall script:
 
 ```bash
-docker rm -f mirror-neuron-redis
+curl -fsSL https://mirrorneuron.io/uninstall.sh | bash
 ```
 
-If installed through the deployment script, remove the install directory and executable:
+Before removing `~/.mn`, preserve any required run records, logs, configuration, and model metadata. Removing it can discard local state needed to diagnose jobs or reproduce a deployment.
+
+## Contributor verification
+
+When changing installer, runtime-start, endpoint, or configuration behavior, verify at least:
 
 ```bash
-rm -rf ~/.local/share/MirrorNeuron
-rm -f ~/.local/bin/mn
+cd mn-deploy
+./install.sh --help
 ```
 
-Warning: only remove these paths if they belong to the MirrorNeuron install you want to delete.
+Then run the relevant CLI/API tests and the documentation-site type check. Update `mn-doc-site/content/docs/installation.mdx` with the concise user-facing impact.
 
-## Security Notes
+## Related pages
 
-- Keep local Redis bound to trusted interfaces.
-- Change `MN_COOKIE` before using a real cluster.
-- Do not expose API or gRPC ports publicly without an authentication boundary.
-- Review third-party bundles before running them.
-
-## Cluster Prerequisites
-
-For two-box or larger clusters, continue with:
-
-- [Cluster Guide](cluster.md)
-- [Redis High Availability](redis-ha.md)
-
-## Common Install Issues
-
-If setup does not work as expected:
-
+- [Quickstart](quickstart.md)
+- [Environment Variables](env_variables.md)
+- [Model Runtime](model-runtime.md)
+- [Services and Health Checks](services-and-health-checks.md)
 - [Troubleshooting](troubleshooting.md)
-- [Testing](testing.md)

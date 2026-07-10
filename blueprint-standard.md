@@ -1,6 +1,6 @@
 # Blueprint Standard
 
-This document defines the shared contract every MirrorNeuron and OtterDesk blueprint should follow. It is intended to make blueprints interchangeable across product cataloging, local execution, UI launch, observability, and future deployment targets.
+This document defines the shared contract every MirrorNeuron and OtterDesk blueprint should follow. It makes blueprints interchangeable across product cataloging, local execution, UI launch, observability, and supported deployment targets.
 
 The current standard version is `1.0`.
 
@@ -71,7 +71,7 @@ Required identity fields:
 - `workflow.workflow_id`: versioned workflow id, usually `<blueprint_id>_v1`.
 - `job_name`: kebab-case job name.
 - `manifest_version`: manifest schema version.
-- `standard_version`: blueprint standard version, currently `1.0`.
+- `standard_version`: blueprint standard version. This document defines version `1.0`.
 
 Required manifest legal reference fields:
 
@@ -1529,7 +1529,7 @@ When a blueprint uses shared template nodes, preserve both identities:
 - Stable runtime identity: `node_id`, worker `id`, `uses`, edge endpoints, and event worker IDs.
 - User-facing identity: `alias`, then `display_name`, then existing labels and roles.
 
-Do not rename a stable runtime id just to improve UI text. If the runtime id is part of edges, persisted events, or service registration, keep it stable and add `alias`. If a workflow worker id is newly introduced and not yet part of a compatibility contract, it should already be a job-specific noun such as `video_monitor`, `frame_sampler`, `quality_controller`, or `watch_summary_writer`.
+Do not rename a stable runtime id just to improve UI text. If the runtime id is part of edges, persisted events, or service registration, keep it stable and add `alias`. A workflow worker id without a compatibility contract should already be a job-specific noun such as `video_monitor`, `frame_sampler`, `quality_controller`, or `watch_summary_writer`.
 
 Runtime infrastructure agents are not blueprint workers. If transport or wrapper agents appear in graph data, UI surfaces should label them as system/runtime infrastructure rather than showing raw names such as `runtime` as if they were domain agents.
 
@@ -1621,7 +1621,7 @@ Recommended shape:
         "provider": "ollama",
         "mode": "ollama",
         "model": "nemotron3:33b",
-        "api_base": "http://192.168.4.173:11434",
+        "api_base": "http://<remote-model-host>:11434",
         "mock_mode": "fake"
       }
     },

@@ -100,9 +100,9 @@ Use resource and service requirements together when a worker needs a healthy loc
 Drain a node before rebooting it:
 
 ```bash
-mn node drain mirror_neuron@192.168.4.20 --reason "driver update" --deadline 30m --dry-run
-mn node drain mirror_neuron@192.168.4.20 --reason "driver update" --deadline 30m --wait
-mn node undrain mirror_neuron@192.168.4.20 --mark-eligible --reason "ready"
+mn node drain mirror_neuron@<node-host> --reason "driver update" --deadline 30m --dry-run
+mn node drain mirror_neuron@<node-host> --reason "driver update" --deadline 30m --wait
+mn node undrain mirror_neuron@<node-host> --mark-eligible --reason "ready"
 ```
 
 Deploy a long-running service under a stable key:
@@ -156,4 +156,3 @@ mn event emit file_uploaded --payload-json '{"path":"/datasets/eval.jsonl"}'
 - service health affects discovery and placement, but does not automatically restart jobs yet
 - deployment rollout behavior is focused on `service` and `system` jobs
 - scheduled child jobs are ordinary jobs, so the normal reliability model still applies
-

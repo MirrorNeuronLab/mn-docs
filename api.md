@@ -133,13 +133,13 @@ Expected response:
 For normal user-facing blueprint execution, prefer:
 
 ```bash
-mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
+mn blueprint run --folder otterdesk-blueprints/medical_deid_record_intake_assistant
 ```
 
 ### Launch A Catalog Blueprint
 
 ```bash
-curl -s -X POST http://localhost:54001/api/v1/blueprints/portfolio_risk_review_assistant/runs \
+curl -s -X POST http://localhost:54001/api/v1/blueprints/medical_deid_record_intake_assistant/runs \
   -H "Content-Type: application/json" \
   -d '{"force": false}'
 ```
@@ -151,9 +151,9 @@ state, and model-install state are reported through the progress resource.
 ```json
 {
   "status": "launching",
-  "run_id": "portfolio_risk_review_assistant-20260707T140000000000Z",
-  "progress_id": "portfolio_risk_review_assistant-20260707T140000000000Z-20260707T140000Z-a1b2c3d4",
-  "progress_url": "/api/v1/blueprints/launch/progress/portfolio_risk_review_assistant-20260707T140000000000Z-20260707T140000Z-a1b2c3d4",
+  "run_id": "<run_id>",
+  "progress_id": "<progress_id>",
+  "progress_url": "/api/v1/blueprints/launch/progress/<progress_id>",
   "job_id": null
 }
 ```
@@ -354,7 +354,7 @@ The CLI uses the Python SDK over gRPC for most control paths. See
 
 ## Stability Guidance
 
-For future tools, prefer consuming:
+For integrations, prefer consuming:
 
 1. FastAPI run and job endpoints for browser/desktop clients.
 2. Python SDK methods for Python automation.

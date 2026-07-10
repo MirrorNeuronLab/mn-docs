@@ -41,10 +41,15 @@ Expected result:
 Generated mirror_neuron app
 ```
 
-Start local Redis:
+If the change requires a local Redis instance, first check whether one is already running:
 
 ```bash
-docker rm -f mirror-neuron-redis 2>/dev/null || true
+docker ps --filter name=mirror-neuron-redis
+```
+
+Start a disposable Redis container only when it is absent:
+
+```bash
 docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
 docker exec mirror-neuron-redis redis-cli ping
 ```
@@ -54,6 +59,8 @@ Expected output:
 ```text
 PONG
 ```
+
+Warning: do not remove a Redis container to make this command work. It can contain another developer's runtime state. Use a separate container name, port, or Redis namespace for isolated testing.
 
 ## Test Commands
 
@@ -91,9 +98,9 @@ Two-box Redis Sentinel HA smoke test:
 
 ```bash
 .venv/bin/python mn-system-tests/test_all.py --redis-ha \
-  --redis-ha-remote-host 192.168.4.173 \
-  --redis-ha-local-ip 192.168.4.25 \
-  --redis-ha-remote-ip 192.168.4.173
+  --redis-ha-remote-host <remote-host> \
+  --redis-ha-local-ip <local-host> \
+  --redis-ha-remote-ip <remote-host>
 ```
 
 Expected success marker:

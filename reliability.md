@@ -1,6 +1,6 @@
 # Reliability Guide
 
-This guide explains the reliability model currently implemented in MirrorNeuron.
+This guide explains the reliability model implemented in MirrorNeuron.
 
 MirrorNeuron is not a consensus workflow engine. It is a durable, retryable, message-driven runtime for small local and multi-computer AI labs. Its reliability design is practical and conservative: restart locally first, reschedule across nodes only when policy and safety allow it, and pause for review when automatic movement could duplicate unsafe side effects.
 
@@ -15,7 +15,7 @@ MirrorNeuron aims for:
 - graceful node maintenance and drain without placing new work on a node
 - clear operator status when recovery pauses or blocks
 
-MirrorNeuron does not currently aim for:
+MirrorNeuron does not provide:
 
 - exactly-once delivery
 - consensus-based workflow history replay
@@ -142,7 +142,7 @@ MirrorNeuron supports four lifecycle modes.
 | `system` | Long-running copy on every eligible node. A completed target is restarted to keep that node covered. |
 | `sysbatch` | One-off copy on every eligible node. Each target completes once, and the job completes after all targets finish. |
 
-`system` and `sysbatch` expand one logical agent group across eligible nodes. Runtime agent ids include the target node, for example `monitor@mirror_neuron@192.168.4.20`, while the scheduler plan keeps the original source agent id for policy lookup.
+`system` and `sysbatch` expand one logical agent group across eligible nodes. Runtime agent ids include the target node, for example `monitor@mirror_neuron@<node-host>`, while the scheduler plan keeps the original source agent id for policy lookup.
 
 ## Recovery Modes
 
@@ -419,8 +419,8 @@ Useful smoke tests:
 ```bash
 cd MirrorNeuron
 bash scripts/test_cluster_prime_failover_e2e.sh \
-  --box1-ip 192.168.4.29 \
-  --box2-ip 192.168.4.35 \
+  --box1-ip <box1-host> \
+  --box2-ip <box2-host> \
   --start 1000003 \
   --end 1006002
 ```
@@ -437,9 +437,9 @@ Two-box Sentinel smoke test:
 ```bash
 cd MirrorNeuron
 bash scripts/test_redis_sentinel_two_box_ha.sh \
-  --remote-host 192.168.4.173 \
-  --local-ip 192.168.4.25 \
-  --remote-ip 192.168.4.173
+  --remote-host <remote-host> \
+  --local-ip <local-host> \
+  --remote-ip <remote-host>
 ```
 
 ## Failure Model To Expect

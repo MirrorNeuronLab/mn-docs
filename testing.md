@@ -1,6 +1,13 @@
 # MirrorNeuron Testing Guide
 
-This workspace is intentionally multi-component. Tests should stay with the component they verify, while root orchestration stays in `mn-system-tests/test_all.py` for developer convenience.
+This workspace is intentionally multi-component. Tests should stay with the component they verify, while `mn-system-tests/test_all.py` provides cross-component orchestration.
+
+## Reader and outcome
+
+- **Reader:** contributor selecting validation for a change.
+- **Outcome:** run the smallest relevant check, then expand validation when a shared contract changes.
+- **Page type:** contributor reference.
+- **Source of truth:** component test suites and `mn-system-tests/test_all.py --help`.
 
 ## Test Layout
 
@@ -99,7 +106,7 @@ Offline pytest gate:
 
 ```bash
 cd mn-system-tests
-.venv/bin/python -m pytest contracts benchmarks installer -q
+../.venv/bin/python -m pytest contracts benchmarks installer -q
 ```
 
 `test_all.py` records every runner-driven suite under
@@ -127,9 +134,10 @@ MN_GRPC_TARGET=localhost:55200 \
 mn-api
 ```
 
-Then run:
+Return to the workspace root, then run:
 
 ```bash
+cd ..
 MN_GRPC_TARGET=localhost:55200 \
 MN_API_BASE_URL=http://localhost:4001/api/v1 \
 RUN_MN_SYSTEM_TESTS=1 \
@@ -153,9 +161,9 @@ Two-box Docker test:
 cd MirrorNeuron
 
 bash scripts/test_redis_sentinel_two_box_ha.sh \
-  --remote-host 192.168.4.173 \
-  --local-ip 192.168.4.25 \
-  --remote-ip 192.168.4.173
+  --remote-host <remote-host> \
+  --local-ip <local-host> \
+  --remote-ip <remote-host>
 ```
 
 Expected success markers:
@@ -171,9 +179,9 @@ Run the same path through the workspace test runner:
 
 ```bash
 .venv/bin/python mn-system-tests/test_all.py --redis-ha \
-  --redis-ha-remote-host 192.168.4.173 \
-  --redis-ha-local-ip 192.168.4.25 \
-  --redis-ha-remote-ip 192.168.4.173
+  --redis-ha-remote-host <remote-host> \
+  --redis-ha-local-ip <local-host> \
+  --redis-ha-remote-ip <remote-host>
 ```
 
 Expected output:
@@ -242,10 +250,6 @@ Useful test isolation vars:
 
 Live tests are opt-in. If `RUN_MN_SYSTEM_TESTS=1` is not set, `mn-system-tests` marks `live` tests skipped.
 
-## What To Add Next
+## Test-selection rule
 
-- Move flat Python tests into `tests/unit/` first, then add `tests/integration/` for API/CLI behavior that exercises the SDK boundary.
-- Convert useful `MirrorNeuron/tests/regression/*.script` repros into ExUnit tests where possible.
-- Add Web UI visual/layout regression tests when Playwright is introduced.
-- Add a real secret scanner such as `gitleaks` or `detect-secrets` once the team chooses a tool.
-- For cross-component regressions, prefer `mn-system-tests/contracts` with injected clients/openers before adding a live test.
+For a cross-component regression, prefer `mn-system-tests/contracts` with injected clients or openers before adding a live test. Add a live integration or end-to-end check only when the behavior depends on a running service, Docker, Redis, network topology, or an external capability that an injected test cannot represent.

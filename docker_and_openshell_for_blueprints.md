@@ -14,7 +14,7 @@ A blueprint launch can touch several different filesystems and networks:
 
 | Place | What Runs There | What It Can See |
 | --- | --- | --- |
-| Native OS | OtterDesk, `mn-api`, `mn`, validation before launch | Native files such as `/Users/alice/docs`, native localhost ports |
+| Native OS | OtterDesk, `mn-api`, `mn`, validation before launch | Native files such as `~/docs`, native localhost ports |
 | Core Docker container | MirrorNeuron core, core-side validation, HostLocal workers in local installs | Submitted bundle under `/tmp/bundle_*`, payloads under `payloads/`, container localhost |
 | HostLocal workspace | A copied payload directory for one agent | Only files copied from the submitted payload `upload_path` |
 | OpenShell sandbox | Sandboxed worker command | Only uploaded sandbox files and explicitly allowed network/filesystem resources |
@@ -28,7 +28,7 @@ Static files that ship with a blueprint belong under `payloads/`. Runtime worker
 commands should read them through paths relative to the node workdir.
 
 User-selected native folders or files need staging. Do not pass a native path such
-as `/Users/alice/Downloads/tax2025` directly to a Docker or OpenShell worker.
+as `~/Downloads/tax2025` directly to a Docker or OpenShell worker.
 Instead:
 
 1. Validate the native path before launch.

@@ -1,308 +1,100 @@
-# Environment Variables
+# Runtime Configuration Reference
 
-This page documents the environment variables used by Mirror Neuron, the CLI, the Python SDK/API, shared skills, and the checked-in blueprints.
+This is the canonical internal reference for shared MirrorNeuron configuration. It covers the CLI, FastAPI gateway, runtime connection, Web UI, local models, and blueprint-catalog resolution. Blueprint-specific configuration belongs in the owning manifest and configuration files.
 
-Boolean values generally accept `1`, `true`, `yes`, or `on` for true and `0`, `false`, `no`, or `off` for false when parsed by the shared config helpers. Some legacy toggles only check a smaller set; those differences are called out below.
+## Sources of truth
 
-`MN_HOME` is the single host runtime-state root. It defaults to `~/.mn` on macOS
-and Linux. The legacy `.mirror_neuron` state directory and the
-`MN_MIRROR_NEURON_GRPC_ADMIN_TOKEN`, `MN_HOST_MN_DIR`,
-`MN_HOST_SHARED_ARTIFACT_ROOT`, and `MN_CONTAINER_SHARED_ARTIFACT_ROOT` aliases
-are no longer read; use `MN_GRPC_ADMIN_TOKEN`, `MN_HOME`,
-`MN_HOST_SHARED_STORAGE_ROOT`, and `MN_CONTAINER_SHARED_STORAGE_ROOT` instead.
+- CLI parsing/defaults: `mn-cli/mn_cli/config.py`.
+- API parsing/defaults: `mn-api/mn_api/config_schema.py` and `mn-api/mn_api/config.py`.
+- Blueprint catalog resolution: `mn-python-sdk/mn_sdk/blueprint_source.py`.
+- Deployment/runtime publication: `mn-cli/mn_cli/runtime/server.py`, `mn-deploy/install.sh`, and `mn-deploy/docker-compose.yml`.
 
-## Run command logging
+Update this page and `mn-doc-site/content/docs/env_variables.mdx` whenever a parser, default, validation rule, or secret classification changes.
 
-These variables are read by the shared CLI runner used by both `mn blueprint run --folder <bundle>` and `mn blueprint run <blueprint_id>`. They are evaluated on the client side and do not need to be listed in a blueprint manifest `pass_env`.
-
-Run artifacts are written to `/tmp/mn_<job_id>/`:
-
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `MN_RUN_DETACH_LOG_SECONDS` | `30` | Seconds to keep polling job events after the submit stream detaches. Can be overridden per command with `--follow-seconds`. |
-| `MN_RUN_EVENT_LOG_MAX_BYTES` | `10485760` | Maximum size of `/tmp/mn_<job_id>/events.log` before rotating. |
-| `MN_RUN_EVENT_LOG_BACKUP_COUNT` | `5` | Number of rotated `events.log.N` files to keep. |
-| `MN_RUN_LOG_LEVEL` | `INFO` | Log level for `/tmp/mn_<job_id>/run.log`. |
-| `MN_RUN_LOG_MAX_BYTES` | `2097152` | Maximum size of `/tmp/mn_<job_id>/run.log` before rotating. |
-| `MN_RUN_LOG_BACKUP_COUNT` | `5` | Number of rotated `run.log.N` files to keep. |
-| `MN_RUN_LOG_POLL_INTERVAL_SECONDS` | `0.5` | Poll interval used while collecting post-detach events. |
-
-Example:
+## Inspect before changing state
 
 ```bash
-MN_RUN_DETACH_LOG_SECONDS=10 \
-MN_RUN_LOG_LEVEL=DEBUG \
-MN_RUN_EVENT_LOG_MAX_BYTES=5242880 \
-mn blueprint run stream_backpressure_simulation
+mn runtime status
+mn runtime health
 ```
 
-## CLI and SDK connectivity
+Save sanitized output before changing listener, connection, catalog, model, or credential configuration. Do not commit `~/.mn/docker-compose.env`, endpoint files, or secrets.
 
-These variables control how CLI, SDK, and API clients connect to the core gRPC runtime.
+## Runtime state and client connection
 
-| Variable | Default | Used by | Usage |
-| --- | --- | --- | --- |
-| `MN_GRPC_TARGET` | `localhost:55051` | CLI, Python SDK, API | gRPC target for the local deployed runtime. |
-| `MN_GRPC_TIMEOUT_SECONDS` | `10` | CLI, Python SDK, API | Per-RPC timeout. `0`, `none`, or an empty value disables the timeout. |
-| `MN_GRPC_AUTH_TOKEN` | empty | CLI, Python SDK | Optional bearer token metadata for protected gRPC gateways. |
-| `MN_NETWORK_JOIN_TOKEN` | `$MN_HOME/network.token` for `mn runtime start` and `mn node expose` | CLI, Python SDK | Stable token used by cluster join handshakes. |
-| `MN_CLI_OUTPUT` | `rich` | CLI | Set to `plain` to avoid Rich output formatting. |
-
-## Blueprint catalog source
-
-These variables are resolved by the Python SDK and shared by `mn-cli` and `mn-api`. Precedence is process environment, `.env.<MN_ENV>`, `.env`, `$MN_HOME/docker-compose.env`, then defaults.
-
-| Variable | Default | Usage |
+| Variable | Default | Behavior |
 | --- | --- | --- |
-| `MN_BLUEPRINT_SOURCE` | `github` | Selects the catalog source. Supported values are `github` and `local`. |
-| `MN_BLUEPRINT_REPO` | `https://github.com/MirrorNeuronLab/mn-blueprints.git` | Git URL used when `MN_BLUEPRINT_SOURCE=github`. Local filesystem paths should use `MN_BLUEPRINT_LOCAL`. |
-| `MN_BLUEPRINT_LOCAL` | empty | Local catalog directory used when `MN_BLUEPRINT_SOURCE=local`. The directory must contain `index.json`. |
+| `MN_ENV` | `dev` | CLI/API environment. Use `prod` only with intentional authentication and secret configuration. |
+| `MN_HOME` | `~/.mn` | State root for endpoints, logs, models, and default run records. |
+| `MN_GRPC_TARGET` | `localhost:55051` in CLI | Core gRPC target. |
+| `MN_GRPC_TIMEOUT_SECONDS` | `10` | Per-RPC timeout. |
+| `MN_GRPC_AUTH_TOKEN` | unset | Sensitive gRPC bearer token. |
+| `MN_GRPC_ADMIN_TOKEN` | unset | Sensitive administrative token. |
+| `MN_REDIS_URL` | deployment-specific | Runtime state-store URL. |
+| `MN_REDIS_NAMESPACE` | `mirror_neuron` | Redis namespace; use a separate value for isolated tests. |
+| `MN_COOKIE` | deployment-specific | Sensitive cluster credential. Change before non-local cluster use. |
 
-Development example in `.env.dev`:
+The deployed gRPC endpoint is normally published on port `55051`; the Core container can use a distinct internal port. Confirm actual endpoints with `mn runtime status` after custom deployment.
 
-```dotenv
-MN_ENV=dev
-MN_BLUEPRINT_SOURCE=local
-MN_BLUEPRINT_LOCAL=/Users/me/Projects/mirror-neuron-set/mn-blueprints
+## FastAPI gateway and Web UI
+
+| Variable | Default | Behavior |
+| --- | --- | --- |
+| `MN_API_HOST` | `localhost` | FastAPI bind host. |
+| `MN_API_PORT` | `54001` | FastAPI bind port. |
+| `MN_API_BASE_URL` | unset | External API base URL; must be absolute HTTP(S) when set. |
+| `MN_API_TOKEN` | unset | Sensitive bearer token for protected API deployments. |
+| `MN_API_REQUEST_SIZE_LIMIT_BYTES` | `5242880` | Maximum request body size. |
+| `MN_API_CORS_ALLOW_ORIGINS` | unset | Comma-separated CORS allowlist. |
+| `MN_WEB_UI_HOST` | `localhost` | Web UI bind host. |
+| `MN_WEB_UI_PORT` | `55173` | Web UI bind port. |
+| `MN_WEB_UI_API_BASE_URL` | unset | Web UI upstream API URL. |
+| `MN_WEB_UI_PROXY_TIMEOUT_SECONDS` | `30` | Web UI upstream timeout in seconds. |
+
+Warning: CORS does not authenticate requests. A non-localhost bind requires firewall, reverse-proxy, authentication, and security-documentation review.
+
+## Blueprint catalog resolution
+
+| Variable | Default | Behavior |
+| --- | --- | --- |
+| `MN_BLUEPRINT_SOURCE` | `github` | Must be `github` or `local`. |
+| `MN_BLUEPRINT_REPO` | SDK default repository for Git source | Must be a Git URL when source is `github`. |
+| `MN_BLUEPRINT_LOCAL` | unset | Required for local source; must be an existing directory containing `index.json`. |
+| `MN_BLUEPRINT_REPO_CACHE` | `~/.cache/mirror-neuron/blueprint-repos` | Catalog checkout cache root. |
+
+```bash
+export MN_BLUEPRINT_SOURCE="local"
+export MN_BLUEPRINT_LOCAL="/absolute/path/to/blueprint-catalog"
+mn blueprint list
 ```
 
-Production example in `.env.prod`:
+## Models, launch controls, and logs
 
-```dotenv
-MN_ENV=prod
-MN_BLUEPRINT_SOURCE=github
-MN_BLUEPRINT_REPO=https://github.com/MirrorNeuronLab/mn-blueprints.git
-```
-
-## CLI, API, SDK, and skill logs
-
-These variables control process-level log files. They are separate from per-run logs under `/tmp/mn_<job_id>/`.
-
-| Variable | Default | Used by | Usage |
-| --- | --- | --- | --- |
-| `MN_LOG_LEVEL` | `INFO` | CLI, API, SDK, shared skills, some blueprints | Process logger level. |
-| `MN_HOME` | `~/.mn` | CLI, API, SDK, runtime, Otterdesk runtime integration | Host runtime-state root. Runtime env, endpoint files, token files, logs, model metadata, and default run artifacts are derived from this path. |
-| `MN_LOGS_ROOT` | `$MN_HOME/logs` | CLI, API, SDK, shared skills | Process log root used when a component-specific log path is not set. |
-| `MN_LOG_MAX_BYTES` | `1048576` | CLI, API, SDK, shared skills, some blueprints | Maximum log file size before rotation. |
-| `MN_LOG_BACKUP_COUNT` | `5` | CLI, API, SDK, shared skills, some blueprints | Number of rotated process log files to keep. |
-| `MN_CLI_LOG_PATH` | `$MN_LOGS_ROOT/cli.log` | CLI | CLI process log path. |
-| `MN_API_LOG_PATH` | `$MN_LOGS_ROOT/api.log` | API | API process log path. |
-| `MN_SDK_LOG_PATH` | `$MN_LOGS_ROOT/sdk.log` | Python SDK | SDK process log path. |
-| `MN_SKILL_LOG_PATH` | `$MN_LOGS_ROOT/skills.log` | Shared skills | Shared skill log path. |
-| `MN_BLUEPRINT_LOG_PATH` | `/tmp/mn-business-email.log` | Business email blueprint | Business email blueprint log path. |
-| `MN_BLUEPRINT_LOG_LEVEL` | unset | Blueprint manifest mappings | Generic blueprint log-level input mapped by many checked-in manifests. |
-
-## Web UI
-
-These variables are read by `mn-web-ui`.
-
-| Variable | Default | Usage |
+| Variable | Default | Behavior |
 | --- | --- | --- |
-| `MN_WEB_API_BASE_URL` | `/api/v1` | REST API base URL for the web UI. |
-| `MN_WEB_API_TOKEN` | empty | Optional bearer token for protected API instances. |
+| `MN_LLM_PROVIDER` | blueprint-specific | Model provider. |
+| `MN_LLM_MODEL` | blueprint-specific | Model name passed to the worker/provider. |
+| `MN_LLM_RUNTIME_MODEL` | blueprint-specific | Runtime-managed model reference. |
+| `MN_LLM_API_BASE` | provider-specific | OpenAI-compatible API base when used. |
+| `MN_LLM_API_KEY` | unset | Sensitive provider key. |
+| `MN_PRE_LAUNCH_TIMEOUT_SECONDS` | `30` | Pre-launch timeout in seconds. |
+| `MN_POST_LAUNCH_TIMEOUT_SECONDS` | `10` | Post-launch timeout in seconds. |
+| `MN_LOG_LEVEL` | `INFO` | Process log level. |
+| `MN_LOGS_ROOT` | `~/.mn/logs` | Default log root. |
+| `MN_CLI_OUTPUT` | `rich` | CLI rendering mode; `plain` disables Rich formatting. |
 
-## Core runtime
+Validate models and blueprint requirements with `mn model doctor <model-id>` and `mn blueprint validate <folder>`. Do not use `--force` as a routine fix for a failed hardware check.
 
-These variables are read by the Elixir core runtime.
+## Contributor verification
 
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `MN_ENV` | `dev` | Runtime environment. Must be `dev`, `test`, or `prod`. Production requires a non-default `MN_COOKIE`. |
-| `MN_REDIS_URL` | `redis://127.0.0.1:6379/0` | Redis URL used by the runtime. Must use `redis://` or `rediss://`. |
-| `MN_REDIS_NAMESPACE` | `mirror_neuron` | Redis key namespace. Use a unique value for isolated test runs. |
-| `MN_REDIS_HA_MODE` | `single` | Redis mode. Use `single` for `MN_REDIS_URL` or `sentinel` for Redis Sentinel HA. |
-| `MN_REDIS_SENTINELS` | empty | Comma-separated Sentinel endpoints such as `192.168.4.29:26379,192.168.4.35:26379`. Required when `MN_REDIS_HA_MODE=sentinel`. |
-| `MN_REDIS_SENTINEL_MASTER` | `mirror-neuron` | Sentinel master name to resolve. |
-| `MN_REDIS_SENTINEL_HOST_MAP` | empty | Optional comma-separated hostname rewrite map, such as `host.docker.internal=127.0.0.1`, for NAT or Docker test environments. |
-| `MN_REDIS_DB` | `0` | Redis database number used in Sentinel mode. |
-| `MN_REDIS_USERNAME` | unset | Optional Redis ACL username. |
-| `MN_REDIS_PASSWORD` | unset | Optional Redis password. |
-| `MN_REDIS_SENTINEL_USERNAME` | unset | Optional Sentinel ACL username. |
-| `MN_REDIS_SENTINEL_PASSWORD` | unset | Optional Sentinel password. |
-| `MN_REDIS_WAIT_REPLICAS` | `0` | Optional Redis `WAIT` acknowledgement count after durable writes. Use `1` or higher for reliability-first HA writes. |
-| `MN_REDIS_WAIT_TIMEOUT_MS` | `100` | Timeout for Redis `WAIT` durable-write acknowledgement. |
-| `MN_REDIS_RECONNECT_ATTEMPTS` | `10` | Reconnect/retry attempts for reconnectable Redis failures. |
-| `MN_REDIS_RECONNECT_BACKOFF_MS` | `250` | Initial reconnect backoff in milliseconds. |
-| `MN_REDIS_RECONNECT_MAX_BACKOFF_MS` | `2000` | Maximum reconnect backoff in milliseconds. |
-| `MN_COOKIE` | `mirrorneuron` | Erlang distribution cookie. Must be changed in `prod`. |
-| `MN_OPENSHELL_BIN` | `openshell` | OpenShell executable name or path. |
-| `MN_TEMP_DIR` | `/tmp/mirror_neuron` | Runtime temporary directory. |
-| `MN_GRPC_PORT` | `50051` | Core gRPC server port. |
-| `MN_GRPC_ADVERTISE_PORT` | `MN_GRPC_PORT`, or `55051` in Compose deployments | Host-reachable Core gRPC port advertised in cluster handshakes and node summaries. Use this for clients and other boxes when Compose maps the internal Core listener to a different host port. |
-| `MN_NETWORK_ONLY` | `false` | Restricts public gRPC to network join and cluster/resource summaries for core-only cluster peers. |
-| `MN_NETWORK_JOIN_TOKEN` | unset | Join token required by `ClusterService.NetworkHandshake`; `mn runtime start` and `mn node expose` derive cluster cookies and network-mode Redis secrets from it. |
-| `MN_NETWORK_ADVERTISE_HOST` | unset | Host returned by the network handshake for other nodes to reach this runtime. |
-| `MN_NETWORK_REDIS_HOST` | generated internally | Docker-internal Redis host returned by the network handshake. |
-| `MN_NETWORK_REDIS_PORT` | generated internally | Docker-internal Redis port returned by the network handshake, normally `6379`. |
-| `MN_DOCKER_NETWORK_MODE` | `bridge` for local Docker Compose starts | Docker network identity mode. Use `overlay` for multi-host Docker clusters or `disabled` for legacy IP-based Erlang names. |
-| `MN_DOCKER_NETWORK_NAME` | `mirror-neuron-runtime` | Docker bridge/overlay network used for runtime aliases. |
-| `MN_NODE_ALIAS` | generated under `$MN_HOME/node.alias` | Stable Docker DNS alias used for alias-based node names such as `mirror_neuron@mn-a1b2c3d4`. |
-| `MN_NODE_ROLE` | `runtime` | Runtime node role. `control` starts only shared/control services; other values start runtime workers. |
-| `MN_NODE_NAME` | generated internally | Erlang node name, typically `mirror_neuron@<node-alias>` for Docker network mode or `mirror_neuron@<ip>` for legacy IP mode. |
-| `MN_CLUSTER_NODES` | generated internally | Comma-separated Erlang node names for clustering. |
-| `MN_DIST_PORT` | internal default | Erlang distribution port inside Docker-network clusters; legacy IP scripts may still expose it. |
-| `MN_NATIVE_SDK_GRPC_TARGET` | `mn-native-sdk-grpc:55052` in Compose deployments | Core relay target for native preparation requests such as `PrepareRuntimeModel`. Core forwards to this target and does not perform model install logic itself. |
-| `MN_REDIS_SENTINEL_PORT` | `26379` in cluster scripts | Local Sentinel port used by Redis HA helper scripts. |
-| `MN_REDIS_SENTINEL_QUORUM` | `1` in cluster scripts | Sentinel quorum used by Redis HA helper scripts. Use at least three Sentinel voters for production. |
-| `MN_REDIS_HA_AUTOCONFIG` | `1` in `start_cluster_node.sh` | When Sentinel mode is enabled, controls whether the cluster start script runs `scripts/redis_ha.sh join`. |
-| `MN_BUNDLES_DIR` | unset | Directory scanned for registered bundles on runtime startup. |
-| `MN_BUNDLE_RELOAD_MODE` | manifest value | Overrides bundle reload mode for scanned bundles. |
-| `MN_BUNDLE_RELOAD_INTERVAL_SECONDS` | manifest value | Overrides bundle reload interval for scanned bundles. |
+After changing shared configuration, run `mn runtime health` and `mn runtime status`. Also run `mn blueprint list` for catalog changes, `mn model doctor <model-id>` for model changes, and API health checks for API configuration changes.
 
-## Native SDK gRPC sidecar and Compose proxy
+Configuration changes require parser/schema tests, secret-redaction review where applicable, this reference, the docs-site reference, and a documentation-site type check.
 
-These variables are generated by `mn runtime start` and are usually written to `$MN_HOME/docker-compose.env`. They let Core containers consume the host-side SDK sidecar through a stable Compose service while keeping native Docker and filesystem operations outside Core.
+## Related pages
 
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `MN_NATIVE_SDK_GRPC_HOST` | `127.0.0.1` | Host bind address for the SDK native-preparation gRPC sidecar. |
-| `MN_NATIVE_SDK_GRPC_PORT` | `55052` | Host bind port for the SDK native-preparation gRPC sidecar. |
-| `MN_NATIVE_SDK_GRPC_PROXY_PORT` | `55052` | Port exposed by the `mn-native-sdk-grpc` Compose service inside the runtime network. |
-| `MN_NATIVE_SDK_GRPC_PROXY_TARGET_HOST` | `host.docker.internal` | Hostname the Compose proxy uses to reach the host-side SDK sidecar. |
-| `MN_NATIVE_SDK_GRPC_PROXY_TARGET_PORT` | `MN_NATIVE_SDK_GRPC_PORT` | Port the Compose proxy uses to reach the host-side SDK sidecar. |
-
-Normal Compose deployments should leave `MN_NATIVE_SDK_GRPC_TARGET` set to `mn-native-sdk-grpc:55052`. Override it only when Core must relay to a different explicitly managed SDK sidecar.
-
-## Runtime limits and admission control
-
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `MN_EXECUTOR_MAX_CONCURRENCY` | `4` in runtime, `50` in some container launch helpers, `2` in cluster scripts | Default executor lease capacity for the `default` pool. |
-| `MN_EXECUTOR_POOL_CAPACITIES` | unset | Comma-separated pool capacities, such as `default=4,gpu=1`. |
-| `MN_DEFAULT_MAX_AGENT_QUEUE_DEPTH` | `100` | Default max mailbox depth before an agent is saturated. |
-| `MN_DEFAULT_AGENT_QUEUE_HIGH_WATERMARK` | `75` | Default queue depth at which pressure is reported. Must be `<= MN_DEFAULT_MAX_AGENT_QUEUE_DEPTH`. |
-| `MN_DEFAULT_AGENT_QUEUE_LOW_WATERMARK` | `25` | Default queue depth at which pressure clears. Must be `<= MN_DEFAULT_AGENT_QUEUE_HIGH_WATERMARK`. |
-| `MN_RESOURCE_ADMISSION_ENABLED` | `true` | Enables resource admission checks. False values include `0`, `false`, `FALSE`, `False`, and empty. |
-| `MN_MAX_CPU_LOAD_RATIO` | `1.5` | CPU load threshold for resource admission. Must be greater than `0`. |
-| `MN_MAX_MEMORY_USED_RATIO` | `0.95` | Memory used ratio threshold. Must be greater than `0` and `<= 1`. |
-| `MN_MAX_GPU_UTILIZATION_RATIO` | `0.98` | GPU utilization threshold. Must be greater than `0` and `<= 1`. |
-| `MN_MAX_GPU_MEMORY_USED_RATIO` | `0.98` | GPU memory threshold. Must be greater than `0` and `<= 1`. |
-| `MN_MAX_COMMAND_LENGTH` | `32768` | Maximum wrapped command length for OpenShell and HostLocal runners. |
-| `MN_MAX_ARTIFACT_BYTES` | `1048576` | Maximum captured artifact bytes before truncation. |
-| `MN_BLUEPRINT_PYTHON_ENVS_DIR` | `$MN_TEMP_DIR/blueprint_python_envs` | Cache root for blueprint-scoped HostLocal Python virtualenvs. |
-| `MN_BLUEPRINT_PYTHON_ENV_SETUP_TIMEOUT_MS` | `600000` | Timeout for waiting on another process to finish creating the same blueprint Python virtualenv. |
-| `MN_BUNDLE_CACHE_DIR` | `$MN_TEMP_DIR/bundle_cache` | Local MirrorNeuron bundle cache root; blueprint cleanup reclaims entries whose manifest belongs to a deleted blueprint. |
-| `MN_MAX_EVENT_BYTES` | unset | Optional positive integer validated at startup for event-size limits. |
-| `MN_MAX_FAN_OUT` | unset | Optional positive integer validated at startup for fan-out limits. |
-
-## Python API
-
-These variables are read by `mn-api`.
-
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `MN_API_HOST` | `localhost` | Python API bind host. |
-| `MN_API_PORT` | `54001` | Python API bind port. |
-| `MN_API_TOKEN` | empty | Enables bearer-token auth when set. Required when `MN_ENV=prod`. |
-| `MN_API_REQUEST_SIZE_LIMIT_BYTES` | `5242880` | Maximum request body size. Must be greater than `0`. |
-| `MN_API_CORS_ALLOW_ORIGINS` | empty | Comma-separated CORS allowlist. |
-| `MN_API_BASE_URL` | `http://localhost:54001/api/v1` | Used by system e2e tests as the API base URL. |
-
-## Context Engine
-
-These variables are used by runtime preflight checks and context-aware blueprints.
-
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `CONTEXT_ENGINE_ADDR` | tries `localhost:50052`, `127.0.0.1:50052`, `host.docker.internal:50052` | Context Engine endpoint. Manifest preflight uses this when `requiredContextEngine=true`; context-aware blueprint workers also use it directly. |
-| `CONTEXT_ENGINE_READY_TIMEOUT_MS` | `500` | Preflight TCP readiness timeout in milliseconds. Takes precedence over seconds. |
-| `CONTEXT_ENGINE_READY_TIMEOUT_SECONDS` | `0.5` in blueprint workers, `0.5` equivalent in preflight | Readiness timeout in seconds. Used when millisecond timeout is unset. |
-| `CONTEXT_REDIS_URL` | unset | Optional Redis URL read by finance compliance context helpers when the source does not provide one. |
-
-## Context view logging
-
-These variables are currently used by context-memory blueprints such as
-`context_memory_audit` and `context_memory_compression`.
-
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `MN_CONTEXT_VIEW_LOG` | disabled | Enables context-view logging when set to `1`, `true`, `yes`, or `on`. |
-| `MN_CONTEXT_VIEW_LOG_DEST` | `both` | Destination for context-view logs. Supported values are `stdout`, `file`, `both`, and `cloud`. |
-| `MN_CONTEXT_VIEW_LOG_FILE` | `/tmp/mn-context-agent/context_views.jsonl` | JSONL file path for context-view logs. |
-| `MN_CONTEXT_VIEW_LOG_LEVEL` | `INFO` | Logger level for context-view logs. |
-| `MN_CONTEXT_VIEW_LOG_MAX_BYTES` | `10485760` | Maximum context-view log size before rotation. |
-| `MN_CONTEXT_VIEW_LOG_BACKUP_COUNT` | `5` | Number of rotated context-view logs to keep. |
-
-## Blueprint and model provider variables
-
-Blueprint manifests decide which process environment variables are passed to workers. A variable listed here still needs to be included in a blueprint's `pass_env` or explicit env mapping before a sandboxed worker can see it.
-
-LLM-enabled blueprints use `MN_LLM_*` settings as the primary contract. Legacy `LITELLM_*` aliases are still supported by shared skills when they are safe for the selected provider.
-
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `MN_BLUEPRINT_QUICK_TEST` | disabled | Enables quick/test mode in blueprint helpers when set to `1`, `true`, `yes`, or `on`. |
-| `MN_BLUEPRINT_ID` | unset | Explicit blueprint identity injected by catalog runs and used for resource ownership/cleanup. |
-| `MN_BLUEPRINT_RESOURCE_STALE_SECONDS` | `3600` | Minimum age before `mn blueprint cleanup` removes stale incomplete blueprint resources, orphaned generated bundles, or setup locks. |
-| `MN_GENERATED_BLUEPRINT_BUNDLES_DIR` | `$MN_HOME/generated_blueprint_bundles` | Root for generated Python workflow bundles and cleanup of source-mode blueprint artifacts. |
-| `MN_CONFIG_PATH` | `$MN_HOME/config.json` | Shared blueprint-support user config path. |
-| `MN_RUN_ID` | generated | Optional stable run ID for blueprint runs and specialized worker contracts. |
-| `MN_RUNS_ROOT` | `$MN_HOME/runs` | Overrides the local run-store root. |
-| `MN_NO_RUN_STORE` | disabled | Disables run-store writes when set to a truthy value. |
-| `MN_DISABLE_RUN_STORE` | disabled | Alias used by worker contracts to disable run-store writes. |
-| `MN_BLUEPRINT_CONFIG_PATH` | unset | Worker-contract config file override. |
-| `MN_BLUEPRINT_CONFIG_JSON` | unset | Worker-contract inline config JSON override. |
-| `MN_MODEL_CATALOG_PATH` | unset | Optional JSON model catalog override merged before `$MN_HOME/models/catalog.json`. |
-| `MN_RAG_DB_ROOT` | `$MN_HOME/rag` | Root for per-blueprint Milvus Lite RAG DB files, stored as `<namespace>/<blueprint_id>.db`. |
-| `MN_RAG_NAMESPACE` | `mirror_neuron_rag` | Namespace used to group per-blueprint RAG DB paths and Milvus collection names. |
-| `MN_LLM_PROVIDER` | blueprint-specific | LLM provider. `docker_model_runner` enables MirrorNeuron local model runtime behavior. |
-| `MN_LLM_MODEL` | `ai/gemma4:E2B` for Docker Model Runner, otherwise blueprint-specific | Resolved API model name for LLM-enabled blueprint workers. |
-| `MN_LLM_RUNTIME_MODEL` | `ai/gemma4:E2B` for `gemma4:e2b` | Docker Model Runner model reference used by `mn model install` and validation. |
-| `MN_LLM_API_BASE` | `http://localhost:12434/engines/v1` for HostLocal Docker Model Runner workers | OpenAI-compatible LLM API base. Container/sandbox workers use `http://model-runner.docker.internal/engines/v1`. |
-| `MN_LLM_BACKEND` | `llama.cpp` | Docker Model Runner backend selected for runtime-managed models. |
-| `MN_LLM_CONTEXT_SIZE` | model default | Context size requested for runtime-managed local models. |
-| `MN_LLM_TIMEOUT_SECONDS` | `60` where shared skills provide a default | Optional timeout used by shared LLM skill workers. |
-| `MN_LLM_MAX_TOKENS` | `800` where shared skills provide a default | Optional max output token limit used by shared LLM skill workers. |
-
-Blueprint exports may carry generated Milvus Lite RAG caches under `__mn_runtime/rag/`; imports restore those files to the `MN_RAG_DB_ROOT`/`MN_HOME` runtime path instead of storing them in blueprint source.
-| `MN_LLM_NUM_RETRIES` | `2` where shared skills provide a default | Optional provider retry count. |
-| `MN_LLM_RETRY_BACKOFF_SECONDS` | `1.0` where shared skills provide a default | Optional exponential retry backoff base for direct HTTP fallbacks. |
-| `LITELLM_MODEL` | blueprint-specific | Legacy LiteLLM model alias. Prefer `MN_LLM_MODEL` in new blueprints. |
-| `LITELLM_API_BASE` | provider-specific | Legacy LiteLLM API base alias. Prefer `MN_LLM_API_BASE` in new blueprints. |
-| `LITELLM_API_KEY` | unset | Optional LiteLLM provider API key. Not required for local Ollama. |
-| `LITELLM_TIMEOUT_SECONDS` | `60` | Optional timeout used by shared LLM skill workers. |
-| `LITELLM_MAX_TOKENS` | `800` | Optional max output token limit used by shared LLM skill workers. |
-| `LITELLM_NUM_RETRIES` | `2` | Optional provider retry count. Passed to LiteLLM when available. |
-| `LITELLM_RETRY_BACKOFF_SECONDS` | `1.0` | Optional exponential retry backoff base for direct HTTP fallbacks. |
-
-
-## Runtime-injected worker variables
-
-The runtime injects these into worker processes. They are normally not set manually.
-
-| Variable | Usage |
-| --- | --- |
-| `MN_INPUT_FILE` | Path to the worker input payload JSON. |
-| `MN_MESSAGE_FILE` | Path to an injected message JSON file for message/body runner cases. |
-| `MN_BODY_FILE` | Path to an injected body file for message/body runner cases. |
-| `MN_BODY_CONTENT_TYPE` | Content type for `MN_BODY_FILE`. |
-| `MN_BODY_CONTENT_ENCODING` | Content encoding for `MN_BODY_FILE`. |
-| `MN_CONTEXT_FILE` | Path to the worker context JSON file. |
-| `MN_AGENT_TYPE` | Agent type for the current worker. |
-| `MN_AGENT_TEMPLATE` | Agent template type for the current worker. |
-| `MN_JOB_ID` | Current runtime job ID. |
-| `MN_AGENT_ID` | Current runtime agent ID. |
-| `MN_WORKDIR` | Worker working directory used by runtime tests and some sandbox flows. |
-| `MN_EXIT_CODE` | Internal wrapper variable used to report process exit status. |
-
-## Test-only variables
-
-These variables are used by tests or helper scripts, not by normal production runs.
-
-| Variable | Default | Usage |
-| --- | --- | --- |
-| `MN_SECURITY_STRICT` | `0` | System tests fail hard on security findings when set to `1`. |
-| `MN_LOG_PATH` | script-specific | Log file path used by cluster e2e helper scripts. |
-| `MN_REMOTE_ROOT` | script-specific | Remote project root used by cluster e2e scripts. |
-| `MN_STREAM_WAIT_TIMEOUT_SECONDS` | `120` | Wait timeout used by streaming cluster e2e scripts. |
-| `MN_REDIS_PORT` | `6379` | Redis port used by cluster helper scripts. |
-| `MN_REDIS_TEST_IMAGE` | `redis:7` | Redis Docker image used by Sentinel HA smoke tests. |
-| `MN_REDIS_HA_LOCAL_IP` | unset | Local IP override for `test_redis_sentinel_two_box_ha.sh`. |
-| `MN_REDIS_HA_REMOTE_IP` | unset | Remote IP override for `test_redis_sentinel_two_box_ha.sh`. |
-| `MN_REDIS_HA_TEST_REDIS_PORT` | `46379` | Host Redis port used by the two-box Sentinel smoke test. |
-| `MN_REDIS_HA_TEST_SENTINEL_PORT` | `46380` | Host Sentinel port used by the two-box Sentinel smoke test. |
-| `MN_REDIS_HA_TEST_SSH_OPTS` | `-o BatchMode=yes -o ConnectTimeout=10` | SSH options used by the two-box Sentinel smoke test. |
-| `MN_REDIS_HA_TEST_REMOTE_NETWORK` | `auto` | Remote Docker network mode for the two-box Sentinel smoke test. Supported values: `auto`, `host`, `bridge`. |
-| `MN_REDIS_HA_TEST_INITIAL_PRIMARY` | `auto` | Initial Redis primary for the two-box Sentinel smoke test. Supported values: `auto`, `local`, `remote`. |
-| `MN_CLI_DIST_PORT` | `4371` | Erlang distribution port used by `cluster_cli.sh`. |
-| `MN_TEST_TOOL_BIN` | unset | Test helper binary override used by selected tests. |
+- [CLI Reference](cli.md)
+- [API Reference](api.md)
+- [Model Runtime](model-runtime.md)
+- [Cluster Guide](cluster.md)
+- [Security Model](security.md)

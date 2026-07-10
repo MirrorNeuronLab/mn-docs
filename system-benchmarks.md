@@ -17,14 +17,14 @@ generation for runtime evaluation.
 
 ```bash
 cd mn-system-tests
-.venv/bin/python -m pytest benchmarks -q
+../.venv/bin/python -m pytest benchmarks -q
 ```
 
 Run the key interface performance benchmark:
 
 ```bash
 cd mn-system-tests
-.venv/bin/python test_all.py --performance
+../.venv/bin/python test_all.py --performance
 ```
 
 This writes `results/performance.txt` and `results/performance.json`.
@@ -50,14 +50,14 @@ manifest shape; live tests submit a temporary fanout manifest when explicitly
 enabled.
 
 ```bash
-MN_BENCHMARK_WORKER_COUNT=100 .venv/bin/python -m pytest integration -k parallel_worker
+MN_BENCHMARK_WORKER_COUNT=100 ../.venv/bin/python -m pytest integration -k parallel_worker
 ```
 
 ## Generate A Report
 
 ```bash
 cd mn-system-tests
-.venv/bin/python -m benchmarks.agent_runtime_benchmark --output-dir /tmp/mn-agent-runtime-benchmark
+../.venv/bin/python -m benchmarks.agent_runtime_benchmark --output-dir /tmp/mn-agent-runtime-benchmark
 ```
 
 The report includes completion, recovery, tool/action correctness, cost, human

@@ -51,7 +51,7 @@ Execution works in layers:
 - `runtime.bindings` maps each workflow step to one or more internal workers. A tax step, for example, may run a preparer and a validator while still appearing as one problem-workflow node.
 - The executor emits generic workflow events such as `workflow_graph_compiled`, `workflow_step_started`, `workflow_edge_satisfied`, `workflow_join_waiting`, and `workflow_finished`. The shared SDK turns these into the progress snapshots used by CLI and Web UI.
 
-GOAP/PDDL-like planning is intentionally a future layer. The manifest already has planner-friendly fields such as `requires`, `provides`, `control`, and disabled `dynamic` metadata, but the runtime currently executes the declared graph. A future planner can generate or patch `workflow`; the static DAG scheduler remains the executor for the currently accepted graph version.
+GOAP/PDDL-style planning is outside the supported runtime behavior described here. The manifest has planner-oriented fields such as `requires`, `provides`, `control`, and disabled `dynamic` metadata, while the runtime executes the declared graph through its static DAG scheduler.
 
 ## Control plane vs execution plane
 
@@ -300,7 +300,7 @@ The current implementation improves the runtime boundary a lot, but a few things
 - executor pools are local to each node, not globally brokered
 - there is no cluster-wide lease balancer yet
 - sensor and deferred waiting primitives can still grow richer
-- artifacts are modeled in messages, but there is not yet a full external artifact store abstraction
+- artifacts are modeled in messages, but the runtime does not provide a full external artifact-store abstraction
 - resource allocation is scheduling metadata and environment hints, not OS-level isolation
 
 Those are good next steps, but the current runtime is already much closer to the intended design:

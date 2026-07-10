@@ -1,118 +1,75 @@
-# Development Guide
+# Develop MirrorNeuron Core
 
-For contributor setup, test commands, and pull request expectations, start with [Contributing](contributing.md). This page is the lower-level runtime development reference.
+Use this page when you are changing the Elixir/BEAM runtime in `MirrorNeuron/`. It complements the workspace-level ownership map in [Component Guide](component-guide.md); it does not replace component-local tests or the runtime architecture reference.
 
-This guide is for contributors and integrators working on MirrorNeuron itself.
+## Reader and scope
 
-## Project structure
+- **Reader:** contributor modifying MirrorNeuron Core behavior.
+- **Outcome:** make a focused Core change, run the owning test suite, and update the required cross-component documentation.
+- **In scope:** Core orchestration, persistence, scheduling, runners, gRPC, and cluster behavior.
+- **Out of scope:** CLI/API presentation changes owned by `mn-cli` or `mn-api`, and blueprint-specific payload behavior.
 
-Important files and directories:
+## Before you begin
 
-- [mix.exs](../MirrorNeuron/mix.exs)
-- [lib/mirror_neuron.ex](../MirrorNeuron/lib/mirror_neuron.ex)
-- [lib/mirror_neuron/runtime](../MirrorNeuron/lib/mirror_neuron/runtime)
-- [lib/mirror_neuron/builtins](../MirrorNeuron/lib/mirror_neuron/builtins)
-- [lib/mirror_neuron/sandbox](../MirrorNeuron/lib/mirror_neuron/sandbox)
-- [lib/mirror_neuron/execution](../MirrorNeuron/lib/mirror_neuron/execution)
-- [lib/mirror_neuron/monitor.ex](../MirrorNeuron/lib/mirror_neuron/monitor.ex)
-- [test](../MirrorNeuron/tests)
+- Work from `MirrorNeuron/`.
+- Install the Elixir/Erlang versions required by the Core project.
+- Start Redis when the focused test requires durable runtime state.
+- Read the owning module and its nearest tests before changing an external contract.
 
 ## Development loop
 
 ```bash
+cd MirrorNeuron
 mix deps.get
 mix format
 mix test
 ```
 
-## Runtime design expectations
-
-MirrorNeuron tries to keep a strict boundary:
-
-- BEAM for orchestration
-- OpenShell for isolated execution
-
-That means new features should usually preserve:
-
-- small control-plane messages
-- explicit execution capacity
-- durable job and agent inspection
-- event-driven collaboration
-
-## Built-in primitives
-
-Core built-ins are intentionally small:
-
-- `router`
-- `executor`
-- `aggregator`
-- `sensor`
-
-Avoid adding domain-specific “business agents” to the runtime core.
-
-## Testing guidance
-
-Some tests are pure unit tests.
-
-Some tests require Redis:
+When a focused test depends on a local Redis instance, start one only if the component test setup does not provision it:
 
 ```bash
 docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
-mix test
 ```
 
-For real sandbox behavior, you also need OpenShell running.
+Warning: do not remove a Redis container used by another developer runtime. Use a dedicated namespace or disposable test environment for Core tests that mutate durable state.
 
-## Extending the platform
+## Architectural boundaries
 
-The best starting points are:
+MirrorNeuron Core owns orchestration, state, scheduling, supervision, and runtime coordination. Workers execute through the runner selected by the workflow:
 
-- [agent.ex](../MirrorNeuron/lib/mirror_neuron/agent.ex)
-- [agent_template.ex](../MirrorNeuron/lib/mirror_neuron/agent_template.ex)
-- [agent_templates.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates.ex)
-- [agent_templates/generic.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates/generic.ex)
-- [agent_templates/stream.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates/stream.ex)
-- [agent_templates/map.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates/map.ex)
-- [agent_templates/reduce.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates/reduce.ex)
-- [agent_templates/batch.ex](../MirrorNeuron/lib/mirror_neuron/agent_templates/batch.ex)
+- HostLocal worker code runs on the host and is appropriate only for trusted payloads.
+- OpenShell worker code runs through the sandbox integration and remains subject to its policy and service boundaries.
+- SDK/API/CLI layers own blueprint catalog resolution and model preparation before Core receives concrete runtime requirements.
 
-## Agent templates
+Read [Runtime Architecture](runtime-architecture.md), [Reliability Guide](reliability.md), and [Security Model](security.md) before changing a lifecycle, recovery, runner, or trust boundary.
 
-Node manifests now use:
+## Locate the owning code
 
-- `agent_type`
-  Runtime primitive such as `router`, `executor`, `aggregator`, or `sensor`
-- `type`
-  Behavioral template such as `generic`, `stream`, `map`, `reduce`, or `batch`
+| Change | Start with |
+| --- | --- |
+| Runtime configuration and startup validation | `MirrorNeuron/lib/mirror_neuron/config/` |
+| Scheduling, leases, and recovery | `MirrorNeuron/lib/mirror_neuron/scheduler.ex`, `execution/`, and cluster modules |
+| Job lifecycle and durable state | `MirrorNeuron/lib/mirror_neuron/runtime/` and persistence modules |
+| Agent behavior and built-ins | `MirrorNeuron/lib/mirror_neuron/agent*` and `builtins/` |
+| HostLocal, Docker, or OpenShell execution | `MirrorNeuron/lib/mirror_neuron/runner/` and `sandbox/` |
+| gRPC contract handling | `MirrorNeuron/lib/mirror_neuron_grpc/` |
 
-If `type` is omitted, MirrorNeuron defaults it to `generic`.
+Do not add domain-specific business logic to Core when it belongs in a blueprint payload, skill, or agent template.
 
-Templates are intentionally lighter-weight than built-ins:
+## Required documentation updates
 
-- built-ins define runtime mechanics
-- templates define reusable behavior contracts for payload authors
+| Core change | Documentation to update |
+| --- | --- |
+| Lifecycle, scheduler, lease, retry, recovery, or persistence behavior | `runtime-architecture.md`, `reliability.md`, and troubleshooting if the failure is observable. |
+| New/changed environment variable | `env_variables.md`, configuration tests, and the docs-site configuration reference. |
+| gRPC/API-visible behavior | `api.md`, SDK/CLI references, and relevant route/client tests. |
+| Runner, file, secret, network, or sandbox behavior | `security.md`, runner guidance, and the affected blueprint documentation. |
+| User-visible behavior | the detailed page in `mn-docs` and the concise matching page in `mn-doc-site/content/docs`. |
 
-Current compatibility rules:
+## Related pages
 
-- `router`: `generic`, `map`
-- `executor`: `generic`, `stream`, `map`, `reduce`, `batch`
-- `aggregator`: `generic`, `reduce`
-- `sensor`: `generic`
-
-For operational tooling, prefer building on:
-
-- `MirrorNeuron.list_jobs/1`
-- `MirrorNeuron.job_details/2`
-- `MirrorNeuron.cluster_overview/1`
-
-instead of reaching directly into Redis.
-
-## Documentation expectations
-
-If you add a user-visible feature, update:
-
-- [README.md](README.md)
-- at least one relevant page in `mn-docs`
-- [docs/api.md](api.md) if the feature changes public inspection or control APIs
-
-Use [Documentation Style](documentation-style.md) for tone, expected output, warnings, and PR checklist guidance.
+- [Component Guide](component-guide.md)
+- [Runtime Architecture](runtime-architecture.md)
+- [Reliability Guide](reliability.md)
+- [Testing](testing.md)
+- [Documentation Standard](documentation-style.md)

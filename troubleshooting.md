@@ -1,6 +1,19 @@
-# Troubleshooting
+# Troubleshoot MirrorNeuron
 
-This guide collects the most common operational failures seen during local and two-box testing.
+This page is the canonical symptom-led guide for local and two-node runtime failures. Start with read-only diagnostics. Do not delete Redis state, bundle files, or run records as a first response.
+
+## Collect evidence before changing state
+
+Run these commands first and retain the output with secrets removed:
+
+```bash
+mn --version
+mn runtime health
+mn runtime status
+mn node list
+```
+
+For a workflow failure, also record the job ID, run ID, timestamp, and exact error text. Use `mn job status <job_id>` and `mn job monitor <job_id>` to determine whether the failure is in the runtime, a declared blueprint requirement, or worker code.
 
 ## Redis issues
 
@@ -11,25 +24,26 @@ Symptoms:
 - runtime tests fail immediately
 - `mn blueprint run ...` hangs or errors
 
-Check:
+Diagnose:
 
 ```bash
 docker ps
+```
+
+If `mirror-neuron-redis` is listed, check it directly:
+
+```bash
 docker exec mirror-neuron-redis redis-cli ping
 ```
 
-Expected output:
-
-```text
-PONG
-```
-
-Fix:
+`PONG` confirms that the container is responding. If the container is absent or stopped, start the managed runtime first:
 
 ```bash
-docker rm -f mirror-neuron-redis 2>/dev/null || true
-docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
+mn runtime start
+mn runtime health
 ```
+
+Warning: removing a Redis container can discard runtime job state, event history, leases, and recovery metadata. Back up or preserve that data before any destructive cleanup. Use a manually started Redis container only when you intentionally manage Redis outside the MirrorNeuron deployment.
 
 ### Redis Sentinel two-box smoke says replica did not become online
 
@@ -54,22 +68,22 @@ Cause:
 Check from the remote box:
 
 ```bash
-nc -vz -w 3 192.168.4.25 46379
+nc -vz -w 3 <local-host> 46379
 ```
 
 If this fails, let the smoke test auto-select the remote side as the initial primary:
 
 ```bash
 .venv/bin/python mn-system-tests/test_all.py --redis-ha \
-  --redis-ha-remote-host 192.168.4.173 \
-  --redis-ha-local-ip 192.168.4.25 \
-  --redis-ha-remote-ip 192.168.4.173
+  --redis-ha-remote-host <remote-host> \
+  --redis-ha-local-ip <local-host> \
+  --redis-ha-remote-ip <remote-host>
 ```
 
 Expected output includes:
 
 ```text
-Remote cannot reach local Redis at 192.168.4.25:46379; using remote as initial primary.
+Remote cannot reach local Redis at <local-host>:46379; using remote as initial primary.
 two_box_post_failover_write_read_ok
 ```
 
@@ -78,9 +92,9 @@ For direct script control:
 ```bash
 cd MirrorNeuron
 bash scripts/test_redis_sentinel_two_box_ha.sh \
-  --remote-host 192.168.4.173 \
-  --local-ip 192.168.4.25 \
-  --remote-ip 192.168.4.173 \
+  --remote-host <remote-host> \
+  --local-ip <local-host> \
+  --remote-ip <remote-host> \
   --remote-network auto \
   --initial-primary auto
 ```
@@ -173,7 +187,7 @@ Fix:
 
 Symptoms:
 
-- `[error] ** Connection attempt from node :"node2@192.168.4.173" rejected. Invalid challenge reply. **`
+- `[error] ** Connection attempt from node :"node2@<remote-host>" rejected. Invalid challenge reply. **`
 - Nodes fail to form a cluster even when IP and ports are fully reachable
 
 Fix:
@@ -220,7 +234,7 @@ Possible causes:
 Check:
 
 ```bash
-bash scripts/cluster_cli.sh --box1-ip 192.168.4.29 --box2-ip 192.168.4.35 --self-ip 192.168.4.29 -- inspect nodes
+bash scripts/cluster_cli.sh --box1-ip <box1-host> --box2-ip <box2-host> --self-ip <box1-host> -- inspect nodes
 mn node list
 ```
 

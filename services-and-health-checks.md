@@ -182,7 +182,7 @@ mn service resolve ollama --tag llm
 Filter by node:
 
 ```bash
-mn service resolve vllm --node mirror_neuron@192.168.4.20
+mn service resolve vllm --node mirror_neuron@<node-host>
 ```
 
 ## Blueprint Web UI Services

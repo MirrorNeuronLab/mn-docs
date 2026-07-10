@@ -19,7 +19,7 @@ Set these on every runtime and control node:
 
 ```bash
 export MN_REDIS_HA_MODE="sentinel"
-export MN_REDIS_SENTINELS="192.168.4.29:26379,192.168.4.35:26379"
+export MN_REDIS_SENTINELS="<sentinel-1-host>:26379,<sentinel-2-host>:26379"
 export MN_REDIS_SENTINEL_MASTER="mirror-neuron"
 export MN_REDIS_DB="0"
 ```
@@ -62,10 +62,10 @@ The helper script configures local Redis and local Sentinel:
 cd MirrorNeuron
 
 bash scripts/redis_ha.sh join \
-  --self-host 192.168.4.29 \
+  --self-host <this-host> \
   --redis-port 6379 \
   --sentinel-port 26379 \
-  --sentinels 192.168.4.29:26379,192.168.4.35:26379 \
+  --sentinels <sentinel-1-host>:26379,<sentinel-2-host>:26379 \
   --master-name mirror-neuron \
   --quorum 1
 ```
@@ -80,8 +80,8 @@ Graceful leave:
 
 ```bash
 bash scripts/redis_ha.sh leave \
-  --self-host 192.168.4.29 \
-  --sentinels 192.168.4.29:26379,192.168.4.35:26379 \
+  --self-host <this-host> \
+  --sentinels <sentinel-1-host>:26379,<sentinel-2-host>:26379 \
   --master-name mirror-neuron
 ```
 
@@ -97,11 +97,11 @@ Box 1:
 cd MirrorNeuron
 
 bash scripts/start_cluster_node.sh \
-  --box1-ip 192.168.4.29 \
-  --box2-ip 192.168.4.35 \
+  --box1-ip <box1-host> \
+  --box2-ip <box2-host> \
   --box 1 \
   --redis-ha-mode sentinel \
-  --redis-sentinels 192.168.4.29:26379,192.168.4.35:26379 \
+  --redis-sentinels <sentinel-1-host>:26379,<sentinel-2-host>:26379 \
   --sentinel-master mirror-neuron \
   --redis-wait-replicas 1
 ```
@@ -112,11 +112,11 @@ Box 2:
 cd MirrorNeuron
 
 bash scripts/start_cluster_node.sh \
-  --box1-ip 192.168.4.29 \
-  --box2-ip 192.168.4.35 \
+  --box1-ip <box1-host> \
+  --box2-ip <box2-host> \
   --box 2 \
   --redis-ha-mode sentinel \
-  --redis-sentinels 192.168.4.29:26379,192.168.4.35:26379 \
+  --redis-sentinels <sentinel-1-host>:26379,<sentinel-2-host>:26379 \
   --sentinel-master mirror-neuron \
   --redis-wait-replicas 1
 ```
@@ -127,11 +127,11 @@ For CLI/control calls:
 
 ```bash
 bash scripts/cluster_cli.sh \
-  --box1-ip 192.168.4.29 \
-  --box2-ip 192.168.4.35 \
-  --self-ip 192.168.4.29 \
+  --box1-ip <box1-host> \
+  --box2-ip <box2-host> \
+  --self-ip <box1-host> \
   --redis-ha-mode sentinel \
-  --redis-sentinels 192.168.4.29:26379,192.168.4.35:26379 \
+  --redis-sentinels <sentinel-1-host>:26379,<sentinel-2-host>:26379 \
   --sentinel-master mirror-neuron \
   -- inspect nodes
 ```
@@ -151,9 +151,9 @@ Two-box smoke using a remote host:
 cd MirrorNeuron
 
 bash scripts/test_redis_sentinel_two_box_ha.sh \
-  --remote-host 192.168.4.173 \
-  --local-ip 192.168.4.25 \
-  --remote-ip 192.168.4.173
+  --remote-host <remote-host> \
+  --local-ip <local-host> \
+  --remote-ip <remote-host>
 ```
 
 The two-box smoke:
@@ -187,9 +187,9 @@ Useful overrides:
 
 ```bash
 bash scripts/test_redis_sentinel_two_box_ha.sh \
-  --remote-host 192.168.4.173 \
-  --local-ip 192.168.4.25 \
-  --remote-ip 192.168.4.173 \
+  --remote-host <remote-host> \
+  --local-ip <local-host> \
+  --remote-ip <remote-host> \
   --remote-network auto \
   --initial-primary auto
 ```
@@ -205,9 +205,9 @@ The workspace wrapper runs the same smoke:
 
 ```bash
 .venv/bin/python mn-system-tests/test_all.py --redis-ha \
-  --redis-ha-remote-host 192.168.4.173 \
-  --redis-ha-local-ip 192.168.4.25 \
-  --redis-ha-remote-ip 192.168.4.173
+  --redis-ha-remote-host <remote-host> \
+  --redis-ha-local-ip <local-host> \
+  --redis-ha-remote-ip <remote-host>
 ```
 
 Expected output:

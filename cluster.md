@@ -59,14 +59,14 @@ All runtime boxes must agree on the cluster cookie and Redis location.
 
 ```bash
 export MN_COOKIE="replace-with-a-shared-secret"
-export MN_REDIS_URL="redis://192.168.4.29:6379/0"
+export MN_REDIS_URL="redis://<redis-host>:6379/0"
 ```
 
 For Redis Sentinel HA:
 
 ```bash
 export MN_REDIS_HA_MODE="sentinel"
-export MN_REDIS_SENTINELS="192.168.4.29:26379,192.168.4.35:26379"
+export MN_REDIS_SENTINELS="<sentinel-1-host>:26379,<sentinel-2-host>:26379"
 export MN_REDIS_SENTINEL_MASTER="mirror-neuron"
 export MN_REDIS_DB="0"
 ```
@@ -123,7 +123,7 @@ replicated across boxes. On the second box, prefer starting directly against the
 main box when it needs to read primary-local inputs:
 
 ```bash
-mn runtime start --join-host 192.168.4.10 --token <main-token> --host 192.168.4.20
+mn runtime start --join-host <main-host> --token <main-token> --host <worker-host>
 ```
 
 Set `MN_SYNCTHING_REQUIRED=1` when a missing Syncthing sidecar or peer
@@ -132,7 +132,7 @@ configuration should stop startup instead of continuing with a warning.
 On the second box:
 
 ```bash
-mn node expose --host 192.168.4.20 --network overlay --docker-network mirror-neuron-runtime
+mn node expose --host <worker-host> --network overlay --docker-network mirror-neuron-runtime
 ```
 
 Copy the token printed by `mn node expose`.
@@ -140,7 +140,7 @@ Copy the token printed by `mn node expose`.
 On the main box:
 
 ```bash
-mn node add 192.168.4.20 --token <token> --network overlay --docker-network mirror-neuron-runtime
+mn node add <worker-host> --token <token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
 `mn node expose` starts a core-only runtime that exposes host gRPC and keeps Redis/Erlang cluster traffic on the Docker network. It does not start the REST API, Web UI, OpenShell, or context engine. If that node is expected to prepare host-native resources such as Docker Model Runner models, a node-local SDK gRPC sidecar must also be available for Core to relay to.
@@ -165,7 +165,7 @@ For lower-level dev testing, the checked-in helper can still start a fixed two-n
 
 ```bash
 cd MirrorNeuron
-bash scripts/start_cluster_node.sh --box1-ip 192.168.4.29 --box2-ip 192.168.4.35 --box 1
+bash scripts/start_cluster_node.sh --box1-ip <box1-host> --box2-ip <box2-host> --box 1
 ```
 
 Run the same helper on the second box with `--box 2`.
@@ -295,7 +295,7 @@ The reconciler uses hybrid recovery:
 Operators can trigger the same path manually:
 
 ```bash
-mn node reconcile mirror_neuron@192.168.4.20 --reason "manual recovery check" --dry-run
+mn node reconcile mirror_neuron@<node-host> --reason "manual recovery check" --dry-run
 ```
 
 Expected output is JSON with counters such as `checked`, `recovered`, `paused`, `blocked`, `skipped`, and `failed`.
@@ -307,13 +307,13 @@ Maintenance mode stops new placements without moving current work.
 Enable it before rebooting or changing a box when you want existing jobs to continue in place:
 
 ```bash
-mn node maintenance mirror_neuron@192.168.4.20 --enable --reason "reboot after current work"
+mn node maintenance mirror_neuron@<node-host> --enable --reason "reboot after current work"
 ```
 
 Disable it when the node is ready:
 
 ```bash
-mn node maintenance mirror_neuron@192.168.4.20 --disable --reason "maintenance complete"
+mn node maintenance mirror_neuron@<node-host> --disable --reason "maintenance complete"
 ```
 
 Maintenance sets `scheduling_eligible` to `false` when enabled and back to `true` when disabled.
@@ -325,13 +325,13 @@ Drain mode is maintenance plus graceful movement.
 Use a dry run first:
 
 ```bash
-mn node drain mirror_neuron@192.168.4.20 --reason "GPU driver update" --deadline 30m --dry-run
+mn node drain mirror_neuron@<node-host> --reason "GPU driver update" --deadline 30m --dry-run
 ```
 
 Then run the drain:
 
 ```bash
-mn node drain mirror_neuron@192.168.4.20 --reason "GPU driver update" --deadline 30m --wait
+mn node drain mirror_neuron@<node-host> --reason "GPU driver update" --deadline 30m --wait
 ```
 
 Drain behavior:
@@ -351,13 +351,13 @@ Drain migrations are operator-requested maintenance moves. They do not consume f
 Cancel a drain:
 
 ```bash
-mn node undrain mirror_neuron@192.168.4.20 --reason "cancel update"
+mn node undrain mirror_neuron@<node-host> --reason "cancel update"
 ```
 
 A completed drain leaves the node in maintenance/ineligible state. Make it schedulable again explicitly:
 
 ```bash
-mn node undrain mirror_neuron@192.168.4.20 --reason "ready for work" --mark-eligible
+mn node undrain mirror_neuron@<node-host> --reason "ready for work" --mark-eligible
 ```
 
 ## Submit A Cluster Job
@@ -366,14 +366,14 @@ Small parallel worker test from the generated system-test fixture:
 
 ```bash
 cd mn-system-tests
-RUN_MN_SYSTEM_TESTS=1 .venv/bin/python -m pytest integration -k parallel_worker
+RUN_MN_SYSTEM_TESTS=1 ../.venv/bin/python -m pytest integration -k parallel_worker
 ```
 
 Stress-style run:
 
 ```bash
 MN_BENCHMARK_WORKER_COUNT=100 RUN_MN_SYSTEM_TESTS=1 \
-  .venv/bin/python -m pytest integration -k parallel_worker
+  ../.venv/bin/python -m pytest integration -k parallel_worker
 ```
 
 Inspect the job:

@@ -1,99 +1,90 @@
 # MirrorNeuron Documentation
 
-MirrorNeuron is a durable runtime and control plane for adaptive,
-message-driven AI workflows. It runs on a laptop, on edge boxes, or across a
-small cluster. OtterDesk adds a local desktop/operator surface and a
-self-contained blueprint catalog for real workflows.
+This directory is the detailed documentation source of truth for the MirrorNeuron workspace. It is written for internal maintainers, contributors, integrators, and operators; the documentation site presents a shorter reader-facing layer. When the two differ, verify the implementation and update both in the same change.
 
-The documentation has two goals:
+MirrorNeuron is a runtime for message-driven workflows with a Python CLI/API layer, an Elixir/BEAM core, Redis-backed runtime state, and blueprint-oriented run records. It can run on one machine or across runtime nodes.
 
-- A new user should install, configure, run, and safely inspect a blueprint in under 10 minutes.
-- A new contributor should understand the architecture well enough to make a small pull request in under one hour.
+## Documentation contract
 
-## Start Here
+Every user-visible behavior has one canonical detailed page in this directory:
 
-1. [README](README.md): project overview, quick start, and doc map.
-2. [Component Guide](component-guide.md): choose the right folder and validation command.
-3. [Quickstart](quickstart.md): validate and run your first workflow.
-4. [Examples](examples.md): choose a checked-in OtterDesk blueprint.
-5. [Security Model](security.md): understand what powers you are giving the runtime.
-6. [Troubleshooting](troubleshooting.md): common setup, Redis, OpenShell, model, and cluster errors.
-
-## Documentation Map
-
-| Page | Type | Use it when |
+| Fact | Canonical page | Implementation source to verify |
 | --- | --- | --- |
-| [Component Guide](component-guide.md) | Overview | You need the repository map, folder responsibilities, and local validation commands. |
-| [Change Log](change_log.md) | Tracker | You want the weekly top-five growth summary. |
-| [Quickstart](quickstart.md) | Tutorial | You want the shortest path to first success. |
-| [Installation](installation.md) | Tutorial | You need to install Redis, OpenShell, Elixir, Docker Model Runner, and Python tooling. |
-| [Examples](examples.md) | Tutorial | You want to choose the right checked-in OtterDesk blueprint. |
-| [Skill Catalog](skill-catalog.md) | Reference | You need centralized summaries for reusable skill packages. |
-| [Cluster Guide](cluster.md) | How-to | You need to start or inspect a multi-box runtime. |
-| [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md) | Overview | You want the status and code map for reconciliation, services, resources, deployments, and schedules. |
-| [Redis High Availability](redis-ha.md) | How-to | You need Redis Sentinel failover. |
-| [Monitor Guide](monitor.md) | How-to | You need to inspect live jobs and events. |
-| [CLI Reference](cli.md) | Reference | You need exact CLI commands and options. |
-| [Environment Variables](env_variables.md) | Reference | You need config names, defaults, and effects. |
-| [API Reference](api.md) | Reference | You need FastAPI, gRPC, or Elixir API shapes. |
-| [Job Bundle Format](bundle.md) | Reference | You are writing or validating `manifest.json`. |
-| [Python SDK](SDK.md) | Reference | You want to compile Python workflow definitions into bundles. |
-| [Blueprint Standard](blueprint-standard.md) | Reference | You need the cross-blueprint contract for manifests, run stores, agents, artifacts, privacy, and UI surfaces. |
-| [Services and Health Checks](services-and-health-checks.md) | How-to | You need service declarations, registry lookup, or required service preflight. |
-| [Model Runtime](model-runtime.md) | How-to | You need to install, inspect, validate, or use local Docker Model Runner LLMs. |
-| [Docker and OpenShell for Blueprints](docker_and_openshell_for_blueprints.md) | How-to | You need local files, ports, web UIs, host services, or sandbox resources to work first time. |
-| [Resources and Devices](resources-and-devices.md) | Reference | You need CUDA, Metal, GPU memory, ports, volumes, or runtime-driver placement. |
-| [Deployments](deployments.md) | How-to | You need rolling, canary, promotion, rollback, or versioned long-running jobs. |
-| [Schedules and Events](schedules-and-events.md) | How-to | You need cron, delayed, or event-triggered jobs. |
-| [Runtime Architecture](runtime-architecture.md) | Explanation | You want the control-plane/execution-plane mental model. |
-| [Cluster Architecture](cluster_architecture.md) | Explanation | You want leader, node, and relocation behavior. |
-| [Reliability Guide](reliability.md) | Explanation | You want recovery, leases, backpressure, and retention behavior. |
-| [Security Model](security.md) | Explanation | You need trust boundaries and safe defaults. |
-| [Blueprints and Skills](blueprints-and-skills.md) | How-to | You are extending MirrorNeuron safely. |
-| [Testing](testing.md) | Reference | You need the test matrix and commands. |
-| [Contributing](contributing.md) | Tutorial | You are preparing a pull request. |
-| [Documentation Style](documentation-style.md) | Reference | You are editing docs. |
+| Project fit, boundaries, and non-guarantees | [Why MirrorNeuron](why-mirrorneuron.md) | Runtime, runner, and security implementation. |
+| Shared vocabulary | [Core Concepts](core-concepts.md) | Manifest/runtime terms and CLI/API contracts. |
+| Installation and local services | [Installation](installation.md) | `mn-deploy/install.sh`, `server.sh`, runtime start code. |
+| CLI syntax and behavior | [CLI Reference](cli.md) | `mn-cli/mn_cli/main.py` and command modules. |
+| REST API shape | [API Reference](api.md) | `mn-api` routes and running FastAPI OpenAPI schema. |
+| Environment defaults | [Environment Variables](env_variables.md) | CLI, API, SDK, and Core configuration definitions. |
+| Blueprint and manifest contracts | [Blueprint Standard](blueprint-standard.md), [Job Bundle Format](bundle.md) | Schemas, SDK validators, and checked-in blueprints. |
+| Reliability and recovery | [Reliability Guide](reliability.md) | Core persistence, lease, scheduler, and recovery tests. |
+| Security boundaries | [Security Model](security.md) | Runner, network, Redis, secret, and policy behavior. |
+| Repeated operational failures | [Troubleshooting](troubleshooting.md) | Reproducible diagnostics and component tests. |
 
-## First Safe Workflow
+Do not duplicate large command tables, API shapes, or environment-variable lists on tutorial pages. Link to the canonical reference instead.
 
-After Redis and the runtime are started, run a checked-in local blueprint:
+## Reader journeys
 
-```bash
-mn blueprint run --folder otterdesk-blueprints/tax_form_ocr_capture_assistant
-```
+### Evaluator
 
-Expected output includes:
+1. [Why MirrorNeuron](why-mirrorneuron.md)
+2. [Core Concepts](core-concepts.md)
+3. [Quickstart](quickstart.md)
+4. [Security Model](security.md)
+5. [Runtime Architecture](runtime-architecture.md)
 
-```text
-Job submitted
-```
+### First-time developer
 
-Use the catalog flow when the blueprint library is installed or cached:
+1. [Installation](installation.md)
+2. [Quickstart](quickstart.md)
+3. [Examples](examples.md)
+4. [CLI Reference](cli.md)
+5. [Troubleshooting](troubleshooting.md)
 
-```bash
-mn blueprint list
-mn blueprint run portfolio_risk_review_assistant
-```
+### Blueprint author
 
-## Security Quick Read
+1. [Core Concepts](core-concepts.md)
+2. [Blueprint Standard](blueprint-standard.md)
+3. [Blueprints and Skills](blueprints-and-skills.md)
+4. [Python SDK](SDK.md)
+5. [Testing](testing.md)
 
-MirrorNeuron can run local commands, create sandboxes, call APIs, pass selected
-secrets into workers, and coordinate jobs across boxes. Before using it in a
-shared or production environment:
+### Operator
 
-- Review every bundle before running it.
-- Keep `pass_env` narrow.
-- Prefer OpenShell over HostLocal for less-trusted worker code.
-- Keep Redis protected and use Redis Sentinel for multi-box reliability.
-- Change `MN_COOKIE` for any non-local cluster.
-- Bind API/gRPC listeners only to trusted networks.
+1. [Installation](installation.md)
+2. [Services and Health Checks](services-and-health-checks.md)
+3. [Monitor Guide](monitor.md)
+4. [Reliability Guide](reliability.md)
+5. [Redis High Availability](redis-ha.md)
+6. [Troubleshooting](troubleshooting.md)
 
-Read [Security Model](security.md) for the full checklist.
+### Contributor
 
-## Contributor Path
+1. [Component Guide](component-guide.md)
+2. [Runtime Architecture](runtime-architecture.md)
+3. [Testing](testing.md)
+4. [Contributing](contributing.md)
+5. [Documentation Style](documentation-style.md)
 
-1. Read [Runtime Architecture](runtime-architecture.md).
-2. Run [Testing](testing.md) commands.
-3. Make a small focused change.
-4. Update docs when behavior changes.
-5. Use the [Contributing](contributing.md) checklist before opening a PR.
+## Documentation map
+
+| Topic | Page |
+| --- | --- |
+| Local installation and verification | [installation.md](installation.md) |
+| First local workflow | [quickstart.md](quickstart.md) |
+| Checked-in blueprint selection | [examples.md](examples.md) |
+| CLI, API, SDK, and configuration | [cli.md](cli.md), [api.md](api.md), [SDK.md](SDK.md), [env_variables.md](env_variables.md) |
+| Models, OpenShell, services, and resources | [model-runtime.md](model-runtime.md), [docker_and_openshell_for_blueprints.md](docker_and_openshell_for_blueprints.md), [services-and-health-checks.md](services-and-health-checks.md), [resources-and-devices.md](resources-and-devices.md) |
+| Cluster, deployment, schedules, and HA | [cluster.md](cluster.md), [deployments.md](deployments.md), [schedules-and-events.md](schedules-and-events.md), [redis-ha.md](redis-ha.md) |
+| Architecture, reliability, and security | [runtime-architecture.md](runtime-architecture.md), [cluster_architecture.md](cluster_architecture.md), [reliability.md](reliability.md), [security.md](security.md) |
+| Internal quality and contributor process | [testing.md](testing.md), [contributing.md](contributing.md), [documentation-style.md](documentation-style.md) |
+
+## Source-doc update rule
+
+When a pull request changes a command, API route, configuration key, manifest field, runtime guarantee, runner boundary, or failure behavior:
+
+1. update the canonical detailed page in `mn-docs`;
+2. update the concise corresponding page in `mn-doc-site/content/docs` when the behavior is user-facing;
+3. update a tutorial, troubleshooting page, and migration note when the reader journey changes;
+4. run the documentation build and the smallest relevant product validation; and
+5. record the implementation source and validation command in the pull request.

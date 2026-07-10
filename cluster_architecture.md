@@ -4,7 +4,7 @@ MirrorNeuron supports horizontal scaling by seamlessly clustering multiple Elixi
 
 ## 1. Network Requirements
 
-For two nodes, for example `192.168.4.25` and `192.168.4.173`, to communicate successfully:
+For two nodes, for example `<primary-host>` and `<worker-host>`, to communicate successfully:
 
 - **Erlang Port Mapper Daemon (EPMD):** Port `4369` must be open and reachable.
 - **Erlang Distribution Port:** MirrorNeuron helpers pin BEAM distribution to port `4370` with `MN_DIST_PORT` and `ERL_AFLAGS`.
@@ -60,7 +60,7 @@ mn runtime start --worker-node
 ### Back On Node 1
 ```bash
 mn node join <WORKER_IP> --token <worker-token>
-# e.g., mn node join 192.168.4.25 --token <worker-token>
+# e.g., mn node join <worker-host> --token <worker-token>
 ```
 *Promotes the main runtime to cluster mode if needed, then connects the worker. If Node 1 has multiple LAN addresses, pass `--local-host <NODE_1_IP>` to choose the advertised address.*
 

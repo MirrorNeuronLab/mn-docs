@@ -104,7 +104,7 @@ required runtime models:
 
 ```bash
 mn blueprint install
-mn blueprint install portfolio_risk_review_assistant
+mn blueprint install <blueprint_id>
 ```
 
 Expected output includes the storage path and a next step such as:
@@ -134,7 +134,7 @@ Job Name
 Validates a local job bundle or blueprint folder.
 
 ```bash
-mn blueprint validate otterdesk-blueprints/tax_form_ocr_capture_assistant
+mn blueprint validate otterdesk-blueprints/medical_deid_record_intake_assistant
 ```
 
 Expected output includes:
@@ -151,8 +151,8 @@ Runs a catalog blueprint by ID, or a local bundle/source folder when `--folder`
 is provided.
 
 ```bash
-mn blueprint run portfolio_risk_review_assistant
-mn blueprint run --folder otterdesk-blueprints/portfolio_risk_review_assistant
+mn blueprint run <blueprint_id>
+mn blueprint run --folder otterdesk-blueprints/medical_deid_record_intake_assistant
 ```
 
 Expected output includes:
@@ -164,7 +164,7 @@ Job submitted
 Limit how long the CLI follows post-submit events:
 
 ```bash
-mn blueprint run portfolio_risk_review_assistant --follow-seconds 10
+mn blueprint run <blueprint_id> --follow-seconds 10
 ```
 
 Run in detached mode:
@@ -203,14 +203,14 @@ Clean no-longer-referenced blueprint-owned runtime resources:
 
 ```bash
 mn blueprint cleanup --dry-run
-mn blueprint cleanup --blueprint-id portfolio_risk_review_assistant
+mn blueprint cleanup --blueprint-id <blueprint_id>
 ```
 
 Remove cached blueprint storage or one blueprint:
 
 ```bash
 mn blueprint uninstall --dry-run
-mn blueprint uninstall portfolio_risk_review_assistant --keep-resources
+mn blueprint uninstall <blueprint_id> --keep-resources
 ```
 
 Cleanup can remove cached Python virtualenvs, `$MN_HOME/runs/<run_id>` records,
@@ -403,10 +403,10 @@ contains node names, connected peers, and executor pool stats.
 Run reconciler and lifecycle operations:
 
 ```bash
-mn node reconcile mirror_neuron@192.168.4.20 --reason "manual check" --dry-run
-mn node maintenance mirror_neuron@192.168.4.20 --enable --reason "driver update"
-mn node drain mirror_neuron@192.168.4.20 --reason "reboot" --deadline 30m --wait
-mn node undrain mirror_neuron@192.168.4.20 --mark-eligible --reason "ready"
+mn node reconcile mirror_neuron@<node-host> --reason "manual check" --dry-run
+mn node maintenance mirror_neuron@<node-host> --enable --reason "driver update"
+mn node drain mirror_neuron@<node-host> --reason "reboot" --deadline 30m --wait
+mn node undrain mirror_neuron@<node-host> --mark-eligible --reason "ready"
 ```
 
 ### Cluster Node Flows
@@ -435,13 +435,13 @@ docker network create --driver overlay --attachable mirror-neuron-runtime
 For the inverse flow, expose a core-only node on the second box:
 
 ```bash
-mn node expose --host 192.168.4.20 --network overlay --docker-network mirror-neuron-runtime
+mn node expose --host <worker-host> --network overlay --docker-network mirror-neuron-runtime
 ```
 
 Then add that node from the main box:
 
 ```bash
-mn node add 192.168.4.20 --token <token> --network overlay --docker-network mirror-neuron-runtime
+mn node add <worker-host> --token <token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
 `mn node expose` starts only Core with host gRPC and Docker-internal Redis/Erlang
@@ -453,7 +453,7 @@ as a joined runtime so Syncthing replication is configured before Docker creates
 the Core container:
 
 ```bash
-mn runtime start --join-host 192.168.4.10 --token <main-token> --host 192.168.4.20
+mn runtime start --join-host <main-host> --token <main-token> --host <worker-host>
 ```
 
 `MN_SYNCTHING_ENABLED=auto` starts a Docker sidecar for shared-storage
@@ -463,7 +463,7 @@ configuration cannot be completed.
 Remove a node from the cluster:
 
 ```bash
-mn node leave mirror_neuron@192.168.4.20
+mn node leave mirror_neuron@<node-host>
 ```
 
 Rotate the local join token:
