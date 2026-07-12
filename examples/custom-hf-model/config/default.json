@@ -1,0 +1,22 @@
+{
+  "identity": {
+    "blueprint_id": "custom_hf_model_demo"
+  },
+  "llm": {
+    "enabled": true,
+    "default_config": "primary",
+    "configs": {
+      "primary": {
+        "provider": "docker_model_runner",
+        "mode": "openai_compatible",
+        "model": "hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M",
+        "runtime_model": "hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M",
+        "api_base": "auto",
+        "backend": "llama.cpp",
+        "context_size": 4096,
+        "timeout_seconds": 120,
+        "max_tokens": 1200
+      }
+    }
+  }
+}

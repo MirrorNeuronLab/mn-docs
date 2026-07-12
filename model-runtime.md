@@ -153,6 +153,43 @@ The SDK built-in catalog can be extended or overridden with JSON entries from:
 
 The file may contain a list, a `{ "models": [...] }` object, or an object keyed by model id. Local SDK entries win over built-in entries with the same `id`. These overrides are resolved before Core receives a submitted job.
 
+## Exceptional Blueprint Hugging Face Models
+
+A blueprint may explicitly opt into an uncataloged Hugging Face Docker Model Runner model by setting `customize_mode: true` on `runtime.models.<name>`. This is a narrow blueprint-only exception; `mn model install` remains catalog-only.
+
+```json
+{
+  "runtime": {
+    "models": {
+      "primary": {
+        "provider": "docker_model_runner",
+        "runtime_model": "hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M",
+        "backend": "llama.cpp",
+        "context_size": 4096,
+        "required": true,
+        "customize_mode": true
+      }
+    }
+  }
+}
+```
+
+Only explicit `hf.co/<owner>/<repo>[:tag]` and `huggingface.co/<owner>/<repo>[:tag]` references are accepted. The declaration is rejected if the model is already cataloged, uses an external endpoint, disables installation, or selects a backend other than `auto`, `llama.cpp`, or `vllm`.
+
+MirrorNeuron does not perform model-specific hardware compatibility checks for this mode. It selects the healthy, schedulable, custom-model-capable node with the greatest accelerator capacity and attempts installation there. Failure on that selected node stops launch; it does not fall back locally or try another node. The resulting model and ownership records remain marked `unverified`.
+
+See [`examples/custom-hf-model`](examples/custom-hf-model) for a source manifest and matching blueprint config.
+
+Custom model preparation uses the same timeout policy in CLI and API launches. Set
+`MN_RUNTIME_MODEL_PREPARE_TIMEOUT_SECONDS` to a positive number of seconds to override the
+default 1200-second timeout. Transient timeout or unavailable gRPC failures are retried once
+against the same selected node.
+
+Node logs record the `resolve`, `install`, `gateway`, and `ready` preparation phases with the
+model, selected node, attempt, duration, and stable error code. Ownership metadata records
+`prepare_status` and `prepare_stage`; an installed model whose gateway registration fails remains
+recorded as installed with a gateway failure instead of being reported as ready.
+
 ## Hardware Validation
 
 | Hardware profile | `gemma4:e2b` default result | Backend | Rule |

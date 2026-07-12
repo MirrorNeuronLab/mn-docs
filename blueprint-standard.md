@@ -1660,6 +1660,25 @@ Each `LLM_CONFIG` entry should include:
 - credential reference fields when needed, such as `api_key_env`
 - for runtime-managed local models, `provider: "docker_model_runner"` plus `runtime_model`, `backend`, and optional `context_size`
 
+An uncataloged Hugging Face model may be declared only in `runtime.models` with `customize_mode: true`. This flag is the explicit acceptance that MirrorNeuron will skip model-specific hardware compatibility checks. The corresponding `llm.configs` entry references the same runtime model but must not repeat or independently enable the flag.
+
+```json
+{
+  "runtime": {
+    "models": {
+      "primary": {
+        "provider": "docker_model_runner",
+        "runtime_model": "hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M",
+        "backend": "llama.cpp",
+        "customize_mode": true
+      }
+    }
+  }
+}
+```
+
+Custom mode accepts only explicit `hf.co` or `huggingface.co` references and never overrides policy for a cataloged model. The runtime chooses one capable node by accelerator capacity; it does not use local or alternate-node fallback after a selection or installation failure.
+
 For local Docker Model Runner models, `api_base: "auto"` lets MirrorNeuron inject `http://localhost:12434/engines/v1` for HostLocal workers and `http://model-runner.docker.internal/engines/v1` for container or sandbox workers. The default runtime model alias is `gemma4:e2b`, resolved to Docker's `ai/gemma4:E2B`.
 
 Each agent that uses an LLM must reference a named config with `llm_config`. Agents must not repeat model values that already live in `llm.configs`.
