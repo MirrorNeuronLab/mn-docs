@@ -25,7 +25,7 @@ network and a reachable host gRPC port:
 | Port | Purpose |
 | --- | --- |
 | `55051` | Deployed host port for the MirrorNeuron core gRPC service. The core container listens on `50051` internally. |
-| `55052` | Host-local SDK gRPC sidecar for native preparation, such as Docker Model Runner model install. This is consumed by Core through the Compose service `mn-native-sdk-grpc`, not exposed as a public cluster API. |
+| `55052` | Host-side SDK gRPC service for native preparation, such as Docker Model Runner model install. Local Core reaches it through the Compose proxy, and remote cluster coordinators use the node's advertised address. Restrict this port to trusted cluster hosts. |
 | `26379` | Redis Sentinel when using Redis HA. |
 
 Redis, EPMD, and BEAM distribution stay inside the Docker bridge/overlay network.
@@ -47,9 +47,9 @@ Each node advertises host-reachable Core gRPC facts in cluster summaries:
 
 In Docker Compose deployments, Core listens on its container port, while the host publishes a separate external port. `MN_GRPC_ADVERTISE_PORT` is the external port other machines and SDK clients should dial. It is distinct from `MN_GRPC_PORT`, which is the Core listener port inside the container.
 
-Native preparation is node-local. When the SDK/API/CLI needs to prepare a model on another node, it sends `PrepareRuntimeModel` to that node's advertised Core gRPC endpoint. The target Core does not perform the install. It relays the request to `MN_NATIVE_SDK_GRPC_TARGET`, which should normally be the Compose service `mn-native-sdk-grpc:55052`.
+Native preparation is node-local. For the local node, SDK/API/CLI sends `PrepareRuntimeModel` to local Core, which relays it to `MN_NATIVE_SDK_GRPC_TARGET` (normally `mn-native-sdk-grpc:55052`). For a remote node, the coordinator connects directly to that node's advertised native SDK gRPC endpoint, normally `<node-ip>:55052`. The remote host-side SDK performs the native operation.
 
-The `mn-native-sdk-grpc` Compose service is a small TCP proxy inside the runtime Compose network. It forwards container traffic to the host-side SDK sidecar on that same node, usually `127.0.0.1:55052` from the host perspective. This matches the model-service pattern: containers consume a stable Compose service name, while SDK/CLI owns host-native Docker and model operations.
+The `mn-native-sdk-grpc` Compose service is a small TCP proxy inside the runtime Compose network. It forwards container traffic through `host.docker.internal:55052` to the host-side SDK service on that same node. The host service binds to `0.0.0.0` by default so both the Docker host gateway and trusted remote cluster nodes can reach it. `MN_NATIVE_SDK_GRPC_ADVERTISE_HOST` remains separate and should contain the node's reachable LAN address.
 
 Do not use SSH as the normal model-install path for a remote runtime node. SSH can still be useful for operator maintenance or deployment, but model preparation during launch should go over the target node's gRPC runtime path.
 

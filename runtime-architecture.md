@@ -117,15 +117,17 @@ If a required resource is missing, Core reports the failure. It should not silen
 For model preparation, the gRPC flow is:
 
 ```text
-SDK/API/CLI
-  -> target node Core gRPC PrepareRuntimeModel
-  -> Core relay to MN_NATIVE_SDK_GRPC_TARGET
-  -> Compose service mn-native-sdk-grpc
-  -> host-side SDK gRPC sidecar
-  -> Docker Model Runner / host-native preparation
+Local node:
+  SDK/API/CLI -> local Core gRPC PrepareRuntimeModel
+  -> MN_NATIVE_SDK_GRPC_TARGET -> Compose proxy mn-native-sdk-grpc
+  -> host-side SDK gRPC service -> Docker Model Runner
+
+Remote cluster node:
+  SDK/API/CLI -> target node's advertised native SDK gRPC endpoint
+  -> host-side SDK gRPC service -> Docker Model Runner
 ```
 
-The relay keeps the Core boundary small. Core only knows that a prepared sidecar target exists. The SDK sidecar owns the model operation and returns concrete service facts for later scheduling and worker environment injection.
+Core's local relay keeps the Core boundary small, while direct native SDK routing avoids asking remote Core containers to perform host operations. The SDK service owns the model operation and returns concrete service facts for later scheduling and worker environment injection.
 
 ## Logical workers vs physical execution leases
 
