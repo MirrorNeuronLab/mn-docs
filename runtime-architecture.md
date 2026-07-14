@@ -29,7 +29,11 @@ Airflow's big lesson for this runtime is not "copy operators." It is "treat heav
 
 MirrorNeuron now separates the user-facing problem workflow from the lower-level agent runtime. For `mn.workflow/v1` blueprints, `workflow` is the problem DAG: it names the source, sink, step dependencies, branch requirements, join behavior, and accepted outcomes. `agents.nodes` and `agents.edges` are the runtime agent communication topology used by the BEAM runtime; they are not the problem workflow. Top-level `nodes`, `edges`, and `entrypoints` are runtime-submission compatibility fields and should not be authored in OtterDesk manifests.
 
-The current DAG executor is a static DAG scheduler with per-step lifecycle state. It is not a full GOAP or PDDL planner yet.
+The current DAG executor is a durable DAG scheduler with per-step lifecycle
+state, explicit trigger rules, branch and guard skips, and runtime-expanded
+mapped items for scatter–gather work. It is not a full GOAP or PDDL planner
+yet. See [Workflow DAG Flow Patterns](dag-flow-patterns.md) for authoring
+examples.
 
 ```text
 workflow.edges + workflow.steps
@@ -46,7 +50,7 @@ Execution works in layers:
 
 - The graph compiler validates source/sink, reachability, acyclicity, edge ids, join modes, retry bounds, timeout values, and parallel output path conflicts.
 - The scheduler keeps a map of step outcomes such as `done`, `partial`, `skipped`, `failed`, and `blocked`.
-- A step becomes ready only when its parent edges and join rule are satisfied. Ready steps in the same graph layer can run concurrently.
+- A step becomes ready only when its parent edges and trigger rule are satisfied. Ready steps in the same graph layer can run concurrently.
 - Each step follows a small lifecycle: `pending -> ready -> running -> done`, with terminal alternatives such as `partial`, `skipped`, `failed`, or `blocked`.
 - `runtime.bindings` maps each workflow step to one or more internal workers. A tax step, for example, may run a preparer and a validator while still appearing as one problem-workflow node.
 - The executor emits generic workflow events such as `workflow_graph_compiled`, `workflow_step_started`, `workflow_edge_satisfied`, `workflow_join_waiting`, and `workflow_finished`. The shared SDK turns these into the progress snapshots used by CLI and Web UI.
