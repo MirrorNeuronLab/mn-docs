@@ -43,7 +43,8 @@ mn job status <job_id>
 mn job list
 mn job monitor <job_id>
 mn job result <job_id>
-mn job cancel [job_id]
+mn job cancel <job_id>
+mn job cancel-all [-y|--yes]
 mn job pause <job_id>
 mn job resume <job_id>
 mn job backup <job_id_or_run_id_or_blueprint_id> --output <folder>
@@ -329,16 +330,20 @@ mn job result <job_id>
 Expected output depends on the bundle. Look for saved result paths or JSON
 result output.
 
-### `mn job cancel`, `pause`, And `resume`
+### `mn job cancel`, `cancel-all`, `pause`, And `resume`
 
 ```bash
 mn job cancel <job_id>
+mn job cancel-all
+mn job cancel-all -y
 mn job pause <job_id>
 mn job resume <job_id>
 ```
 
-If no `job_id` is provided to cancel, the CLI may show an interactive cancel
-flow.
+`mn job cancel-all` cancels every active job: pending, validated, scheduled,
+running, and paused. It asks for confirmation before cancelling; use `-y` or
+`--yes` to skip the prompt. Jobs are cancelled in listed order, and the command
+stops immediately if any cancellation fails.
 
 ### `mn job backup` And `mn job restore`
 
