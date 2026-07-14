@@ -835,6 +835,33 @@ Long-running, stream, service, or multi-stage blueprints should emit progress or
 
 ## Runtime Workflow Control Contract
 
+### Source authoring format
+
+New multi-step blueprints should use `mn.workflow.source/v2`. Each source step
+declares direct step dependencies in `needs` and an object-valued `run`:
+
+```json
+{
+  "id": "score_company",
+  "needs": ["research_company"],
+  "run": {
+    "handler": "vc_assistant.steps.scoring",
+    "with": {"method": "berkus_method"}
+  }
+}
+```
+
+Handler references are module-only and resolve to `run()` by convention. The
+source manifest owns topology and implementation selection. Do not mirror its
+step list in `run_blueprint.py`, `agent_handoffs`, configuration step counts,
+or a second handler registry. The SDK compiler lowers the source to the
+executable workflow, agent graph, runtime bindings, and generic step command.
+
+`run.agent` optionally assigns an existing agent node. `run.binding`
+optionally preserves a distinct executable runtime-binding id. These fields
+are useful when compacting an older executable manifest; normal Python handler
+steps only need `handler` and optional `with` parameters.
+
 Blueprints that use `workflow.steps` for multi-step execution should declare runtime workflow control so MirrorNeuron can keep progress durable, bounded, and recoverable. The source of truth is the step ledger stored on the job as `workflow_state`; nodes and agents are workers, not the durable progress authority.
 
 Required runtime shape:

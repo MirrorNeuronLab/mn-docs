@@ -79,6 +79,65 @@ Expected output:
 Job submitted successfully
 ```
 
+## Prefer A Source Manifest For Multi-Step Blueprints
+
+Author multi-step blueprints as `mn.workflow.source/v2`. The source manifest is
+the DAG definition; the SDK expands it to the executable `mn.workflow/v1`
+shape used by Core.
+
+```json
+{
+  "apiVersion": "mn.workflow.source/v2",
+  "kind": "WorkflowSource",
+  "identity": {"id": "vc_assistant", "name": "VC Assistant"},
+  "workflow": {
+    "steps": [
+      {
+        "id": "intake",
+        "needs": [],
+        "run": {"handler": "vc_assistant.steps.intake"}
+      },
+      {
+        "id": "research",
+        "needs": ["intake"],
+        "run": {
+          "handler": "vc_assistant.steps.research",
+          "with": {"operation": "company_identity"}
+        }
+      }
+    ]
+  }
+}
+```
+
+`handler` is a Python module, not `module:callable`. The generic step runtime
+imports the module and calls its conventional `run()` function. `run.with`
+contains declarative parameters that let several manifest steps reuse one
+behavior module.
+
+Use this split:
+
+```text
+manifest.json                         DAG, dependencies, retry policy, handler selection
+payloads/document_workflow/scripts/
+  run_blueprint.py                    optional thin local/CLI compatibility entrypoint
+  vc_assistant/steps/
+    intake.py                         reusable intake behavior
+    research.py                       reusable research behavior
+    reporting.py                      reusable reporting behavior
+```
+
+The scheduler invokes one handler module per ready node. Nodes do not run a
+part of one large `run_blueprint.py`; they run the module selected by their own
+manifest step. Keep step order, fan-out/fan-in, and handler selection out of
+configuration files and Python registries. This is the same useful separation
+as an Airflow DAG versus an operator implementation, with MirrorNeuron's
+durable workflow ledger and agent runtime underneath.
+
+For a step assigned to an existing custom agent node, use `run.agent`. If its
+runtime binding has a different id, preserve it with `run.binding`. Handler-only
+steps normally need neither field because the compiler creates the step worker.
+
 ## Use The Python SDK For A Bundle
 
 The SDK supports a Temporal-like authoring style, but it is a bundle compiler, not a Temporal replay engine.
