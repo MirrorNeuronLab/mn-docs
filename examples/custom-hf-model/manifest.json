@@ -2,7 +2,7 @@
   "apiVersion": "mn.workflow.source/v1",
   "kind": "WorkflowSource",
   "standard": {
-    "profile": "document_workflow"
+    "profile": "blueprint"
   },
   "identity": {
     "id": "custom_hf_model_demo",

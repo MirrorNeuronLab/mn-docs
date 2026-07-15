@@ -110,29 +110,40 @@ shape used by Core.
 }
 ```
 
-`handler` is a Python module, not `module:callable`. The generic step runtime
-imports the module and calls its conventional `run()` function. `run.with`
-contains declarative parameters that let several manifest steps reuse one
-behavior module.
+`handler` is a Python module, not `module:callable`. In the standard
+`blueprint` profile, `runtime/run_blueprint.py` resolves the selected handler
+and calls its conventional `run()` function. `run.with` contains declarative
+parameters that let several manifest steps reuse one behavior module.
 
 Use this split:
 
 ```text
 manifest.json                         DAG, dependencies, retry policy, handler selection
-payloads/document_workflow/scripts/
-  run_blueprint.py                    optional thin local/CLI compatibility entrypoint
-  vc_assistant/steps/
+payloads/
+  runtime/
+    run_blueprint.py                  worker entrypoint and runtime helpers
+  agents/                             reusable agent implementations
+  steps/
     intake.py                         reusable intake behavior
     research.py                       reusable research behavior
     reporting.py                      reusable reporting behavior
+  docker_worker/                      DockerWorker build context when the blueprint uses it
+  native_worker/                      optional native-worker assets, if used
+  openshell_worker/                   optional OpenShell-worker assets, if used
+  prompts/                            prompt assets
+  knowledge/                          packaged knowledge assets
+  requirements.txt                    runtime Python dependencies
 ```
 
-The scheduler invokes one handler module per ready node. Nodes do not run a
-part of one large `run_blueprint.py`; they run the module selected by their own
-manifest step. Keep step order, fan-out/fan-in, and handler selection out of
-configuration files and Python registries. This is the same useful separation
-as an Airflow DAG versus an operator implementation, with MirrorNeuron's
-durable workflow ledger and agent runtime underneath.
+Worker-context directories are siblings in the payload tree, but they are
+consumed by their worker preparer rather than copied into each runtime attempt.
+
+The scheduler invokes the runtime entrypoint once per ready node. The entrypoint
+uses the staged `runtime/manifest.json` to select that node's handler. Keep step
+order, fan-out/fan-in, and handler selection out of configuration files and
+Python registries. This is the same useful separation as an Airflow DAG versus
+an operator implementation, with MirrorNeuron's durable workflow ledger and
+agent runtime underneath.
 
 For a step assigned to an existing custom agent node, use `run.agent`. If its
 runtime binding has a different id, preserve it with `run.binding`. Handler-only
