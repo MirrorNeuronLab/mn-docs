@@ -42,6 +42,14 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 | `web_browser_skill` | `mirrorneuron-web-browser-skill` |
 | `websocket_stream_skill` | `mirrorneuron-websocket-stream-skill` |
 
+## Browser skills
+
+`web_browser_skill` is the unified local browser package. It returns
+readability-extracted plain text or Markdown, selects w3m/Playwright internally,
+and can expose bounded in-process actions for an LLM-directed public browser
+session. `w3m_browser_skill` remains a deprecated compatibility adapter for
+existing imports; new blueprints should use `web_browser_skill`.
+
 ## Add or change a skill
 
 1. Create or update the package `pyproject.toml`, source, README, and tests.
