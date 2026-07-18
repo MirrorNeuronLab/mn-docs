@@ -44,9 +44,10 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 ## Browser skills
 
 `web_browser_skill` is the unified local browser package. It returns
-readability-extracted plain text or Markdown, selects w3m/Playwright internally,
-and can expose bounded in-process actions for an LLM-directed public browser
-session. All browser consumers should use `web_browser_skill`.
+readability-extracted plain text or Markdown, selects w3m or the native
+agent-browser CLI internally, and exposes a policy-governed ref-based actuator
+with isolated sessions, approval gates, audits, and bounded artifacts. All
+browser consumers should use `web_browser_skill`; workflows remain the planner.
 
 ## Add or change a skill
 
