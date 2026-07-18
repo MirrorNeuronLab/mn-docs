@@ -40,14 +40,19 @@ The deployed gRPC endpoint is normally published on port `55051`; the Core conta
 
 | Variable | Default | Behavior |
 | --- | --- | --- |
-| `MN_API_HOST` | `localhost` | FastAPI bind host. |
+| `MN_API_HOST` | `localhost` | FastAPI bind host. The installer defaults it to `0.0.0.0` when the Compose Web UI is enabled so the container can proxy to the host API. |
 | `MN_API_PORT` | `54001` | FastAPI bind port. |
 | `MN_API_BASE_URL` | unset | External API base URL; must be absolute HTTP(S) when set. |
 | `MN_API_TOKEN` | unset | Sensitive bearer token for protected API deployments. |
 | `MN_API_REQUEST_SIZE_LIMIT_BYTES` | `5242880` | Maximum request body size. |
 | `MN_API_CORS_ALLOW_ORIGINS` | unset | Comma-separated CORS allowlist. |
-| `MN_WEB_UI_HOST` | `localhost` | Web UI bind host. |
-| `MN_WEB_UI_PORT` | `55173` | Web UI bind port. |
+| `MN_WEB_UI_HOST` | `localhost` | Web UI endpoint host reported by the CLI. |
+| `MN_WEB_UI_PORT` | `55173` | Web UI published/container port. |
+| `MN_WEB_UI_BIND_HOST` | `127.0.0.1` | Compose host address for publishing the Web UI port. |
+| `MN_WEB_UI_SOURCE_MODE` | installer-selected | `package` for binary installs; `source` for local/GitHub installs. |
+| `MN_WEB_UI_SOURCE_MOUNT` | installer-selected | Read-only source mount consumed by the Compose Web UI service. |
+| `MN_WEB_UI_PACKAGE_VERSION` | selected release | Published package version installed inside the Compose service in package mode. |
+| `MN_WEB_UI_API_HOST` | `host.docker.internal` | API host used by the Web UI container proxy. |
 | `MN_WEB_UI_API_BASE_URL` | unset | Web UI upstream API URL. |
 | `MN_WEB_UI_PROXY_TIMEOUT_SECONDS` | `30` | Web UI upstream timeout in seconds. |
 

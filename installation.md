@@ -16,6 +16,8 @@ This is the canonical installation procedure for maintainers, contributors, and 
 - `git` is required for checkout-based installation.
 - Python 3.11+ and Elixir/Erlang are required for editable workspace development, not for every released-package installation.
 - Docker Model Runner is required only for blueprints that use local models. Docker Desktop provides it on macOS and Windows; Linux operators must install the plugin when they need that capability.
+- npm is not required to install or run the Web UI; its Node build runs inside
+  the Docker Compose Web UI service.
 
 ## Install released components
 
@@ -84,7 +86,7 @@ If a command fails, collect its output and continue with [Troubleshooting](troub
 | REST API | `http://localhost:54001/api/v1` | `mn-api`; override with `MN_API_PORT`. |
 | Core gRPC endpoint | `localhost:55051` | MirrorNeuron Core; override with `MN_GRPC_PORT` and client target settings. |
 | Docker Model Runner/LiteLLM gateway | port `4000` when enabled | Model runtime. |
-| Web UI | port `55173` by default | Web UI runtime. |
+| Web UI | port `55173` by default | Docker Compose service; local mode builds the mounted `mn-web-ui` source there. |
 | Blueprint run records | `~/.mn/runs/<run_id>/` | Blueprint run-store contract. |
 
 See [Environment Variables](env_variables.md) for the full configuration reference. Do not publish `~/.mn/docker-compose.env`, tokens, or generated endpoint files because they can contain deployment-specific configuration.
