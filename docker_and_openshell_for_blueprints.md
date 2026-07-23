@@ -140,44 +140,36 @@ valid staged config path.
 ## Ports And Web UIs
 
 Docker-published ports look busy from the native host because Docker already owns
-the host listener. That is expected. For runtime-managed blueprint web UIs, use
-the runtime service path instead of launching an unmanaged side process.
-
-Recommended desktop defaults:
-
-```bash
-MN_BLUEPRINT_WEB_UI_PORT_START=61000
-MN_BLUEPRINT_WEB_UI_PORT_END=61049
-MN_BLUEPRINT_WEB_UI_PORT_ALLOCATION_MODE=prepublished
-```
-
-In `prepublished` mode, the blueprint web UI helper selects from the configured
-range without rejecting a port just because Docker is listening on it. The API
-still reserves ports already used by active `blueprint-web-ui` services so two
-co-workers do not receive the same dashboard port.
-
-For Gradio dashboards, keep `config.web_ui` as the public blueprint contract:
+the host listener. That is expected. A blueprint web UI is an explicit
+long-running service node, not a side process injected from configuration.
+Declare its command, port resource, service name, tags, and health check in the
+manifest:
 
 ```json
 {
-  "web_ui": {
-    "enabled": true,
-    "output": {
-      "adapter": "gradio",
-      "title": "Video Dashboard"
+  "node_id": "example_web_ui",
+  "type": "stream",
+  "config": {
+    "runner_module": "MirrorNeuron.Runner.HostLocal",
+    "command": ["python3.11", "example_web_ui.py"]
+  },
+  "resources": {
+    "ports": [{"label": "web_ui", "port": 61000, "protocol": "http"}]
+  },
+  "services": [
+    {
+      "name": "example-web-ui",
+      "port": 61000,
+      "tags": ["web_ui", "blueprint", "example", "json-render"],
+      "checks": [{"name": "http-ready", "type": "http", "path": "/healthz"}]
     }
-  }
+  ]
 }
 ```
 
-Launch preparation injects the HostLocal dashboard node, port resource, service
-registration, and health check.
-
-When the run store is a native host path that is not mounted into the Core
-container, runtime dashboards should not depend on reading that path directly.
-The generated Gradio dashboard receives `MN_BLUEPRINT_RUN_EVENTS_URL` and reads
-live events from mn-api, falling back to `events.jsonl` only when no API event
-source is configured.
+The blueprint is responsible for choosing a port that fits the deployment
+contract. The runtime owns lifecycle and health supervision; it does not infer
+or reserve a global dashboard port range from `config.web_ui`.
 
 ## Localhost Means Different Things
 
@@ -250,19 +242,19 @@ For blueprint-owned services:
 Verify service discovery:
 
 ```bash
-mn service resolve blueprint-web-ui --tag video_watch_assistant
+mn service resolve <blueprint-web-ui-service-name> --tag <blueprint_id>
 ```
 
 Expected output:
 
 ```text
-blueprint-web-ui
+<blueprint-web-ui-service-name>
 ```
 
 For API clients, use:
 
 ```bash
-curl http://127.0.0.1:54001/api/v1/services/blueprint-web-ui/resolve
+curl http://127.0.0.1:54001/api/v1/services/<blueprint-web-ui-service-name>/resolve
 ```
 
 ## Debug Checklist
@@ -281,8 +273,7 @@ When a blueprint works in validation but fails at runtime:
 When a port fails:
 
 - Check whether Docker is intentionally publishing the range.
-- Use `prepublished` allocation for Compose-published blueprint web UI ports.
-- Reserve ports based on active runtime services, not only host bind probes.
+- Check the manifest-declared port resource and active runtime services.
 - Separate bind host, health-check address, and public browser URL.
 
 Useful commands:
@@ -291,7 +282,7 @@ Useful commands:
 mn blueprint validate /path/to/bundle
 mn blueprint run --folder /path/to/bundle
 mn service list --all
-mn service resolve blueprint-web-ui --tag <blueprint_id>
+mn service resolve <blueprint-web-ui-service-name> --tag <blueprint_id>
 ```
 
 For a local development runtime, inspect the submitted bundle from the job
@@ -313,7 +304,7 @@ Before declaring a blueprint ready:
 - Worker code reads `MN_BLUEPRINT_CONFIG_JSON`.
 - Blank runtime inputs do not erase staged config paths.
 - Long-lived web UIs are runtime-registered services.
-- Compose-published ports use `prepublished` allocation.
+- Web UI ports and health checks are explicit manifest declarations.
 - OpenShell inputs, policies, and dependencies are payload-local.
 - Host service URLs are tested from the runtime namespace that will call them.
 

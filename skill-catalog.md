@@ -23,6 +23,7 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 | `first_draft_slides_skill` | `mirrorneuron-first-draft-slides-skill` |
 | `generate_fake_data_skill` | `mirrorneuron-generate-fake-data-skill` |
 | `implementation_plan_skill` | `mirrorneuron-implementation-plan-skill` |
+| `live_video_analysis_skill` | `mirrorneuron-live-video-analysis-skill` |
 | `llm_ocr_skill` | `mirrorneuron-llm-ocr-skill` |
 | `market_research_skill` | `mirrorneuron-market-research-skill` |
 | `marketing_email_skill` | `mirrorneuron-marketing-email-skill` |
@@ -38,6 +39,7 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 | `text_analysis_skill` | `mirrorneuron-text-analysis-skill` |
 | `vendor_comparison_skill` | `mirrorneuron-vendor-comparison-skill` |
 | `web_browser_skill` | `mirrorneuron-web-browser-skill` |
+| `web_ui_skill` | `mirrorneuron-web-ui-skill` |
 | `websocket_stream_skill` | `mirrorneuron-websocket-stream-skill` |
 
 ## Browser skills

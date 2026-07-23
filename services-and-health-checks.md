@@ -187,22 +187,41 @@ mn service resolve vllm --node mirror_neuron@<node-host>
 
 ## Blueprint Web UI Services
 
-Blueprints keep using their existing `config.web_ui` contract. For live/service blueprints with `web_ui.output.adapter: "gradio"`, launch preparation injects a runtime-managed `web_ui_dashboard` HostLocal agent and registers its dashboard as a service:
+Live blueprints own their web UI process, layout, actions, port, and service
+declaration. Launch preparation does not inject a dashboard agent or translate
+`config.web_ui` into executable behavior. Reusable rendering and server
+mechanics belong in a generic skill; product actions and state remain in the
+blueprint service.
 
 ```json
 {
-  "name": "blueprint-web-ui",
-  "tags": ["web_ui", "blueprint", "<blueprint_id>", "gradio"],
-  "meta": {
-    "run_id": "<run_id>",
-    "blueprint_id": "<blueprint_id>",
-    "url": "http://localhost:58000",
-    "adapter": "gradio"
-  }
+  "node_id": "<blueprint_web_ui_node>",
+  "type": "stream",
+  "config": {
+    "runner_module": "MirrorNeuron.Runner.HostLocal",
+    "command": ["python3.11", "<blueprint_web_ui_service>.py"]
+  },
+  "resources": {
+    "ports": [{"label": "web_ui", "port": 61000, "protocol": "http"}]
+  },
+  "services": [
+    {
+      "name": "<blueprint-web-ui-service-name>",
+      "port": 61000,
+      "tags": ["web_ui", "blueprint", "<blueprint_id>", "json-render"],
+      "checks": [
+        {"name": "http-ready", "type": "http", "path": "/healthz"}
+      ]
+    }
+  ]
 }
 ```
 
-The generated service reserves an explicit HTTP port from `MN_BLUEPRINT_WEB_UI_PORT_START`/`MN_BLUEPRINT_WEB_UI_PORT_END` and includes an HTTP readiness check. Discovery returns it as passing only after the Gradio dashboard is reachable. Runtime dashboards read live events through the mn-api run events endpoint when the run store is outside the Core container, and fall back to `events.jsonl` when no API event source is configured. The dashboard still writes `ui.json` and `web_ui.json` under the run store for older OtterDesk and CLI consumers, but the service registry is the authoritative live-service source.
+The runtime supervises the declared stream node and registers its service.
+Discovery returns it as passing only after its declared health check succeeds.
+The blueprint service may write `ui.json` and `web_ui.json` as run artifacts,
+but those files are outputs, not instructions for the SDK, API, or CLI to
+create another process.
 
 ## Runtime Behavior
 
