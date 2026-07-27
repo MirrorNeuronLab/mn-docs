@@ -32,6 +32,18 @@ Blueprints that need Python packages at runtime should declare them on the execu
 
 The runtime creates a cached virtualenv keyed by Python version and dependency contents, then rewrites `python`, `python3`, or `python3.11` commands to run from that environment. Root-level blueprint `requirements.txt` files remain documentation or developer setup files unless an executor explicitly references a dependency file under `payloads/`.
 
+For private or disconnected deployments, the blueprint can own Python packages
+directly. Put source trees or wheels under `payloads/skills` and
+`payloads/agents`, declare them with `source: payload`, and pin the exact
+distribution name and version. A bundled `payloads/agents/index.json` is used
+to render local agent templates. Payload packages override matching GAR
+declarations.
+
+Models and other large assets can also be included. Declare GGUF, Safetensors,
+or DDUF files under `runtime.models.*.source` with `type: payload`; MirrorNeuron
+streams them into its blob store and prepares the Docker Model Runner package
+locally. See [Job Bundle Format](bundle.md) for the complete shapes.
+
 ## Wrap Plain Code With The Shared Executor
 
 Any code execution that is part of a blueprint workflow should be represented by
@@ -70,7 +82,7 @@ Job bundle at 'my_bundle' is valid.
 Run it:
 
 ```bash
-mn blueprint run --folder my_bundle
+mn blueprint run my_bundle
 ```
 
 Expected output:

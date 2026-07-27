@@ -66,6 +66,12 @@ Warning: setting a listener host such as `MN_API_HOST=0.0.0.0` exposes it beyond
 - Include only the minimum required environment variables in `pass_env`.
 - Keep credentials out of manifests, payloads, example files, and committed configuration.
 - Treat logs, run stores, backups, and bundle archives as potentially sensitive. They can contain inputs, output artifacts, configuration, event history, or derived data.
+- Treat `payloads/skills`, `payloads/agents`, wheels, model templates, and model
+  files as executable or executable-adjacent supply-chain inputs. Review
+  package metadata, source, licenses, and hashes before running them.
+- Air-gapped backups are complete runtime capsules, not sanitized exports.
+  Protect them like the original job and reject checksum or platform
+  compatibility failures rather than bypassing them.
 - Review model-provider and connector endpoints before assuming data remains local.
 - Rotate a credential if it may have appeared in a bundle, run record, terminal transcript, or log.
 

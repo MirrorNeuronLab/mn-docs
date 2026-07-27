@@ -285,6 +285,83 @@ In this example, the runtime will look for `my_job_bundle/payloads/process_data.
 
 The core Docker image only includes generic Python virtualenv support. Blueprint-specific packages such as OpenCV, optimization solvers, browser tooling, and model libraries should be declared by the blueprint, not installed into core. Root-level blueprint `requirements.txt` files are not automatically installed; put runtime dependency files under `payloads/` and reference them explicitly from the executor node.
 
+### Blueprint-Owned Skills And Agents
+
+A bundle may carry installable skill and agent packages alongside ordinary
+payload files:
+
+```text
+payloads/
+  skills/<package>/pyproject.toml
+  agents/index.json
+  agents/<package>/pyproject.toml
+```
+
+Each package is either a source tree in the same layout as `mn-skills` or
+`mn-agents`, or a Python wheel. Declare it at the manifest root:
+
+```json
+{
+  "skill_dependencies": [
+    {
+      "type": "pip",
+      "source": "payload",
+      "name": "example-private-skill",
+      "version": "1.0.0",
+      "path": "skills/example_private_skill",
+      "format": "source"
+    }
+  ],
+  "agent_dependencies": [
+    {
+      "type": "pip",
+      "source": "payload",
+      "name": "example-private-agent",
+      "version": "1.0.0",
+      "path": "agents/example_private_agent",
+      "format": "source"
+    }
+  ]
+}
+```
+
+Paths are relative to `payloads/` and cannot escape the bundle. Names and
+versions must match the source `pyproject.toml` or wheel metadata. A payload
+package overrides a GAR declaration with the same normalized distribution name
+and exact version.
+
+### Blueprint-Owned Models
+
+Large model files belong below `payloads/models`. They are streamed into the
+content-addressed blob store instead of being read into memory:
+
+```json
+{
+  "runtime": {
+    "models": {
+      "primary": {
+        "provider": "docker_model_runner",
+        "runtime_model": "example/private-model:latest",
+        "backend": "llama.cpp",
+        "context_size": 4096,
+        "required": true,
+        "source": {
+          "type": "payload",
+          "path": "models/private/model.gguf",
+          "format": "gguf",
+          "mmproj_path": "models/private/model.mmproj",
+          "license_path": "models/private/LICENSE"
+        }
+      }
+    }
+  }
+}
+```
+
+Supported formats are `gguf`, `safetensors`, and `dduf`. MirrorNeuron validates
+safe paths, records SHA-256 digests, and packages the files into Docker Model
+Runner before launch. Model licenses remain part of the bundle and backup.
+
 ---
 
 ## Example Bundle

@@ -49,6 +49,9 @@ Each blueprint directory must contain:
 - `TERM.md`: user-facing terms of use, responsibility, warranty disclaimer, third-party service notice, and liability limitation.
 - `config/default.json`: default configuration following this standard.
 - `payloads/`: executable code, scripts, workers, support modules, sample data, or policies.
+- `payloads/skills/`: optional source packages or wheels owned by this blueprint.
+- `payloads/agents/`: optional agent packages plus a local `index.json`.
+- `payloads/models/`: optional GGUF, Safetensors, DDUF, projector, template, configuration, and license files.
 
 Blueprints may also contain:
 
@@ -57,6 +60,26 @@ Blueprints may also contain:
 - `knowledge/`: optional LLM-agent knowledge content, such as RAG material, prompt context, domain references, embeddings metadata, or other agent knowledge sources.
 - `payloads/.../samples`: bundled demo data.
 - `payloads/.../policies`: runtime or sandbox policy files.
+
+### Blueprint-Owned Payload Dependencies
+
+`skill_dependencies` and `agent_dependencies` accept `source: payload` in
+addition to `source: gar`. Payload dependencies must pin `name` and `version`
+and declare a safe `path` below their matching payload directory plus
+`format: source|wheel`. Package metadata must match the manifest declaration.
+When the same name and version exists in both places, the payload copy wins.
+
+`runtime.models.<id>.source` may declare `type: payload`,
+`format: gguf|safetensors|dduf`, and a path below `payloads/models`. Optional
+paths include `mmproj_path`, `chat_template_path`, `config_path`, and
+`license_path`. The runtime computes and records a SHA-256 digest; a declared
+digest must match.
+
+Large payload assets must be streamed into content-addressed storage. They must
+not be buffered into the control-plane request or held completely in memory.
+An air-gapped job backup uses `mn.backup.v2`, includes all referenced blobs and
+runtime dependencies, rejects incompatible restore platforms, and fails export
+when a runtime model has no physical source below `payloads/models`.
 
 The root `index.json` must include a catalog row for each blueprint. The root `category.json` should include category grouping for browsing and filtering.
 

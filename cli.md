@@ -353,16 +353,46 @@ Back up a paused job:
 mn job backup <job_id_or_run_id_or_blueprint_id> --output ./backups
 ```
 
+Create a disconnected-runtime capsule:
+
+```bash
+mn job backup <job_id_or_run_id_or_blueprint_id> \
+  --air-gapped \
+  --output ./backups
+```
+
 Restore it as a fresh paused clone:
 
 ```bash
 mn job restore <blueprint_id> --input ./backups/<backup>.zip
 ```
 
-Backups use the `mn.backup.v1` zip schema and include raw runtime job state,
+Backups use the `mn.backup.v2` zip schema and include raw runtime job state,
 agent snapshots, event history, `bundle/manifest.json`, `bundle/payloads/**`,
 checksums, and local `run_store/**` files when available. The archive may
 contain secrets. Nothing is redacted.
+
+`--air-gapped` additionally includes the referenced large-payload blobs,
+payload and GAR wheels with their runtime dependencies, HostLocal requirements,
+and required DockerWorker images. The archive records the source operating
+system, architecture, Python implementation, and ABI. Restore fails closed on
+an incompatible target. Every runtime model must declare a physical
+`payloads/models` source; a catalog-only model makes air-gapped export fail
+before the archive is written.
+
+You can also unzip an air-gapped archive and run its `bundle` directory. The
+`.mn-airgap.json` marker hydrates the local blob store, wheelhouse, Docker
+images, and payload models before submission, with package-index access
+disabled:
+
+```bash
+unzip ./backups/<backup>.mn-airgap-backup.zip -d ./restored
+MN_OFFLINE=1 mn blueprint run --folder ./restored/bundle
+```
+
+The destination must already have the compatible MirrorNeuron runtime, Python,
+Docker, and Docker Model Runner installed. No internet access is required for
+the blueprint assets captured in the capsule.
 
 ### `mn job dead-letters` And `mn job clear`
 
