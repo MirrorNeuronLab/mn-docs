@@ -129,6 +129,90 @@ mn runtime start --join-host <main-host> --token <main-token> --host <worker-hos
 Set `MN_SYNCTHING_REQUIRED=1` when a missing Syncthing sidecar or peer
 configuration should stop startup instead of continuing with a warning.
 
+### Syncthing Storage And Cache Rollout
+
+Syncthing watches the shared folder continuously and uses an hourly fallback
+rescan by default. `MN_SYNCTHING_RESCAN_INTERVAL_SECONDS` can set another
+positive interval. Runtime start and node join update existing folders as well
+as new folders, keep the watcher enabled with a 10-second coalescing delay, and
+avoid rewriting or restarting Syncthing when the folder configuration is
+already correct.
+
+The synchronized tree continues to carry:
+
+- `submissions/` for multi-node inputs, staged intermediate artifacts, and outputs;
+- `bundle_cache/` for executable bundles needed by peers; and
+- other operator-owned shared files that are not explicitly ignored.
+
+Derived HostLocal state is node-local:
+
+- Python environments use `$MN_HOME/cache/blueprint-python-envs`;
+- staged local Python sources use `$MN_HOME/cache/blueprint-python-sources`; and
+- compatibility checkpoints use `$MN_HOME/checkpoints`.
+
+Each peer receives managed rooted ignore patterns for the legacy shared
+`blueprint-python-envs`, `blueprint-python-sources`, and `checkpoints`
+directories. Operator-defined ignore lines are preserved. Syncthing does not
+synchronize `.stignore`, so starting or rejoining every node is required to
+apply the managed list everywhere.
+
+Warning: do not start an upgraded node while older nodes can still launch
+HostLocal work into the legacy shared environment directory. Mixed versions can
+make an upgraded peer ignore an environment that an older peer still expects.
+
+Use this rollout order:
+
+1. Drain HostLocal work on every node and keep the runtimes stopped.
+2. Upgrade every node without starting or rejoining any upgraded runtime.
+3. Start the main runtime, then start or rejoin each peer so its existing
+   Syncthing folder and local ignore list are reconciled.
+4. Run a representative HostLocal job and verify that its environment appears
+   under the selected node's `$MN_HOME/cache`, not under its shared root.
+5. Verify that the job's submission, intermediate artifacts, and outputs still
+   appear on a peer within the existing readiness timeout.
+6. Restart or rejoin once more and confirm that the folder remains on the
+   configured rescan interval with the watcher enabled.
+
+The Syncthing REST API exposes the effective settings. The API key is sensitive;
+do not paste its value into tickets or command output:
+
+```bash
+MN_OPERATOR_HOME="${MN_HOME:-$HOME/.mn}"
+MN_ST_GUI_PORT="${MN_SYNCTHING_GUI_PORT:-58384}"
+MN_ST_API_KEY="$(tr -d '\n' < "$MN_OPERATOR_HOME/syncthing.api-key")"
+curl -fsS -H "X-API-Key: $MN_ST_API_KEY" \
+  "http://127.0.0.1:$MN_ST_GUI_PORT/rest/config/folders/mirror-neuron-shared"
+curl -fsS -H "X-API-Key: $MN_ST_API_KEY" \
+  "http://127.0.0.1:$MN_ST_GUI_PORT/rest/db/ignores?folder=mirror-neuron-shared"
+unset MN_ST_API_KEY
+```
+
+Expected folder fields are `rescanIntervalS: 3600`,
+`fsWatcherEnabled: true`, and `fsWatcherDelayS: 10` unless the rescan interval
+was explicitly customized. The ignore response must contain the three managed
+rooted patterns on every node.
+
+Ignoring legacy caches removes their recurring scan cost but does not delete
+them. Virtual-environment executables contain absolute paths, so do not move
+legacy environments. After confirming that no persisted job refers to them,
+delete the derived directories independently on every node and let future jobs
+rebuild them locally:
+
+```bash
+MN_OPERATOR_HOME="${MN_HOME:-$HOME/.mn}"
+rm -rf -- \
+  "$MN_OPERATOR_HOME/shared/blueprint-python-envs" \
+  "$MN_OPERATOR_HOME/shared/blueprint-python-sources" \
+  "$MN_OPERATOR_HOME/shared/checkpoints"
+```
+
+Warning: the removal is irreversible and does not propagate because the paths
+are ignored. Do not include `submissions/`, `bundle_cache/`, run output,
+intentional `mn-system-tests` artifacts, or unrelated operator files.
+`cctv-*-debug-envs` remain manual cleanup candidates and are never removed by
+this rollout. MirrorNeuron does not automatically expire synchronized
+submissions or outputs.
+
 On the second box:
 
 ```bash

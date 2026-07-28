@@ -283,6 +283,14 @@ In this example, the runtime will look for `my_job_bundle/payloads/process_data.
 
 `requirements` must be a relative path inside `payloads/`. Inline `packages` are normal pip requirement strings. If both are provided, both are installed into the same cached environment. If neither is provided, no environment is created.
 
+The default cache is node-local at
+`$MN_HOME/cache/blueprint-python-envs`; source packages staged for installation
+use the sibling `blueprint-python-sources` directory. Docker Core sees these
+paths under `/root/.mn/cache`. `MN_BLUEPRINT_PYTHON_ENVS_DIR` can explicitly
+select another cache, including the legacy shared location, but a synchronized
+virtual-environment cache causes avoidable Syncthing indexing and is reported
+as a warning by blueprint doctor.
+
 The core Docker image only includes generic Python virtualenv support. Blueprint-specific packages such as OpenCV, optimization solvers, browser tooling, and model libraries should be declared by the blueprint, not installed into core. Root-level blueprint `requirements.txt` files are not automatically installed; put runtime dependency files under `payloads/` and reference them explicitly from the executor node.
 
 ### Blueprint-Owned Skills And Agents

@@ -493,7 +493,11 @@ mn runtime start --join-host <main-host> --token <main-token> --host <worker-hos
 
 `MN_SYNCTHING_ENABLED=auto` starts a Docker sidecar for shared-storage
 replication. `MN_SYNCTHING_REQUIRED=1` fails startup/join if the sidecar or peer
-configuration cannot be completed.
+configuration cannot be completed. Existing folders are reconciled to the
+watcher-plus-hourly-rescan model, and derived Python environments and
+compatibility checkpoints stay node-local. Follow the mixed-version rollout in
+the [Cluster Guide](cluster.md#syncthing-storage-and-cache-rollout) before
+upgrading an active cluster.
 
 Remove a node from the cluster:
 

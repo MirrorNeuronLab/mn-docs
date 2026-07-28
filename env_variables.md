@@ -90,6 +90,27 @@ mn blueprint list
 
 Validate models and blueprint requirements with `mn model doctor <model-id>` and `mn blueprint validate <folder>`. Do not use `--force` as a routine fix for a failed hardware check.
 
+## Shared storage and node-local caches
+
+| Variable | Default | Behavior |
+| --- | --- | --- |
+| `MN_SHARED_STORAGE_ROOT` | `$MN_HOME/shared` | Synchronized job storage. Multi-node submissions and executable bundle cache entries remain here. |
+| `MN_BLUEPRINT_PYTHON_ENVS_DIR` | `$MN_HOME/cache/blueprint-python-envs` | Node-local derived HostLocal virtual-environment cache. An explicit path remains supported, but `mn blueprint doctor` warns when that path is inside synchronized storage. |
+| `MN_CHECKPOINT_ROOT` | `$MN_HOME/checkpoints` | Node-local compatibility checkpoint directory. Redis remains the recovery authority. |
+| `MN_SYNCTHING_ENABLED` | `auto` | Starts and configures the shared-storage Syncthing sidecar unless explicitly disabled. |
+| `MN_SYNCTHING_REQUIRED` | unset | When truthy, fail startup or join instead of warning when Syncthing cannot be prepared. |
+| `MN_SYNCTHING_RESCAN_INTERVAL_SECONDS` | `3600` | Periodic fallback rescan interval. Invalid and non-positive runtime values fall back to `3600`; filesystem watching remains enabled with a 10-second coalescing delay. |
+
+MirrorNeuron installs rooted Syncthing ignores for `blueprint-python-envs`,
+`blueprint-python-sources`, and `checkpoints` separately on every peer while
+preserving operator-defined ignore lines. The `.stignore` file is node-local
+and is not replicated by Syncthing.
+
+There is no automatic submission retention. Inputs, intermediate artifacts, and
+outputs remain synchronized until the existing job or run deletion workflow
+removes them. See [Cluster Guide](cluster.md#syncthing-storage-and-cache-rollout)
+for the upgrade and legacy-cache cleanup procedure.
+
 ## Contributor verification
 
 After changing shared configuration, run `mn runtime health` and `mn runtime status`. Also run `mn blueprint list` for catalog changes, `mn model doctor <model-id>` for model changes, and API health checks for API configuration changes.
