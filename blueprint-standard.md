@@ -885,6 +885,86 @@ optionally preserves a distinct executable runtime-binding id. These fields
 are useful when compacting an older executable manifest; normal Python handler
 steps only need `handler` and optional `with` parameters.
 
+### Dynamic workflow authoring
+
+Use `workflow.mode: "dynamic_dag"` only when a controller needs to insert a
+bounded amount of predeclared work after inspecting runtime data. Static
+workflows remain the default and require no changes.
+
+```json
+{
+  "workflow": {
+    "mode": "dynamic_dag",
+    "dynamic": {
+      "enabled": true,
+      "apply_at": "between_steps",
+      "templates": {
+        "followup_research": {
+          "label": "Follow-up research",
+          "run": {"handler": "example.steps.followup"}
+        }
+      },
+      "regions": [
+        {
+          "id": "research_followups",
+          "strategy": "replace_path",
+          "controller": "inspect",
+          "exit": "report",
+          "templates": ["followup_research"],
+          "mutable_edges": ["inspect_to_report"]
+        }
+      ]
+    }
+  }
+}
+```
+
+Source-v2 dynamic templates use ordinary step `control` and `run` fields but
+are not members of the initial `workflow.steps` graph. V1 supports a single
+`handler` or an existing `agent`; StepSpec multi-agent definitions and live
+dynamic template instances are not supported. The compiler emits executable
+template definitions, idle agents, and `runtime.bindings` before submission.
+It omits physical agent routes for region-managed mutable edges so an old route
+cannot bypass a revised ledger graph.
+
+A controller returns patch events through the additive SDK `StepResult.events`
+field. Prefer the SDK builders:
+
+```python
+from mn_sdk import dynamic_add_edge, dynamic_add_step, dynamic_remove_edge
+from mn_sdk import graph_patch_event
+from mn_sdk.step_runtime import send_output
+
+patch = graph_patch_event(
+    patch_id="evidence-gap-1",
+    base_revision=context.graph_revision,
+    region_id="research_followups",
+    operations=[
+        dynamic_remove_edge("inspect_to_report"),
+        dynamic_add_step(
+            "followup_1",
+            "followup_research",
+            step_input={"query": "primary evidence"},
+        ),
+        dynamic_add_edge("inspect_to_followup", "inspect", "followup_1"),
+        dynamic_add_edge("followup_to_report", "followup_1", "report"),
+    ],
+)
+return send_output({"decision": "expanded"}, events=[patch])
+```
+
+`StepContext` exposes `graph_revision`, `template_id`, and `region_id`.
+`receive_input()` exposes the instantiated template's `with` object as
+`payload["step_input"]`. Treat the patch id and inserted ids as durable
+idempotency keys: a controller retry must reproduce the same patch content.
+For a service invocation that makes no topology change, emit
+`controller_checkpoint_event(region_id="<region-id>")`.
+
+See [Runtime Architecture](runtime-architecture.md#bounded-dynamic-dags) for
+atomicity, retry fencing, recovery, batch/service semantics, defaults, and hard
+caps. The catalog blueprint `demo_dynamic_workflow` is the deterministic,
+network-free reference implementation.
+
 Blueprints that use `workflow.steps` for multi-step execution should declare runtime workflow control so MirrorNeuron can keep progress durable, bounded, and recoverable. The source of truth is the step ledger stored on the job as `workflow_state`; nodes and agents are workers, not the durable progress authority.
 
 Required runtime shape:

@@ -29,16 +29,16 @@ Airflow's big lesson for this runtime is not "copy operators." It is "treat heav
 
 MirrorNeuron now separates the user-facing problem workflow from the lower-level agent runtime. For `mn.workflow/v1` blueprints, `workflow` is the problem DAG: it names the source, sink, step dependencies, branch requirements, join behavior, and accepted outcomes. `agents.nodes` and `agents.edges` are the runtime agent communication topology used by the BEAM runtime; they are not the problem workflow. Top-level `nodes`, `edges`, and `entrypoints` are runtime-submission compatibility fields and should not be authored in OtterDesk manifests.
 
-The current DAG executor is a durable DAG scheduler with per-step lifecycle
-state, explicit trigger rules, branch and guard skips, and runtime-expanded
-mapped items for scatter–gather work. It is not a full GOAP or PDDL planner
-yet. See [Workflow DAG Flow Patterns](dag-flow-patterns.md) for authoring
-examples.
+The DAG executor is a durable scheduler with per-step lifecycle state, explicit
+trigger rules, branch and guard skips, runtime-expanded mapped items for
+scatter–gather work, and an opt-in bounded dynamic mode. It is not a full GOAP
+or PDDL planner. See [Workflow DAG Flow Patterns](dag-flow-patterns.md) for
+authoring examples.
 
 ```text
-workflow.edges + workflow.steps
+workflow.edges + workflow.steps + admitted dynamic templates
   -> graph compiler
-  -> static DAG scheduler
+  -> static or bounded-dynamic DAG scheduler
   -> step lifecycle state machine
   -> runtime.bindings
   -> agents, workers, validators, reducers
@@ -55,7 +55,53 @@ Execution works in layers:
 - `runtime.bindings` maps each workflow step to one or more internal workers. A tax step, for example, may run a preparer and a validator while still appearing as one problem-workflow node.
 - The executor emits generic workflow events such as `workflow_graph_compiled`, `workflow_step_started`, `workflow_edge_satisfied`, `workflow_join_waiting`, and `workflow_finished`. The shared SDK turns these into the progress snapshots used by CLI and Web UI.
 
-GOAP/PDDL-style planning is outside the supported runtime behavior described here. The manifest has planner-oriented fields such as `requires`, `provides`, `control`, and disabled `dynamic` metadata, while the runtime executes the declared graph through its static DAG scheduler.
+`workflow.mode: static_dag` retains the original immutable-topology behavior.
+`workflow.mode: dynamic_dag` permits named controller steps to patch only
+declared adaptive regions. Core validates and applies those patches; the
+controller remains responsible for deciding whether runtime evidence warrants
+a change.
+
+### Bounded dynamic DAGs
+
+Dynamic workflows do not create arbitrary code or resources. Before a run
+starts, the source compiler renders every allowed template into an idle worker
+binding and normal resource admission includes those workers. At runtime a
+controller may instantiate only those templates.
+
+Two region strategies are supported:
+
+- `replace_path` removes declared mutable edges and inserts finite batch work
+  before a fixed exit. New roots wait for the controller attempt to complete.
+- `checkpoint_fanout` is for reentrant service controllers. An accepted patch
+  durably checkpoints the current invocation, rearms the controller, and
+  releases the patch roots immediately. Completed finite subgraphs are retired
+  into bounded history. Finite fanout completion does not stop the service;
+  explicit service stop or cancellation remains authoritative.
+
+Each `workflow_graph_patch` has a `patch_id`, optimistic `base_revision`, region
+id, and at most the configured number of `add_step`, `remove_step`, `add_edge`,
+and `remove_edge` operations. Application is atomic. Exact duplicate replays
+are successful no-ops; conflicting patch-id reuse and stale revisions are
+rejected. A rejection fails the requesting attempt through its normal retry
+policy, and later output from that rejected attempt is fenced.
+
+Core also rejects patches that exceed limits, use an unadmitted template,
+cross a region boundary, mutate fixed/running/terminal work, create a cycle, or
+make required region work unreachable. Defaults are 64 batch patches or 10,000
+service patches, 128 active dynamic steps, 64 operations per patch, and 32 KiB
+of input per instance. Hard caps are 100,000 patches, 1,000 active dynamic
+steps, and 256 operations per patch.
+
+The durable ledger schema is v3 for new runs. It stores graph revision,
+patch-deduplication records, region ownership, active instances, and bounded
+service history. Static v2 state remains readable. Clean-attempt recovery starts
+again at revision 0; restoration of persisted v3 coordinator state retains
+already-applied revisions. Public topology events contain safe step/edge
+deltas, never per-instance `with` parameters.
+
+GOAP/PDDL-style planning remains outside the runtime contract. Dynamic
+conditions and planning decisions are ordinary controller logic; Core provides
+only bounded topology validation, durable ordering, scheduling, and recovery.
 
 ## Control plane vs execution plane
 
