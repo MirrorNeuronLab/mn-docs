@@ -13,7 +13,7 @@ semantics.
 Default local base URL:
 
 ```text
-http://localhost:54001/api/v1
+http://localhost:54001/api/v2
 ```
 
 Set `MN_API_PORT` to change the port. Use `MN_ENV=prod` with `MN_API_TOKEN` for
@@ -88,7 +88,7 @@ protected deployments.
 ### Health
 
 ```bash
-curl -s http://localhost:54001/api/v1/health
+curl -s http://localhost:54001/api/v2/health
 ```
 
 Expected response includes:
@@ -102,7 +102,7 @@ Expected response includes:
 ### List Jobs
 
 ```bash
-curl -s "http://localhost:54001/api/v1/jobs?limit=5&include_terminal=true"
+curl -s "http://localhost:54001/api/v2/jobs?limit=5&include_terminal=true"
 ```
 
 Expected response includes a job list or an empty list, depending on runtime
@@ -114,10 +114,10 @@ state.
 or `bundle_path` for an uploaded bundle path returned by `/bundles/upload`.
 
 ```bash
-curl -s -X POST http://localhost:54001/api/v1/jobs \
+curl -s -X POST http://localhost:54001/api/v2/jobs \
   -H "Content-Type: application/json" \
   -d '{
-    "manifest_json": "{\"apiVersion\":\"mn.workflow/v1\",\"kind\":\"Workflow\",\"workflow\":{\"workflow_id\":\"demo\",\"nodes\":[]}}"
+    "manifest_json": "{\"apiVersion\":\"mn.workflow/v2\",\"kind\":\"Workflow\",\"workflow\":{\"workflow_id\":\"demo\",\"nodes\":[]}}"
   }'
 ```
 
@@ -139,7 +139,7 @@ mn blueprint run --folder otterdesk-blueprints/medical_deid_record_intake_assist
 ### Launch A Catalog Blueprint
 
 ```bash
-curl -s -X POST http://localhost:54001/api/v1/blueprints/medical_deid_record_intake_assistant/runs \
+curl -s -X POST http://localhost:54001/api/v2/blueprints/medical_deid_record_intake_assistant/runs \
   -H "Content-Type: application/json" \
   -d '{"force": false}'
 ```
@@ -153,7 +153,7 @@ state, and model-install state are reported through the progress resource.
   "status": "launching",
   "run_id": "<run_id>",
   "progress_id": "<progress_id>",
-  "progress_url": "/api/v1/blueprints/launch/progress/<progress_id>",
+  "progress_url": "/api/v2/blueprints/launch/progress/<progress_id>",
   "job_id": null
 }
 ```
@@ -161,14 +161,14 @@ state, and model-install state are reported through the progress resource.
 REST is the source of truth for progress state:
 
 ```bash
-curl -s http://localhost:54001/api/v1/blueprints/launch/progress/<progress_id>
+curl -s http://localhost:54001/api/v2/blueprints/launch/progress/<progress_id>
 ```
 
 Clients that want low-latency progress updates may also subscribe through the
 shared realtime WebSocket:
 
 ```text
-ws://localhost:54001/api/v1/realtime
+ws://localhost:54001/api/v2/realtime
 ```
 
 If API auth is enabled, pass the bearer token in the `Authorization` header or
@@ -224,9 +224,9 @@ version.
 ### Read Run Observability
 
 ```bash
-curl -s http://localhost:54001/api/v1/runs/<run_id>/observability-summary
-curl -s http://localhost:54001/api/v1/runs/<run_id>/timeline
-curl -s http://localhost:54001/api/v1/runs/<run_id>/artifacts
+curl -s http://localhost:54001/api/v2/runs/<run_id>/observability-summary
+curl -s http://localhost:54001/api/v2/runs/<run_id>/timeline
+curl -s http://localhost:54001/api/v2/runs/<run_id>/artifacts
 ```
 
 These endpoints are the preferred Web UI and OtterDesk read surfaces for run

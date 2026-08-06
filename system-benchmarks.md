@@ -36,7 +36,7 @@ Live endpoint measurements are opt-in:
 
 ```bash
 RUN_MN_PERF_LIVE=1 \
-MN_API_BASE_URL=http://127.0.0.1:54001/api/v1 \
+MN_API_BASE_URL=http://127.0.0.1:54001/api/v2 \
 MN_GRPC_TARGET=127.0.0.1:55051 \
 MN_LLM_BASE_URL=http://127.0.0.1:12434/engines/v1 \
 MN_LLM_MODEL=ai/gemma3 \

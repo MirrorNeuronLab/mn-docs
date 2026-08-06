@@ -94,7 +94,7 @@ Job submitted successfully
 ## Prefer A Source Manifest For Multi-Step Blueprints
 
 Author multi-step blueprints as `mn.workflow.source/v2`. The source manifest is
-the DAG definition; the SDK expands it to the executable `mn.workflow/v1`
+the DAG definition; the SDK expands it to the executable `mn.workflow/v2`
 shape used by Core.
 
 ```json
@@ -183,7 +183,7 @@ class ResearchAgents:
         return {"status": "ok", "topic": request["topic"]}
 
 
-@workflow.defn(name="research_flow_v1")
+@workflow.defn(name="research_flow_v2")
 class ResearchFlow:
     def __init__(self):
         self.agents = ResearchAgents()

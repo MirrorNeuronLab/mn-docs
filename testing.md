@@ -139,7 +139,7 @@ Return to the workspace root, then run:
 ```bash
 cd ..
 MN_GRPC_TARGET=localhost:55200 \
-MN_API_BASE_URL=http://localhost:4001/api/v1 \
+MN_API_BASE_URL=http://localhost:4001/api/v2 \
 RUN_MN_SYSTEM_TESTS=1 \
 .venv/bin/python -m pytest mn-system-tests/integration mn-system-tests/e2e
 ```
