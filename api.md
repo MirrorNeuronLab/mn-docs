@@ -5,6 +5,22 @@ HTTP automation. The CLI and Python SDK also use internal gRPC interfaces; the
 gRPC `v2` package name and domain schema labels such as `mn.workflow/v2` are
 independent of the REST version.
 
+## Reader and scope
+
+- **Reader:** integrator, application developer, or maintainer using the public
+  HTTP boundary.
+- **Outcome:** select canonical resources, make conditional or idempotent
+  requests, and monitor accepted work without relying on retired routes.
+- **Page type:** REST and streaming API reference.
+- **Scope:** the canonical `mirrorneuron.rest.v1` HTTP and SSE surface. Internal
+  gRPC interfaces, CLI syntax, and domain payload schemas are out of scope.
+- **Maturity:** stable canonical v1 surface; removed and unsupported routes are
+  identified explicitly.
+- **Sources of truth:** `mn-api` route modules, request models, operation
+  implementation, OpenAPI schema, and contract tests.
+- **Validation:** audit local links and Markdown syntax, then run the focused
+  `mn-api` contract tests for changed routes and response behavior.
+
 ## Base URL and capability
 
 The default local base URL is:
@@ -42,15 +58,17 @@ supported and return `404`.
   Operations return `202 Accepted` with `Location`. Updates return `200`; a
   completed deletion returns `204 No Content`.
 - Send `Idempotency-Key` on non-idempotent POST requests, especially Run
-  creation, schedule dispatch, and administrative operations. Replay records
-  last 24 hours; reusing a key for another request returns `409 Conflict`.
-- Persistent jobs, schedules, deployments, model registrations, and blueprint
+  creation, blueprint addition or removal, schedule dispatch, and
+  administrative operations. Replay records last 24 hours; reusing a key for
+  another request returns `409 Conflict`.
+- Persistent jobs, schedules, deployments, model registrations, and model
   installations return strong `ETag` headers. Their `PATCH` and `DELETE`
   requests require `If-Match`; missing and stale conditions return `428` and
   `412`, respectively.
 - Errors use `application/problem+json` with `type`, `title`, `status`,
   `detail`, `instance`, `code`, `request_id`, and bounded field `errors` when
-  applicable.
+  applicable. Work that fails after a `202 Accepted` response records its
+  terminal failure on the Operation instead of returning a second HTTP error.
 
 ## Resource overview
 
@@ -60,7 +78,7 @@ supported and return `404`.
 | Jobs | `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/bundle`, `/jobs/{job_id}/data-resets`, `/jobs/{job_id}/mcp` |
 | Runs | `/jobs/{job_id}/runs`, `/blueprints/{blueprint_id}/runs`, `/runs`, `/runs/{run_id}` |
 | Run detail | `/runs/{run_id}/monitor`, `/workflow-progress`, `/logs`, `/events`, `/resources`, `/human-requests`, `/ui`, `/artifacts`, `/outputs`, `/snapshots`, `/agent-graph`, `/export`, `/observability` |
-| Bundles and blueprints | `/bundles`, `/blueprints`, `/blueprints/{blueprint_id}`, `/installation`, `/validations`, `/runs` |
+| Bundles and blueprints | `/bundles`, `/blueprints`, `/blueprints/{blueprint_id}`, `/additions`, `/removals`, `/validations`, `/runs` |
 | Schedules and events | `/jobs/{job_id}/schedules`, `/schedules`, `/schedules/{schedule_id}`, `/dispatches`, `/trigger-events` |
 | Infrastructure | `/nodes`, `/deployments`, `/models`, `/model-remotes`, `/model-proxies`, `/services`, `/service-checks` |
 | Operations | `/operations`, `/operations/{operation_id}` |
@@ -165,20 +183,122 @@ curl -s -X PATCH http://localhost:54001/api/v1/runs/<run-id> \
 
 Invalid state transitions return `409 Conflict`.
 
-### Install a blueprint conditionally
+### Add a blueprint and monitor preparation
 
-Read the current installation and retain its `ETag`, then use `If-Match` when
-replacing or deleting it. Initial creation may omit `If-Match`.
+Prerequisites: run `mn-api` with its blueprint catalog configured, choose an ID
+returned by `GET /blueprints`, and authenticate when `MN_API_TOKEN` is set. The
+request validates the blueprint bundle, prepares required runtime models and
+services, and records the blueprint locally. It does not require a separate
+`mn blueprint add` command.
 
 ```bash
-curl -i -X PUT http://localhost:54001/api/v1/blueprints/<blueprint-id>/installation \
+curl -i -X POST http://localhost:54001/api/v1/blueprints/<blueprint-id>/additions \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: <uuid>" \
-  -d '{}'
+  -d '{"force":false}'
 ```
 
-Installation and removal return an Operation. Poll the `Location` resource or
-stream its events.
+The response is `202 Accepted`. Its `Location` header identifies an Operation,
+and the body initially resembles:
+
+```json
+{
+  "operation_id": "op-local-<opaque-id>",
+  "kind": "add_blueprint",
+  "status": "pending",
+  "progress": {
+    "percent": 0,
+    "stage": "queued",
+    "label": "Queued",
+    "detail": "The operation is queued on the local API host."
+  }
+}
+```
+
+Poll the Operation until `status` is `completed` or `failed`:
+
+```bash
+curl -s http://localhost:54001/api/v1/operations/<operation-id>
+```
+
+`progress.percent` is monotonic and bounded from `0` through `100`; successful
+completion sets it to `100`. Addition stages include `queued`, `starting`,
+`resolve_blueprint`, `validate_blueprint`, `prepare_runtime`,
+`record_addition`, and `completed`; clients should present the supplied `label`
+and `detail` and must tolerate new stage names. A completed Operation contains
+`result.added`, the public `result.blueprint`, its `result.addition`, and a
+sanitized `result.runtime_preparation` summary.
+
+After completion, `GET /blueprints/<blueprint-id>` and collection items expose
+addition state without the retired installation vocabulary:
+
+```json
+{
+  "id": "<blueprint-id>",
+  "added": true,
+  "addition": {
+    "blueprint_id": "<blueprint-id>",
+    "status": "added",
+    "added_at": "<timestamp>",
+    "revision": "<revision>"
+  }
+}
+```
+
+If runtime preparation fails, the Operation has `status: "failed"` and a
+sanitized `error` with `code`, `title`, `detail`, `retryable`, optional `hint`,
+and bounded prerequisite `errors`. `MN_BLUEPRINT_ADD_FAILED` means a required
+runtime prerequisite was not ready; correct the reported prerequisite and send
+a new addition request with a new idempotency key.
+
+> **Warning:** `{"force":true}` passes a compatibility override into runtime
+> prerequisite preparation. Use it only after reviewing the failed check; it
+> can admit a configuration that the normal compatibility path rejects.
+
+### Remove an added blueprint
+
+> **Warning:** removal archives the local addition record and, by default,
+> removes blueprint-owned runtime resources, including cleanup-owned files.
+> Deleted runtime data is not restored by adding the blueprint again. Run a dry
+> run first or set `keep_resources` when those resources must remain.
+
+Preview removal without changing state:
+
+```bash
+curl -i -X POST http://localhost:54001/api/v1/blueprints/<blueprint-id>/removals \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: <uuid>" \
+  -d '{"dry_run":true}'
+```
+
+Then submit the intended policy with a new idempotency key. This example keeps
+runtime resources and model images:
+
+```bash
+curl -i -X POST http://localhost:54001/api/v1/blueprints/<blueprint-id>/removals \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: <uuid>" \
+  -d '{"keep_resources":true,"keep_models":true}'
+```
+
+The request fields are:
+
+| Field | Default | Effect |
+| --- | --- | --- |
+| `keep_resources` | `false` | Preserve blueprint-owned runtime resources instead of cleaning them up. |
+| `keep_models` | `false` | Explicitly retain model images after releasing this blueprint's ownership. |
+| `remove_models` | `false` | Remove model images that become orphaned; cannot be combined with `keep_models`. |
+| `dry_run` | `false` | Plan the archive, resource cleanup, and model changes without applying them. |
+
+Removal is also asynchronous. Poll its Operation or follow the Operation SSE
+stream, then verify that the blueprint projection reports `added: false` and
+`addition.status: "not_added"`. Re-adding can recreate runtime prerequisites,
+but it cannot recover resources or data deleted by removal.
+
+The former `GET /blueprints/<blueprint-id>/installation`,
+`PUT /blueprints/<blueprint-id>/installation`, and
+`DELETE /blueprints/<blueprint-id>/installation` routes are removed and return
+`404`; clients must migrate to additions and removals.
 
 ## Server-Sent Events
 
@@ -207,6 +327,11 @@ comments while idle, releases stream resources on disconnect, and closes after
 a terminal event. Keep ordinary snapshot and history GETs as the recovery
 source of truth.
 
+API-owned addition and removal Operations emit `operation.accepted`,
+`operation.progress`, and one terminal `operation.completed` or
+`operation.failed` event. Each event's `data` is the current Operation snapshot,
+including its progress and terminal result or error.
+
 ```bash
 curl -N http://localhost:54001/api/v1/runs/<run-id>/events/stream \
   -H "Authorization: Bearer <token>" \
@@ -226,6 +351,10 @@ Use `mn job` for durable definitions and `mn run` for executions. The Python
 SDK exposes typed pages, revision-aware conditional updates, and idempotent
 create/dispatch methods while keeping HTTP-specific headers and Problem Details
 adaptation inside `mn-api`.
+
+Blueprint lifecycle terminology also matches the CLI: the REST API creates
+blueprint additions and removals; it does not expose a blueprint installation
+resource. Installation remains valid terminology for model resources.
 
 Common operator commands include:
 
