@@ -1,364 +1,199 @@
-# MirrorNeuron API
+# MirrorNeuron REST API
 
-This document describes the read and control APIs used by the CLI, Web UI,
-OtterDesk, and automation tools.
+This page describes the canonical HTTP API used by the Web UI, OtterDesk, and
+HTTP automation. The CLI and Python SDK also use internal gRPC interfaces; the
+gRPC `v2` package name and domain schema labels such as `mn.workflow/v2` are
+independent of the REST version.
 
-## HTTP REST API
+## Base URL and capability
 
-`mn-api` is a FastAPI gateway over the Python SDK and MirrorNeuron gRPC runtime.
-It keeps browser and desktop clients out of the raw gRPC layer while preserving
-the runtime's job, run, model, service, schedule, resource, and cluster
-semantics.
-
-Default local base URL:
+The default local base URL is:
 
 ```text
-http://localhost:54001/api/v2
+http://localhost:54001/api/v1
 ```
 
-Set `MN_API_PORT` to change the port. Use `MN_ENV=prod` with `MN_API_TOKEN` for
-protected deployments.
-
-## Endpoint Overview
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `/health` | API liveness and dependency status. |
-| `GET` | `/runtime/status` | Local runtime status summary. |
-| `GET` | `/system/summary` | Cluster nodes, active jobs, and system overview. |
-| `GET` | `/metrics` | Runtime metrics summary. |
-| `POST` | `/jobs` | Submit a manifest JSON payload or uploaded bundle path. |
-| `GET` | `/jobs` | List jobs with `limit` and `include_terminal`. |
-| `GET` | `/jobs/{job_id}` | Get compact, summary, or full job detail. |
-| `POST` | `/jobs/{job_id}/cancel` | Cancel a job. |
-| `POST` | `/jobs/{job_id}/pause` | Pause a job. |
-| `POST` | `/jobs/{job_id}/resume` | Resume a paused job. |
-| `GET` | `/jobs/{job_id}/events` | Stream or list raw runtime events. |
-| `GET` | `/jobs/{job_id}/workflow-progress` | Normalized progress, trace, and failure state. |
-| `GET` | `/jobs/{job_id}/dead-letters` | Dead-letter events for routing or processing failures. |
-| `POST` | `/jobs/cleanup` | Clear terminal job records. |
-| `POST` | `/bundles/upload` | Upload a bundle zip for later validation or launch. |
-| `GET` | `/blueprints` | List catalog blueprints and categories. |
-| `GET` | `/blueprints/{blueprint_id}` | Get one catalog blueprint. |
-| `POST` | `/blueprints/{blueprint_id}/install` | Install required runtime models for a blueprint. |
-| `POST` | `/blueprints/{blueprint_id}/validate` | Validate catalog blueprint inputs and requirements. |
-| `POST` | `/blueprints/{blueprint_id}/runs` | Launch a catalog blueprint run asynchronously. |
-| `POST` | `/blueprints/launch/validate` | Validate a launch source such as an uploaded bundle. |
-| `POST` | `/blueprints/launch/runs` | Launch an uploaded or local bundle source asynchronously. |
-| `GET` | `/blueprints/launch/progress/{progress_id}` | Read model-install, validation, and submit progress. |
-| `WS` | `/realtime` | Subscribe to realtime events such as launch progress. |
-| `GET` | `/runs/{run_id}/result` | Read run result metadata. |
-| `GET` | `/runs/{run_id}/final-artifact` | Read the final run artifact. |
-| `GET` | `/runs/{run_id}/artifacts` | List run-store artifacts with metadata and URLs. |
-| `GET` | `/runs/{run_id}/outputs` | List user-facing outputs. |
-| `GET` | `/runs/{run_id}/events` | Read run-store events. |
-| `GET` | `/runs/{run_id}/logs` | Read structured run logs. |
-| `GET` | `/runs/{run_id}/timeline` | Read normalized timeline records. |
-| `GET` | `/runs/{run_id}/observability-summary` | Read compact observability totals. |
-| `GET` | `/runs/{run_id}/stream` | Read merged run events, logs, human events, resources, and timeline channels. |
-| `GET` | `/runs/{run_id}/resources` | Read resource and token usage summary. |
-| `GET` | `/runs/{run_id}/human` | List human review requests and notices. |
-| `POST` | `/runs/{run_id}/human/{request_id}/response` | Record a human review response. |
-| `POST` | `/runs/{run_id}/human/{notice_id}/ack` | Acknowledge a human notice. |
-| `GET` | `/runs/{run_id}/ui` | Read blueprint UI metadata. |
-| `GET` | `/runs/{run_id}/ui/video` | Serve run video UI data when present. |
-| `GET` | `/models` | List installed Docker Model Runner models visible to this node. |
-| `POST` | `/models/{model_id}/benchmark` | Run a small local model benchmark. |
-| `GET` | `/services` | List service-registry entries. |
-| `GET` | `/services/{name}/resolve` | Resolve a passing service instance by name, tag, or node. |
-| `GET` | `/resource` | Read resource totals and limits. |
-| `POST`/`PUT` | `/resource` | Set coarse resource limits. |
-| `POST` | `/schedules` | Create periodic, delayed, or event schedules. |
-| `GET` | `/schedules` | List schedules. |
-| `GET` | `/schedules/{schedule_id}` | Get one schedule. |
-| `PATCH` | `/schedules/{schedule_id}` | Update schedule attributes. |
-| `POST` | `/schedules/{schedule_id}/pause` | Pause a schedule. |
-| `POST` | `/schedules/{schedule_id}/resume` | Resume a schedule. |
-| `DELETE` | `/schedules/{schedule_id}` | Delete a schedule. |
-| `POST` | `/schedules/{schedule_id}/dispatch` | Dispatch a schedule immediately. |
-| `POST` | `/events` | Emit a runtime trigger event. |
-| `GET` | `/events` | List recent trigger events. |
-| `POST` | `/system/cluster/nodes:add` | Add or join a cluster node. |
-| `POST` | `/system/cluster/nodes:join` | Join a cluster node through the REST gateway. |
-| `POST` | `/system/cluster/nodes:remove` | Remove a cluster node. |
-| `POST` | `/system/cluster/nodes:leave` | Leave a cluster from the local node. |
-
-## Request Examples
-
-### Health
-
-```bash
-curl -s http://localhost:54001/api/v2/health
-```
-
-Expected response includes:
+`GET /health` is unauthenticated and deliberately small:
 
 ```json
 {
-  "status": "ok"
+  "status": "ok",
+  "api_contract": "mirrorneuron.rest.v1",
+  "auth": "enabled"
 }
 ```
 
-### List Jobs
+Clients must verify `api_contract`. A server that responds on `/api/v1` without
+that value implements a historical, incompatible contract and must not be used.
+All other endpoints require `Authorization: Bearer <token>` when
+`MN_API_TOKEN` is configured.
 
-```bash
-curl -s "http://localhost:54001/api/v2/jobs?limit=5&include_terminal=true"
-```
+`/api/v2`, historical aliases, `/runtime-runs`, and WebSocket routes are not
+supported and return `404`.
 
-Expected response includes a job list or an empty list, depending on runtime
-state.
+## Common conventions
 
-### Submit A Manifest
+- JSON fields use `snake_case`; request bodies reject unknown fields.
+- Collection responses are `{ "items": [], "next_page_token": null }`.
+- `page_size` defaults to `50` and is capped at `200`. Pass the opaque
+  `page_token` unchanged to continue. Tokens expire after 24 hours and are
+  bound to the route, principal, filters, and stable sort.
+- Synchronous creation returns `201 Created` with `Location`. Accepted Runs and
+  Operations return `202 Accepted` with `Location`. Updates return `200`; a
+  completed deletion returns `204 No Content`.
+- Send `Idempotency-Key` on non-idempotent POST requests, especially Run
+  creation, schedule dispatch, and administrative operations. Replay records
+  last 24 hours; reusing a key for another request returns `409 Conflict`.
+- Persistent jobs, schedules, deployments, model registrations, and blueprint
+  installations return strong `ETag` headers. Their `PATCH` and `DELETE`
+  requests require `If-Match`; missing and stale conditions return `428` and
+  `412`, respectively.
+- Errors use `application/problem+json` with `type`, `title`, `status`,
+  `detail`, `instance`, `code`, `request_id`, and bounded field `errors` when
+  applicable.
 
-`POST /jobs` accepts a request envelope. Use `manifest_json` for a raw manifest
-or `bundle_path` for an uploaded bundle path returned by `/bundles/upload`.
+## Resource overview
 
-```bash
-curl -s -X POST http://localhost:54001/api/v2/jobs \
-  -H "Content-Type: application/json" \
-  -d '{
-    "manifest_json": "{\"apiVersion\":\"mn.workflow/v2\",\"kind\":\"Workflow\",\"workflow\":{\"workflow_id\":\"demo\",\"nodes\":[]}}"
-  }'
-```
-
-Expected response:
-
-```json
-{
-  "id": "<job_id>",
-  "status": "pending"
-}
-```
-
-For normal user-facing blueprint execution, prefer:
-
-```bash
-mn blueprint run --folder otterdesk-blueprints/medical_deid_record_intake_assistant
-```
-
-### Launch A Catalog Blueprint
-
-```bash
-curl -s -X POST http://localhost:54001/api/v2/blueprints/medical_deid_record_intake_assistant/runs \
-  -H "Content-Type: application/json" \
-  -d '{"force": false}'
-```
-
-Expected response is returned immediately with `202 Accepted` and includes
-`run_id`, `progress_id`, and `progress_url`. The final `job_id`, validation
-state, and model-install state are reported through the progress resource.
-
-```json
-{
-  "status": "launching",
-  "run_id": "<run_id>",
-  "progress_id": "<progress_id>",
-  "progress_url": "/api/v2/blueprints/launch/progress/<progress_id>",
-  "job_id": null
-}
-```
-
-REST is the source of truth for progress state:
-
-```bash
-curl -s http://localhost:54001/api/v2/blueprints/launch/progress/<progress_id>
-```
-
-Clients that want low-latency progress updates may also subscribe through the
-shared realtime WebSocket:
-
-```text
-ws://localhost:54001/api/v2/realtime
-```
-
-If API auth is enabled, pass the bearer token in the `Authorization` header or
-as `?token=<MN_API_TOKEN>` for WebSocket clients that cannot set headers.
-
-Subscribe to launch progress using topic `launch_progress:<progress_id>`:
-
-```json
-{
-  "requestId": "req-001",
-  "action": "subscribe",
-  "topic": "launch_progress:<progress_id>",
-  "after": 0
-}
-```
-
-The WebSocket emits idempotent topic events:
-
-```json
-{
-  "id": "launch_progress:<progress_id>:1",
-  "topic": "launch_progress:<progress_id>",
-  "type": "blueprint.launch_progress.model_install.running",
-  "version": 1,
-  "occurredAt": "2026-07-07T14:00:00Z",
-  "patch": {
-    "latest": {
-      "phase": "model_install",
-      "status": "running"
-    },
-    "status": "running",
-    "completed": false
-  }
-}
-```
-
-Use the event `version` as an exclusive cursor when reconnecting:
-
-```json
-{
-  "requestId": "req-002",
-  "action": "subscribe",
-  "topic": "launch_progress:<progress_id>",
-  "after": 12
-}
-```
-
-After reconnecting, clients should call the REST progress URL once, apply any
-missed events, then resume the WebSocket subscription. Duplicate events are safe
-to ignore when their `version` is less than or equal to the last applied
-version.
-
-### Read Run Observability
-
-```bash
-curl -s http://localhost:54001/api/v2/runs/<run_id>/observability-summary
-curl -s http://localhost:54001/api/v2/runs/<run_id>/timeline
-curl -s http://localhost:54001/api/v2/runs/<run_id>/artifacts
-```
-
-These endpoints are the preferred Web UI and OtterDesk read surfaces for run
-status, logs, timeline, resources, outputs, and downloadable artifacts.
-
-## gRPC And SDK Operator Surfaces
-
-The CLI and Python SDK primarily use gRPC for runtime control. The gRPC server
-exposes JSON-safe methods for orchestration features:
-
-| Area | Surface |
+| Area | Canonical resources |
 | --- | --- |
-| Jobs | submit, inspect, list, cancel, pause, resume, backup, restore, dead letters |
-| Reconciliation | `ReconcileNode` |
-| Drain and maintenance | `DrainNode`, `CancelNodeDrain`, `SetNodeMaintenance`, `GetNodeDrainStatus` |
-| Services | `ListServices`, `ResolveService`, `CheckServices` |
-| Resources | resource get/set methods |
-| Deployments | deploy, update, list, status, promote, rollback, pause, resume, fail methods |
-| Schedules and events | create, update, list, status, pause, resume, delete, dispatch, emit, and list event methods |
+| Health and system | `/health`, `/runtime/status`, `/runtime/health`, `/runtime/diagnostics`, `/runtime/resources`, `/system/summary`, `/metrics` |
+| Jobs | `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/bundle`, `/jobs/{job_id}/data-resets` |
+| Runs | `/jobs/{job_id}/runs`, `/blueprints/{blueprint_id}/runs`, `/runs`, `/runs/{run_id}` |
+| Run detail | `/runs/{run_id}/monitor`, `/workflow-progress`, `/logs`, `/events`, `/resources`, `/human-requests`, `/ui`, `/artifacts`, `/outputs`, `/snapshots`, `/agent-graph`, `/export`, `/observability` |
+| Bundles and blueprints | `/bundles`, `/blueprints`, `/blueprints/{blueprint_id}`, `/installation`, `/validations`, `/runs` |
+| Schedules and events | `/jobs/{job_id}/schedules`, `/schedules`, `/schedules/{schedule_id}`, `/dispatches`, `/trigger-events` |
+| Infrastructure | `/nodes`, `/deployments`, `/models`, `/model-remotes`, `/model-proxies`, `/services`, `/service-checks` |
+| Operations | `/operations`, `/operations/{operation_id}` |
 
-Implementation entry points:
+Durable configured work is a Job. One execution of that definition is a Run.
+Run URLs always use the public `run_id`; `runtime_run_id` is diagnostic metadata
+and is never part of a client URL.
 
-- `MirrorNeuron/lib/mirror_neuron.ex`
-- `MirrorNeuron/lib/mirror_neuron_grpc/server.ex`
-- `mn-python-sdk/mn_sdk/client.py`
-- `mn-cli/mn_cli/main.py`
-- `mn-api/mn_api/routes/`
+## Examples
 
-## Public Elixir API
+### List and continue a collection
 
-These functions are exposed from [MirrorNeuron](../MirrorNeuron/lib/mirror_neuron.ex)
-for core/runtime code and low-level operational tools.
+```bash
+curl -s "http://localhost:54001/api/v1/runs?page_size=50"
+```
 
-### Job Execution
+If `next_page_token` is not `null`:
 
-#### `MirrorNeuron.validate_manifest(input)`
+```bash
+curl -sG http://localhost:54001/api/v1/runs \
+  --data-urlencode "page_size=50" \
+  --data-urlencode "page_token=<next-page-token>"
+```
 
-Validates a job bundle folder.
+### Upload a bundle and create a Job
 
-Return:
+Public requests never contain host paths or raw payload paths.
 
-- `{:ok, bundle}`
-- `{:error, reason}`
+```bash
+curl -s -X POST http://localhost:54001/api/v1/bundles \
+  -F "bundle=@./worker-bundle.zip"
+```
 
-#### `MirrorNeuron.run_manifest(input, opts \\ [])`
+Use the returned opaque `bundle_id`:
 
-Submits a job bundle for execution.
+```bash
+curl -i -X POST http://localhost:54001/api/v1/jobs \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: <uuid>" \
+  -d '{"bundle_id":"<bundle-id>"}'
+```
 
-Important options:
+Catalog jobs may instead use `{"blueprint_id":"<blueprint-id>"}`.
 
-- `await: boolean`
-- `timeout: integer | :infinity`
-- `json: boolean`
-- `job_bundle: bundle` internal/advanced path
+### Start and control a Run
 
-Return:
+```bash
+curl -i -X POST http://localhost:54001/api/v1/jobs/<job-id>/runs \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: <uuid>" \
+  -d '{"inputs":{}}'
+```
 
-- `{:ok, job_id}` when `await: false`
-- `{:ok, job_id, job}` when `await: true`
-- `{:error, reason}`
+The response is a pending Run with `202 Accepted`. Pause, resume, or cancel it
+through one desired-state update:
 
-#### `MirrorNeuron.wait_for_job(job_id, timeout \\ :infinity)`
+```bash
+curl -s -X PATCH http://localhost:54001/api/v1/runs/<run-id> \
+  -H "Content-Type: application/json" \
+  -d '{"desired_state":"paused"}'
+```
 
-Waits for terminal status: `completed`, `failed`, or `cancelled`.
+Invalid state transitions return `409 Conflict`.
 
-### Inspection
+### Install a blueprint conditionally
 
-Use the monitor read model for operational tooling:
+Read the current installation and retain its `ETag`, then use `If-Match` when
+replacing or deleting it. Initial creation may omit `If-Match`.
 
-- `MirrorNeuron.list_jobs/1`
-- `MirrorNeuron.job_details/2`
-- `MirrorNeuron.cluster_overview/1`
-- `MirrorNeuron.events/1`
-- `MirrorNeuron.inspect_nodes/0`
+```bash
+curl -i -X PUT http://localhost:54001/api/v1/blueprints/<blueprint-id>/installation \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: <uuid>" \
+  -d '{}'
+```
 
-These calls read Redis-backed job records, agent snapshots, cluster state, and
-events without requiring direct Redis access.
+Installation and removal return an Operation. Poll the `Location` resource or
+stream its events.
 
-### Control
+## Server-Sent Events
 
-- `MirrorNeuron.pause(job_id)`
-- `MirrorNeuron.resume(job_id)`
-- `MirrorNeuron.cancel(job_id)`
-- `MirrorNeuron.send_message(job_id, agent_id, message)`
+The only realtime HTTP surfaces are authenticated, resumable SSE:
 
-These are the mutation APIs used by CLI and SDK control paths.
+```text
+GET /runs/{run_id}/events/stream
+GET /operations/{operation_id}/events/stream
+```
 
-## Failure And Observability Model
+Every event uses this envelope:
 
-Job details, workflow progress, failure events, and compact summaries expose a
-shared `failure` object using `mn.error.v1`. Legacy `reason` and
-`status_reason` remain display strings derived from `failure.desc` when
-available.
+```json
+{
+  "id": "42",
+  "type": "run.snapshot",
+  "occurred_at": "2026-08-13T17:00:00Z",
+  "resource": "/api/v1/runs/<run-id>",
+  "data": {}
+}
+```
 
-Run observability uses:
+Event IDs increase monotonically. On reconnect, send the last applied value as
+`Last-Event-ID`. The server replays available later events, sends heartbeat
+comments while idle, releases stream resources on disconnect, and closes after
+a terminal event. Keep ordinary snapshot and history GETs as the recovery
+source of truth.
 
-- `mn.timeline.v1`
-- `mn.observability_summary.v1`
-- `errors.jsonl`
-- `events.jsonl`
-- `logs.jsonl`
-- `timeline.jsonl`
-- `resource_samples.jsonl`
+```bash
+curl -N http://localhost:54001/api/v1/runs/<run-id>/events/stream \
+  -H "Authorization: Bearer <token>" \
+  -H "Last-Event-ID: <last-event-id>"
+```
 
-Clients should link to large artifacts instead of embedding log blobs in job
-detail views.
+## Artifact handling
 
-## Terminal CLI
+Artifact and output lists contain download URLs beneath the public Run. They do
+not expose host filesystem paths and there is no server-side “reveal” action.
+Browser clients download or open the artifact; native clients may reveal the
+downloaded local file using their own platform integration.
 
-The user-facing CLI is `mn`.
+## CLI and SDK terminology
 
-Common commands:
+Use `mn job` for durable definitions and `mn run` for executions. The Python
+SDK exposes typed pages, revision-aware conditional updates, and idempotent
+create/dispatch methods while keeping HTTP-specific headers and Problem Details
+adaptation inside `mn-api`.
+
+Common operator commands include:
 
 ```bash
 mn runtime health
 mn node list
-mn job status <job_id>
-mn job monitor <job_id>
-mn blueprint monitor
-mn blueprint export <run_id> --format markdown
+mn job list
+mn run list
 ```
 
-The CLI uses the Python SDK over gRPC for most control paths. See
-[CLI Reference](cli.md).
-
-## Stability Guidance
-
-For integrations, prefer consuming:
-
-1. FastAPI run and job endpoints for browser/desktop clients.
-2. Python SDK methods for Python automation.
-3. `MirrorNeuron.list_jobs/1`, `MirrorNeuron.job_details/2`, and `MirrorNeuron.cluster_overview/1` for BEAM-side tooling.
-
-Avoid coupling directly to raw Redis keys unless you are building low-level
-operational tooling.
+See [CLI Reference](cli.md) for the complete command surface.

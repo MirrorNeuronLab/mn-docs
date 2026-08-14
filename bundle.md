@@ -462,4 +462,6 @@ Job bundle at 'path/to/my_job_bundle' is valid.
 
 Before running a third-party bundle, review `manifest.json`, `payloads/`, `runner`, `command`, `pass_env`, and any OpenShell `policy` file. See [Security Model](security.md).
 
-Via the API (HTTP POST to `/api/v2/jobs`), the exact same `manifest.json` shape is accepted, with the payloads assumed to either already exist locally or omitted in pure-router workflows.
+For HTTP clients, upload the ZIP as multipart data to `POST /api/v1/bundles`,
+then pass the returned opaque `bundle_id` to `POST /api/v1/jobs`. The REST API
+does not accept manifest, payload, or host filesystem paths directly.

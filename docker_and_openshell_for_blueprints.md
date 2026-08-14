@@ -254,7 +254,7 @@ Expected output:
 For API clients, use:
 
 ```bash
-curl http://127.0.0.1:54001/api/v2/services/<blueprint-web-ui-service-name>/resolve
+curl http://127.0.0.1:54001/api/v1/services/<blueprint-web-ui-service-name>/resolution
 ```
 
 ## Debug Checklist

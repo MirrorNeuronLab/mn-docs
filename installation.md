@@ -83,7 +83,7 @@ If a command fails, collect its output and continue with [Troubleshooting](troub
 | Item | Default | Owner |
 | --- | --- | --- |
 | Runtime state root | `~/.mn` | CLI, API, SDK, runtime services. |
-| REST API | `http://localhost:54001/api/v2` | `mn-api`; override with `MN_API_PORT`. |
+| REST API | `http://localhost:54001/api/v1` | `mn-api`; override with `MN_API_PORT`. |
 | Core gRPC endpoint | `localhost:55051` | MirrorNeuron Core; override with `MN_GRPC_PORT` and client target settings. |
 | Docker Model Runner/LiteLLM gateway | port `4000` when enabled | Model runtime. |
 | Web UI | port `55173` by default | Docker Compose service; local mode builds the mounted `mn-web-ui` source there. |
