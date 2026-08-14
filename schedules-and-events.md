@@ -48,7 +48,7 @@ Manifest shape:
 Create a periodic schedule:
 
 ```bash
-mn schedule create /path/to/bundle \
+mn schedule add /path/to/bundle \
   --cron "0 2 * * *" \
   --timezone America/New_York \
   --name nightly-eval
@@ -57,13 +57,13 @@ mn schedule create /path/to/bundle \
 Allow overlapping child jobs:
 
 ```bash
-mn schedule create /path/to/bundle --cron "*/15 * * * *" --allow-overlap
+mn schedule add /path/to/bundle --cron "*/15 * * * *" --allow-overlap
 ```
 
 Create a bounded window:
 
 ```bash
-mn schedule create /path/to/bundle --cron "0 1 * * *" --window 2h
+mn schedule add /path/to/bundle --cron "0 1 * * *" --window 2h
 ```
 
 Supported cron shortcuts:
@@ -82,13 +82,13 @@ Five-field cron syntax is also supported.
 Run once at an exact time:
 
 ```bash
-mn schedule delay /path/to/bundle --at "2026-05-25T02:00:00Z"
+mn schedule add /path/to/bundle --at "2026-05-25T02:00:00Z"
 ```
 
 Run once after a delay:
 
 ```bash
-mn schedule delay /path/to/bundle --in 30m --name delayed-cleanup
+mn schedule add /path/to/bundle --in 30m --name delayed-cleanup
 ```
 
 Manifest shape:
@@ -118,9 +118,9 @@ or:
 Create an event trigger:
 
 ```bash
-mn trigger create /path/to/bundle \
+mn schedule add /path/to/bundle \
   --event file_uploaded \
-  --filter-json '{"path":{"prefix":"/datasets/"}}'
+  --filter '{"path":{"prefix":"/datasets/"}}'
 ```
 
 Emit an event:
@@ -174,7 +174,7 @@ mn schedule list --status active
 Show status:
 
 ```bash
-mn schedule status <schedule-id>
+mn schedule show <schedule-id>
 ```
 
 Pause and resume:
@@ -187,14 +187,14 @@ mn schedule resume <schedule-id> --reason "maintenance complete"
 Dispatch immediately:
 
 ```bash
-mn schedule run-now <schedule-id>
-mn schedule run-now <schedule-id> --payload-json '{"manual":true}'
+mn schedule run <schedule-id>
+mn schedule run <schedule-id> --payload-json '{"manual":true}'
 ```
 
 Delete:
 
 ```bash
-mn schedule delete <schedule-id> --reason "retired"
+mn schedule remove <schedule-id> --reason "retired"
 ```
 
 List trigger events:

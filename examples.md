@@ -11,7 +11,7 @@ This is the detailed internal catalog guide for selecting, validating, and maint
 
 ## Before you begin
 
-- Start the runtime and inspect it with `mn runtime health`.
+- Start the runtime and inspect it with `mn runtime status`.
 - Read the folder's manifest, payloads, runner declarations, model/service requirements, and `pass_env` entries.
 - Use sample, mock, quick-test, or dry-run configuration where the blueprint provides it.
 - Do not supply private, regulated, or production data until you have reviewed the blueprint's data movement and output skills.
@@ -44,15 +44,15 @@ Replace `<blueprint_folder>` with one of the table entries. Validation must exit
 
 ```bash
 mn runtime start
-mn blueprint run --folder otterdesk-blueprints/<blueprint_folder>
+mn blueprint run otterdesk-blueprints/<blueprint_folder>
 ```
 
 Record `<job_id>` and `<run_id>` returned by the command, then inspect both layers:
 
 ```bash
-mn job status <job_id>
-mn job monitor <job_id>
-mn blueprint logs <run_id>
+mn job show <job_id>
+mn run watch <run_id>
+mn run logs <run_id> --channel logs
 ```
 
 For a catalog-managed blueprint, list the active catalog before launching an ID:

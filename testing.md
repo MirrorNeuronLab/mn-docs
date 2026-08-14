@@ -217,10 +217,10 @@ Typical joined-cluster verification:
 
 ```bash
 mn runtime start
-mn runtime start --worker-node
-mn node join <worker-ip> --token <worker-token>
+mn runtime start --worker
+mn node add <worker-ip> --token <worker-token>
 mn node list
-mn resource list
+mn resource show
 ```
 
 Then run targeted system tests for:

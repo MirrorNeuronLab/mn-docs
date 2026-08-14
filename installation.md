@@ -64,7 +64,7 @@ Run these commands after any installation or upgrade:
 ```bash
 mn --help
 mn runtime start
-mn runtime health
+mn runtime status
 mn runtime status
 mn node list
 ```
@@ -72,7 +72,7 @@ mn node list
 Verification criteria:
 
 - `mn --help` displays the command groups.
-- `mn runtime health` reports the Core, REST API, and Web UI health checks without a failed required component.
+- `mn runtime status` reports the Core, REST API, and Web UI health checks without a failed required component.
 - `mn runtime status` reports the resolved endpoints, runtime state, nodes, jobs, and shared storage.
 - `mn node list` returns the local runtime-node view or the configured cluster view.
 
@@ -97,11 +97,11 @@ Blueprint validation identifies declared model requirements. Install and diagnos
 
 ```bash
 mn model list
-mn model install gemma4:e2b
+mn model add gemma4:e2b
 mn model doctor gemma4:e2b
 ```
 
-`mn model install` can fail on an incompatible machine. Do not use `--force` as a routine fix; first choose a model and blueprint profile that match the available hardware.
+`mn model add` can fail when no compatible runtime node is available. Do not use `--force` as a routine fix; first choose a model and blueprint profile that match the available hardware.
 
 ## Stop, uninstall, and retain evidence
 

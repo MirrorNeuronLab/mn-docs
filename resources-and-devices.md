@@ -195,7 +195,7 @@ Worker code should use these hints when selecting devices, ports, and model/cach
 ## Inspect Resources
 
 ```bash
-mn resource list
+mn resource show
 ```
 
 The response includes per-node scalar totals, combined cluster totals, device inventory, GPU memory totals, runtime drivers, and host path information when available.

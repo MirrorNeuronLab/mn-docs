@@ -57,7 +57,7 @@ supported and return `404`.
 | Area | Canonical resources |
 | --- | --- |
 | Health and system | `/health`, `/runtime/status`, `/runtime/health`, `/runtime/diagnostics`, `/runtime/resources`, `/system/summary`, `/metrics` |
-| Jobs | `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/bundle`, `/jobs/{job_id}/data-resets` |
+| Jobs | `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/bundle`, `/jobs/{job_id}/data-resets`, `/jobs/{job_id}/mcp` |
 | Runs | `/jobs/{job_id}/runs`, `/blueprints/{blueprint_id}/runs`, `/runs`, `/runs/{run_id}` |
 | Run detail | `/runs/{run_id}/monitor`, `/workflow-progress`, `/logs`, `/events`, `/resources`, `/human-requests`, `/ui`, `/artifacts`, `/outputs`, `/snapshots`, `/agent-graph`, `/export`, `/observability` |
 | Bundles and blueprints | `/bundles`, `/blueprints`, `/blueprints/{blueprint_id}`, `/installation`, `/validations`, `/runs` |
@@ -68,6 +68,46 @@ supported and return `404`.
 Durable configured work is a Job. One execution of that definition is a Run.
 Run URLs always use the public `run_id`; `runtime_run_id` is diagnostic metadata
 and is never part of a client URL.
+
+## Stable supervisory MCP
+
+A blueprint that explicitly declares `mcp_collaboration.enabled` with the
+standard `mn-job-collaboration`, `streamable-http`, and `/mcp` descriptor gives
+each of its stable Jobs this Streamable HTTP endpoint:
+
+```text
+POST /api/v1/jobs/{job_id}/mcp
+```
+
+It uses the same bearer-authentication policy as protected REST routes. The URL
+binds the MCP session to one Job; no tool accepts a `job_id`, so a caller cannot
+switch Jobs through tool arguments. Tool discovery returns exactly these
+read-only tools:
+
+| Tool | Result |
+| --- | --- |
+| `get_job_profile()` | Blueprint identity, mission, capabilities, safe configuration, schedule, and lifecycle state. |
+| `get_latest_run()` | Bounded latest-run status, result projection, structured evidence, warnings, and timestamps. |
+| `get_job_context(evidence_limit=50)` | Combined profile, schedule, latest-run summary, warnings, and truncation metadata. |
+
+Results use `mn.mcp.stable_job_context.v1`. The lifecycle projection is one of
+`never_run`, `running`, `idle`, `paused`, `scheduled_waiting`, or `archived`.
+The endpoint remains readable without an active target Run, including before
+the first Run and after completion or failure. If a recent Run's workflow or
+result data is temporarily unavailable, the result keeps the stable profile and
+adds a warning instead of failing the complete tool call.
+
+Each response is bounded to 256 KiB and 50 evidence records. Projections omit
+secrets, credentials, environment values, raw logs, host paths, arbitrary
+files, and unrestricted artifact bodies. The tools cannot start, pause,
+configure, schedule, approve, or otherwise mutate the Job. Archived Jobs remain
+readable; deleted, unknown, and non-enabled Jobs return the same sanitized
+not-found class of error.
+
+Do not confuse this API-owned supervisory MCP with the runtime
+`mn-job-collaboration` service. The latter exists only during an active Run and
+supports peer-to-peer collaboration among executing workers. Its service
+discovery, active-run lifetime, and human-approval behavior are unchanged.
 
 ## Examples
 
@@ -190,7 +230,7 @@ adaptation inside `mn-api`.
 Common operator commands include:
 
 ```bash
-mn runtime health
+mn runtime status
 mn node list
 mn job list
 mn run list

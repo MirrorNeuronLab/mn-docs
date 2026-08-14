@@ -451,7 +451,7 @@ You can validate and run a job bundle using the MirrorNeuron CLI:
 mn blueprint validate path/to/my_job_bundle
 
 # Execute the bundle in the cluster
-mn blueprint run --folder path/to/my_job_bundle
+mn blueprint run path/to/my_job_bundle
 ```
 
 Expected validation output:

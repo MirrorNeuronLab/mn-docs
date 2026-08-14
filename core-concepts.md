@@ -41,9 +41,9 @@ The runner is part of a blueprint's contract. Documentation and tests must not d
 The normal user-facing sequence is:
 
 1. `mn blueprint validate <folder>` checks the local blueprint and its declared requirements.
-2. `mn blueprint run --folder <folder>` submits a job and returns a job ID and, when applicable, a run ID.
-3. `mn job status <job_id>` and `mn job monitor <job_id>` inspect runtime state and events.
-4. `mn blueprint logs <run_id>` and `mn blueprint tail <run_id>` inspect run-store output.
+2. `mn blueprint run <folder>` submits a job and returns a job ID and, when applicable, a run ID.
+3. `mn job show <job_id>` and `mn run watch <run_id>` inspect runtime state and events.
+4. `mn run logs <run_id>` and `mn run logs <run_id>` inspect run-store output. --channel logs --channel events
 5. `mn job cancel <job_id>` stops a running job when the workflow should not continue.
 
 Do not treat a completed job as a blanket correctness guarantee. Inspect the output artifacts, failure/warning events, input provenance, and any required human-control record before using the result.

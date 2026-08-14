@@ -75,9 +75,7 @@ See [Redis High Availability](redis-ha.md) for Sentinel setup and failover tests
 
 ## Start A Two-Box Cluster
 
-MirrorNeuron supports two operator flows.
-
-### Option A: Main Box Connects A Worker
+MirrorNeuron uses one worker-onboarding flow.
 
 On the main box:
 
@@ -88,15 +86,15 @@ mn runtime start
 On the worker box:
 
 ```bash
-mn runtime start --worker-node
+mn runtime start --worker
 ```
 
-Copy the worker token printed by `mn runtime start --worker-node`.
+Copy the worker token printed by `mn runtime start --worker`.
 
 Back on the main box, connect the worker:
 
 ```bash
-mn node join <worker-host> --token <worker-token> --network overlay --docker-network mirror-neuron-runtime
+mn node add <worker-host> --token <worker-token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
 Docker multi-host clusters require an existing attachable overlay network:
@@ -107,24 +105,15 @@ docker network create --driver overlay --attachable mirror-neuron-runtime
 
 The CLI validates that the network exists, uses the `overlay` driver, and is attachable. The gRPC handshake uses `<worker-host>`, but Erlang distribution and Redis are advertised through stable Docker DNS aliases such as `mirror_neuron@mn-a1b2c3d4` and `mn-a1b2c3d4-redis`.
 
-When `mn node join` first connects a worker, it promotes the main box from local-only mode into cluster mode. By default, the main box advertises the first detected non-loopback LAN IPv4 address. On most computers this is the only LAN address. If the main box has multiple LAN addresses, override the advertised address explicitly:
-
-```bash
-mn node join <worker-host> --local-host <main-host> --token <worker-token>
-```
-
-### Option B: Main Box Adds Second Box
+When `mn node add` first connects a worker, it promotes the main box from
+local-only mode into cluster mode.
 
 For shared documents and large blueprint payloads, each box keeps a local
 `MN_HOST_SHARED_STORAGE_ROOT`. The CLI starts a Syncthing sidecar during
 `mn runtime start` and connects peers during join/startup so every container
 continues to read `/root/.mn/shared` from its local filesystem while files are
-replicated across boxes. On the second box, prefer starting directly against the
-main box when it needs to read primary-local inputs:
-
-```bash
-mn runtime start --join-host <main-host> --token <main-token> --host <worker-host>
-```
+replicated across boxes. Start the worker locally, then add it from the primary;
+there is no worker-side `--join-host` mode.
 
 Set `MN_SYNCTHING_REQUIRED=1` when a missing Syncthing sidecar or peer
 configuration should stop startup instead of continuing with a warning.
@@ -133,7 +122,7 @@ configuration should stop startup instead of continuing with a warning.
 
 Syncthing watches the shared folder continuously and uses an hourly fallback
 rescan by default. `MN_SYNCTHING_RESCAN_INTERVAL_SECONDS` can set another
-positive interval. Runtime start and node join update existing folders as well
+positive interval. Runtime start and node add update existing folders as well
 as new folders, keep the watcher enabled with a 10-second coalescing delay, and
 avoid rewriting or restarting Syncthing when the folder configuration is
 already correct.
@@ -216,10 +205,10 @@ submissions or outputs.
 On the second box:
 
 ```bash
-mn node expose --host <worker-host> --network overlay --docker-network mirror-neuron-runtime
+mn runtime start --worker --host <worker-host>
 ```
 
-Copy the token printed by `mn node expose`.
+Copy the token printed by `mn runtime start --worker`.
 
 On the main box:
 
@@ -227,7 +216,7 @@ On the main box:
 mn node add <worker-host> --token <token> --network overlay --docker-network mirror-neuron-runtime
 ```
 
-`mn node expose` starts a core-only runtime that exposes host gRPC and keeps Redis/Erlang cluster traffic on the Docker network. It does not start the REST API, Web UI, OpenShell, or context engine. If that node is expected to prepare host-native resources such as Docker Model Runner models, a node-local SDK gRPC sidecar must also be available for Core to relay to.
+`mn runtime start --worker` starts a core-only runtime that exposes host gRPC and keeps Redis/Erlang cluster traffic on the Docker network. It does not start the REST API, Web UI, OpenShell, or context engine. If that node is expected to prepare host-native resources such as Docker Model Runner models, a node-local SDK gRPC sidecar must also be available for Core to relay to.
 
 ## Verify The Cluster
 
@@ -235,13 +224,13 @@ From the main box:
 
 ```bash
 mn node list
-mn resource list
+mn resource show
 ```
 
 Expected stable signs:
 
 - both physical boxes appear in `mn node list`
-- `mn resource list` shows aggregate CPU, memory, disk, and GPU capacity
+- `mn resource show` shows aggregate CPU, memory, disk, and GPU capacity
 - node status is `healthy` or `joining`
 - `scheduling_eligible` is not `false`
 
@@ -518,7 +507,7 @@ Check:
 
 ```bash
 mn node list
-mn resource list
+mn resource show
 ```
 
 Then inspect the job scheduler plan:

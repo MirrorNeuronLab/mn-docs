@@ -54,13 +54,13 @@ mn runtime start
 
 ### On Node 2 (The Worker)
 ```bash
-mn runtime start --worker-node
+mn runtime start --worker
 ```
 
 ### Back On Node 1
 ```bash
-mn node join <WORKER_IP> --token <worker-token>
-# e.g., mn node join <worker-host> --token <worker-token>
+mn node add <WORKER_IP> --token <worker-token>
+# e.g., mn node add <worker-host> --token <worker-token>
 ```
 *Promotes the main runtime to cluster mode if needed, then connects the worker. If Node 1 has multiple LAN addresses, pass `--local-host <NODE_1_IP>` to choose the advertised address.*
 

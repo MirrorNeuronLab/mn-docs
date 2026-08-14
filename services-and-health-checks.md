@@ -148,15 +148,15 @@ gRPC:
 
 ## Validation And Preflight
 
-`mn blueprint validate <bundle>` validates service declarations after manifest/schema checks and before input validation. `mn blueprint run --folder <bundle>` runs the same local preflight, and core repeats service preflight before direct runtime starts.
+`mn blueprint validate <bundle>` validates service declarations after manifest/schema checks and before input validation. `mn blueprint run <bundle>` runs the same local preflight, and core repeats service preflight before direct runtime starts.
 
 Failed required services stop the job before agents launch. A forced run can skip service preflight, and job metadata records the skipped check.
 
-Run service checks directly:
+Run blueprint service and dependency checks through the blueprint doctor:
 
 ```bash
-mn service check /path/to/bundle
-mn service check /path/to/bundle --output json
+mn blueprint doctor /path/to/bundle
+mn blueprint doctor /path/to/bundle --json
 ```
 
 ## Discovery Commands
@@ -176,13 +176,13 @@ mn service list --all
 Resolve one service:
 
 ```bash
-mn service resolve ollama --tag llm
+mn service show ollama --tag llm
 ```
 
 Filter by node:
 
 ```bash
-mn service resolve vllm --node mirror_neuron@<node-host>
+mn service show vllm --node mirror_neuron@<node-host>
 ```
 
 ## Blueprint Web UI Services

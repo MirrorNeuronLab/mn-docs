@@ -1,19 +1,27 @@
 # Model Runtime
 
-MirrorNeuron can manage local LLMs through Docker Model Runner. The model runtime is used by blueprints that declare `provider: "docker_model_runner"` in `llm.configs`.
+MirrorNeuron manages Docker Model Runner artifacts and external
+OpenAI-compatible provider routes through one model registry. The model runtime
+is used by blueprints that declare `provider: "docker_model_runner"` in
+`llm.configs`.
 
-The default local model is `gemma4:e2b`, which resolves to Docker's `ai/gemma4:E2B` model. It uses the Docker Model Runner llama.cpp backend by default.
+Without an operator override, MirrorNeuron selects its built-in default from
+the host hardware: `nemotron3` on a suitable NVIDIA system and `gemma4:e2b`
+otherwise. A model added with `--default` takes priority over both built-ins.
 
 ## Ownership Boundary
 
-Model definition, catalog resolution, aliases, hardware compatibility checks, Docker Model Runner install/update/remove operations, remote model declarations, proxy model records, and model-to-service expansion are owned by `mn-python-sdk`, `mn-cli`, and `mn-api`.
+Model definition, registry persistence, catalog resolution, provider parsing,
+hardware compatibility checks, Docker Model Runner lifecycle operations, and
+model-to-service expansion are owned by `mn-python-sdk`, `mn-cli`, and
+`mn-api`.
 
 MirrorNeuron Core does not own the model catalog and does not install models directly. Core receives already-expanded runtime facts, checks concrete service availability, schedules jobs, and runs agents. If a required model or service is not ready, Core reports a preflight or scheduling error instead of preparing the resource itself.
 
 Launch preparation should translate blueprint model references into concrete service requirements before submission:
 
 - concrete `requires_services` entries
-- service tags for `docker-model-runner` or proxy endpoints
+- service tags for `docker-model-runner` or provider endpoints
 - placement requirements for the node that can serve the model
 - endpoint environment such as `MN_MODEL_ENDPOINTS_JSON`
 - prepared-model metadata owned by the SDK/API/CLI layer
@@ -22,34 +30,51 @@ Launch preparation should translate blueprint model references into concrete ser
 
 ```bash
 mn model list
-mn model show gemma4:e2b --compatibility
-mn model install gemma4:e2b
-mn model update gemma4:e2b
-mn model remove gemma4:e2b
+mn model list --available
+mn model add gemma4:e2b
+mn model add --file mn-docs/examples/openai-compatible-model-proxy.json
+mn model add hf.co/acme/chat:Q4_K_M --default
+mn model add --file mn-docs/examples/muse-glimmer-gomokubench-config.json --default
 mn model doctor gemma4:e2b
-mn model proxy --config mn-docs/examples/openai-compatible-model-proxy.json
-mn model remote add ai/qwen3-coder --base-url http://<remote-model-host>:12434/v1 --name <remote-name>
-mn model remote list
-mn model remote remove spark
+mn model update gemma4:e2b
+mn model remove gemma4:e2b --yes
 ```
 
-Use `--json` on `list`, `show`, and `doctor` for machine-readable output.
+Use `--json` on every command for machine-readable output. `mn model list`
+shows added models plus unmanaged local DMR artifacts; `--available` includes
+catalog-only choices. Human output uses `ID`, `Kind`, `Source`, `State`, and
+`Node`. JSON output explicitly reports `kind`, `state`, `registered`,
+`installed`, `routed`, `node`, `cataloged`, and `verification`. States are
+`ready`, `degraded`, `unmanaged`, and catalog-only `available`.
 
-Installs and blueprint validation block incompatible hardware by default. Use `--force` only when you accept slow CPU execution or a partial accelerator path.
+`--default` is valid for either a DMR reference or a provider JSON file that
+defines exactly one model. The registry stores only that model's ID as the
+operator-selected priority; it never stores resolved provider secrets. Removing
+the selected model restores automatic `nemotron3`/`gemma4:e2b` selection.
 
-## LiteLLM Proxy Models
+DMR adds and blueprint validation block incompatible hardware by default. Use
+`--force` only when you accept slow CPU execution or a partial accelerator
+path.
 
-Use a LiteLLM proxy when a model should appear in `mn model list` and blueprint validation without a local Docker Model Runner install. Proxy models are stored in `$MN_HOME/models/proxies.json`, show as installed, and display `backend` as `proxy`.
+## Provider Models
 
-Create and start a proxy:
+Use a provider definition when a model is served by an external
+OpenAI-compatible endpoint instead of local Docker Model Runner. Added DMR and
+provider records are stored together in `$MN_HOME/models/registry.json`.
+Provider routes are loaded by MirrorNeuron's managed LiteLLM gateway.
+
+Register a provider definition:
 
 ```bash
 export OPENAI_API_KEY=...
-mn model proxy --config mn-docs/examples/openai-compatible-model-proxy.json
-mn model list --installed
+mn model add --file mn-docs/examples/openai-compatible-model-proxy.json
+mn model list
 ```
 
-The command generates a LiteLLM config under `$MN_HOME/models/proxies/`, starts `ghcr.io/berriai/litellm:main-latest`, and registers each configured model. Use `--no-start` to only generate config and register the models, or `--replace` to replace an existing proxy container with the same generated name.
+The command validates the complete JSON file before changing state, checks each
+`apiKeyEnv` reference, rejects duplicate registered IDs, and synchronizes the
+managed gateway across runtime nodes. It does not start a standalone proxy
+container. Remove an existing ID before adding a changed definition.
 
 Example config:
 
@@ -74,7 +99,7 @@ Example config:
 }
 ```
 
-After registration, blueprint configs can refer to the proxy model by id:
+After registration, blueprint configs can refer to the provider model by ID:
 
 ```json
 {
@@ -90,9 +115,13 @@ After registration, blueprint configs can refer to the proxy model by id:
 }
 ```
 
-Validation treats proxy models as ready service-backed models. Hardware compatibility checks are skipped because the model is served by the configured upstream provider, not installed locally.
+Validation treats provider models as service-backed models. Hardware
+compatibility checks are skipped because the model is served by the configured
+upstream provider, not installed locally. `mn model update <ID>` reloads the
+stored source JSON and synchronizes its route. `mn model remove <ID>` removes
+only that registration and its routes; it never deletes the source JSON.
 
-## Cross-Box Model Endpoints
+## Cross-Box Model Placement
 
 Blueprints should name the model they need. They do not need to know whether that model is served locally or by another cluster node.
 
@@ -102,15 +131,10 @@ This path is intentionally gRPC-only between runtime nodes. Operators should not
 
 When a Docker Model Runner model is already advertised by a runtime node, launch preparation treats it as ready and passes a neutral `MN_MODEL_ENDPOINTS_JSON` mapping to workers. This mapping is separate from `MN_LLM_API_BASE`, `MN_LLM_MODEL`, `LITELLM_*`, and `OPENAI_*`, so blueprints with multiple LLM configs can resolve each model independently.
 
-Operators can declare unmanaged remote endpoints:
-
-```bash
-mn model remote add ai/qwen3-coder \
-  --base-url http://<remote-model-host>:12434/v1 \
-  --name <remote-name>
-```
-
-Remote declarations are stored in `$MN_HOME/model-remotes.json` or `~/.mn/model-remotes.json`. The runtime advertises those declarations as `docker-model-runner` services on node advertisement, and the CLI can use them immediately during blueprint preparation.
+`mn model add <MODEL>` selects the best compatible runtime node by default.
+Use `--local` to require the submitting machine or `--node <node-name>` to
+select a specific cluster node. Cluster-managed model routes remain dynamic:
+the runtime monitor adds and removes them as node inventories change.
 
 ## Blueprint Config
 
@@ -155,7 +179,7 @@ The file may contain a list, a `{ "models": [...] }` object, or an object keyed 
 
 ## Exceptional Blueprint Hugging Face Models
 
-A blueprint may explicitly opt into an uncataloged Hugging Face Docker Model Runner model by setting `customize_mode: true` on `runtime.models.<name>`. This is a narrow blueprint-only exception; `mn model install` remains catalog-only.
+A blueprint may explicitly opt into an uncataloged Hugging Face Docker Model Runner model by setting `customize_mode: true` on `runtime.models.<name>`. Operators may also add an arbitrary valid DMR or Hugging Face reference with `mn model add <MODEL>`; that registration is marked `unverified` and does not gain catalog-specific hardware guarantees.
 
 ```json
 {
@@ -210,7 +234,7 @@ recorded as installed with a gateway failure instead of being reported as ready.
 `mn blueprint validate` and `mn blueprint run` check and prepare runtime-managed models before Core submission whenever the selected flow is allowed to prepare native host resources. Missing models fail with a fix like:
 
 ```bash
-mn model install gemma4:e2b
+mn model add gemma4:e2b
 ```
 
 After submission, Core only checks the concrete service requirements provided by the SDK/API/CLI. It does not resolve aliases, choose model backends, inspect model hardware compatibility, or install Docker Model Runner models.

@@ -109,19 +109,19 @@ Deploy a long-running service under a stable key:
 
 ```bash
 mn deployment deploy /path/to/bundle --key agent-api --strategy rolling --max-parallel 1
-mn deployment status agent-api
+mn deployment show agent-api
 ```
 
 Schedule a batch job:
 
 ```bash
-mn schedule create /path/to/bundle --cron "0 2 * * *" --timezone America/New_York
+mn schedule add /path/to/bundle --cron "0 2 * * *" --timezone America/New_York
 ```
 
 Create an event trigger:
 
 ```bash
-mn trigger create /path/to/bundle --event file_uploaded --filter-json '{"path":{"prefix":"/datasets/"}}'
+mn schedule add /path/to/bundle --event file_uploaded --filter '{"path":{"prefix":"/datasets/"}}'
 mn event emit file_uploaded --payload-json '{"path":"/datasets/eval.jsonl"}'
 ```
 

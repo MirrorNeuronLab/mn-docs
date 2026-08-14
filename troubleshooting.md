@@ -8,12 +8,12 @@ Run these commands first and retain the output with secrets removed:
 
 ```bash
 mn --version
-mn runtime health
+mn runtime status
 mn runtime status
 mn node list
 ```
 
-For a workflow failure, also record the job ID, run ID, timestamp, and exact error text. Use `mn job status <job_id>` and `mn job monitor <job_id>` to determine whether the failure is in the runtime, a declared blueprint requirement, or worker code.
+For a workflow failure, also record the job ID, run ID, timestamp, and exact error text. Use `mn job show <job_id>` and `mn run watch <run_id>` to determine whether the failure is in the runtime, a declared blueprint requirement, or worker code.
 
 ## Redis issues
 
@@ -40,7 +40,7 @@ docker exec mirror-neuron-redis redis-cli ping
 
 ```bash
 mn runtime start
-mn runtime health
+mn runtime status
 ```
 
 Warning: removing a Redis container can discard runtime job state, event history, leases, and recovery metadata. Back up or preserve that data before any destructive cleanup. Use a manually started Redis container only when you intentionally manage Redis outside the MirrorNeuron deployment.
@@ -253,7 +253,7 @@ Options:
 
 Use the CLI command:
 
-- `mn job monitor <job_id>`
+- `mn run watch <run_id>`
 
 If you need all jobs first, run `mn job list`.
 
@@ -307,9 +307,9 @@ If the workflow itself is tiny but runtime is slow, look first at:
 
 ```bash
 mn node list
-mn job status <job_id>
-mn job monitor <job_id>
-mn job dead-letters <job_id>
+mn job show <job_id>
+mn run watch <run_id>
+mn run logs <run_id> --channel events
 openshell status
 openshell sandbox list
 epmd -names

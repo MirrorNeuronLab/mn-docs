@@ -27,18 +27,18 @@ This tutorial is the canonical first workflow path for contributors and local op
 
 ```bash
 mn runtime start
-mn runtime health
+mn runtime status
 mn runtime status
 ```
 
-Verification: `mn runtime health` must not report a failed required component. If it does, resolve that failure before changing blueprint configuration; use [Troubleshooting](troubleshooting.md) to collect diagnostics.
+Verification: `mn runtime status` must not report a failed required component. If it does, resolve that failure before changing blueprint configuration; use [Troubleshooting](troubleshooting.md) to collect diagnostics.
 
 ## Step 2: Install the model required by this tutorial
 
 The selected blueprint resolves its default model requirement to `gemma4:e2b` during local validation. Install and diagnose that model:
 
 ```bash
-mn model install gemma4:e2b
+mn model add gemma4:e2b
 mn model doctor gemma4:e2b
 ```
 
@@ -55,7 +55,7 @@ This checks the bundle and declared requirements without creating a job. Treat a
 ## Step 4: Submit the workflow
 
 ```bash
-mn blueprint run --folder otterdesk-blueprints/medical_deid_record_intake_assistant
+mn blueprint run otterdesk-blueprints/medical_deid_record_intake_assistant
 ```
 
 Record the returned values:
@@ -68,10 +68,10 @@ Never put actual IDs, paths, tokens, or customer data into documentation example
 ## Step 5: Inspect runtime state and run artifacts
 
 ```bash
-mn job status <job_id>
-mn job monitor <job_id>
-mn blueprint logs <run_id>
-mn blueprint tail <run_id>
+mn job show <job_id>
+mn run watch <run_id>
+mn run logs <run_id> --channel logs
+mn run logs <run_id> --channel events
 ```
 
 A terminal job state is `completed`, `failed`, or `cancelled`. A terminal state proves that the runtime reached an end state; it does not prove that a domain result is correct. Inspect `events.jsonl`, `result.json`, `final_artifact.json`, warnings, and required human-control records before using outputs.

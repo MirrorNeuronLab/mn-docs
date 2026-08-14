@@ -15,7 +15,7 @@ Update this page and `mn-doc-site/content/docs/env_variables.mdx` whenever a par
 
 ```bash
 mn runtime status
-mn runtime health
+mn runtime status
 ```
 
 Save sanitized output before changing listener, connection, catalog, model, or credential configuration. Do not commit `~/.mn/docker-compose.env`, endpoint files, or secrets.
@@ -113,7 +113,7 @@ for the upgrade and legacy-cache cleanup procedure.
 
 ## Contributor verification
 
-After changing shared configuration, run `mn runtime health` and `mn runtime status`. Also run `mn blueprint list` for catalog changes, `mn model doctor <model-id>` for model changes, and API health checks for API configuration changes.
+After changing shared configuration, run `mn runtime status` and `mn runtime status`. Also run `mn blueprint list` for catalog changes, `mn model doctor <model-id>` for model changes, and API health checks for API configuration changes.
 
 Configuration changes require parser/schema tests, secret-redaction review where applicable, this reference, the docs-site reference, and a documentation-site type check.
 

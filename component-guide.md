@@ -56,7 +56,7 @@ cd mn-deploy
 Then inspect the services before testing a blueprint:
 
 ```bash
-mn runtime health
+mn runtime status
 mn runtime status
 mn node list
 ```

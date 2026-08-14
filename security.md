@@ -25,6 +25,7 @@ MirrorNeuron can execute worker code, access declared files, pass selected envir
 | Worker → external service | Prompts, files, metadata, requests, and provider credentials. | Explicitly approve data transfer and scope credentials to the worker. |
 | Runtime → Redis | Jobs, events, agent snapshots, leases, bundle state, node state. | Protect Redis as a control-plane data store and use Sentinel appropriately for HA. |
 | Node → node | Cluster membership, scheduling, runtime traffic, shared credentials. | Treat a cluster as one trust domain and protect membership credentials. |
+| Stable Job → supervisory MCP client | Bounded blueprint profile, safe non-secret configuration, schedule, lifecycle, latest-run summary, and structured evidence. | Require the API bearer boundary when configured, validate Job/blueprint identity, and treat returned work context as potentially sensitive. |
 
 ## Execution safety
 
@@ -53,7 +54,7 @@ export MN_GRPC_PORT="55051"
 Verify the actual local deployment rather than assuming defaults:
 
 ```bash
-mn runtime health
+mn runtime status
 mn runtime status
 ```
 
@@ -74,6 +75,15 @@ Warning: setting a listener host such as `MN_API_HOST=0.0.0.0` exposes it beyond
   compatibility failures rather than bypassing them.
 - Review model-provider and connector endpoints before assuming data remains local.
 - Rotate a credential if it may have appeared in a bundle, run record, terminal transcript, or log.
+- The stable Job MCP is informational, not an artifact or log download surface.
+  Its `mn.mcp.stable_job_context.v1` projection removes secret/environment
+  values, raw logs, host paths, arbitrary files, and unrestricted artifact
+  bodies, and limits responses to 256 KiB and 50 evidence records. This
+  projection reduces exposure but does not make mission, schedule, safe
+  configuration, or derived results public; protect the API token and listener.
+- Core's run-scoped `mn-job-collaboration` service is a different trust
+  boundary used by executing peers. Do not expose its loopback endpoint as a
+  replacement for the authenticated API-owned stable Job MCP.
 
 ## Bundle review procedure
 

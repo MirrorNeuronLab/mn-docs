@@ -1831,7 +1831,7 @@ Mock mode must be available for quick tests and offline demos.
 
 Model endpoints, credentials, and provider-specific values should be configurable through config and environment, not hard-coded inside worker logic.
 
-`mn blueprint validate` and `mn blueprint run` check runtime-managed local models after service preflight and before input validation. Missing models fail with a fix such as `mn model install gemma4:e2b`; incompatible hardware fails unless the operator explicitly uses `--force`.
+`mn blueprint validate` and `mn blueprint run` check runtime-managed local models after service preflight and before input validation. Missing models fail with a fix such as `mn model add gemma4:e2b`; incompatible hardware fails unless the operator explicitly uses `--force`.
 
 ## UI Contract
 

@@ -242,7 +242,7 @@ For blueprint-owned services:
 Verify service discovery:
 
 ```bash
-mn service resolve <blueprint-web-ui-service-name> --tag <blueprint_id>
+mn service show <blueprint-web-ui-service-name> --tag <blueprint_id>
 ```
 
 Expected output:
@@ -280,9 +280,9 @@ Useful commands:
 
 ```bash
 mn blueprint validate /path/to/bundle
-mn blueprint run --folder /path/to/bundle
+mn blueprint run /path/to/bundle
 mn service list --all
-mn service resolve <blueprint-web-ui-service-name> --tag <blueprint_id>
+mn service show <blueprint-web-ui-service-name> --tag <blueprint_id>
 ```
 
 For a local development runtime, inspect the submitted bundle from the job

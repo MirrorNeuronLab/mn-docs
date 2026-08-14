@@ -88,14 +88,14 @@ mn deployment list
 Show one deployment:
 
 ```bash
-mn deployment status agent-api
+mn deployment show agent-api
 ```
 
 Manual canary:
 
 ```bash
 mn deployment deploy /path/to/bundle-v2 --key agent-api --strategy canary --canary 1
-mn deployment status agent-api
+mn deployment show agent-api
 mn deployment promote agent-api
 ```
 
