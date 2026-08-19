@@ -16,19 +16,19 @@ set:
 
 <!-- BEGIN GENERATED MN COMMAND TREE -->
 ```text
-blueprint   list add show update remove run validate doctor cleanup export
-job         list create show start archive reset-data delete
-run         list show watch logs result resources compare pause resume cancel delete
-run human   list respond ack
-model       list add show update remove doctor
-runtime     start stop status doctor restart-sidecars ensure-context-engine update
-node        list show add remove reconcile drain undrain maintenance refresh-token
-operation   show watch
-resource    show usage set
-service     list show
-deployment  list deploy show promote rollback pause resume fail
-schedule    list add show pause resume run remove
-event       list emit
+blueprint   list | add | show | update | remove | run | validate | doctor | cleanup | export
+job         list | create | show | start | archive | reset-data | delete
+run         list | show | watch | logs | result | resources | compare | pause | resume | cancel | delete
+run human   list | respond | ack
+model       list | add | show | update | remove | doctor
+runtime     start | stop | status | doctor | restart-sidecars | ensure-context-engine | update
+node        list | show | add | remove | reconcile | drain | undrain | maintenance | refresh-token
+operation   show | watch
+resource    show | usage | set
+service     list | show
+deployment  list | deploy | show | promote | rollback | pause | resume | fail
+schedule    list | add | show | pause | resume | run | remove
+event       list | emit
 ```
 <!-- END GENERATED MN COMMAND TREE -->
 
