@@ -4,11 +4,15 @@ This guide explains the reliability model implemented in MirrorNeuron.
 
 MirrorNeuron is not a consensus workflow engine. It is a durable, retryable, message-driven runtime for small local and multi-computer AI labs. Its reliability design is practical and conservative: restart locally first, reschedule across nodes only when policy and safety allow it, and pause for review when automatic movement could duplicate unsafe side effects.
 
+This is an architecture and operator explanation of current Core behavior. It
+does not promise exactly-once external effects or deterministic replay of an
+arbitrary worker process.
+
 ## Reliability Goals
 
 MirrorNeuron aims for:
 
-- durable job records, events, snapshots, leases, and recovery metadata
+- durable job records, events, agent monitoring records, leases, and recovery metadata
 - at-least-once recovery for replayable agent work
 - automatic local restart for transient worker failures
 - automatic cross-node rescheduling for safe `cluster_recover` jobs
@@ -29,7 +33,7 @@ Redis is the shared durable state store. MirrorNeuron persists:
 - job records and status
 - job event history
 - durable job bundle references
-- agent snapshots and heartbeats
+- agent monitoring records and heartbeats
 - job coordinator leases such as `job:<job_id>`
 - the cluster leader lease `cluster:leader`
 - workflow step ledgers stored on jobs as `workflow_state`
@@ -37,13 +41,23 @@ Redis is the shared durable state store. MirrorNeuron persists:
 - recovery evals used by the reconciler
 - restart/reschedule `policy_state`
 
-Agent snapshots are the core recovery unit. They include the assigned node, processed message count, inflight message, pending messages, encoded local state, and last heartbeat timestamp.
+Agent monitoring records provide liveness and diagnostic data, including the
+assigned node, processed-message count, mailbox depth, last heartbeat, last
+error, sandbox, and lease metadata. They are not serialized agent-local state
+checkpoints.
 
-This is enough for replay-oriented recovery. It is not a full deterministic event history.
+Whole-job recovery is a clean attempt from the persisted manifest and initial
+inputs. It does not restore arbitrary process-local state from an agent
+checkpoint. Durable delivery records and the workflow ledger make eligible
+messages and step attempts recoverable with at-least-once semantics; neither is
+a full deterministic event history.
 
 ## Workflow Step Ledger
 
-Blueprints that declare `workflow.steps` use a durable workflow-control layer in addition to agent snapshots. The runtime treats `workflow.steps` as the source of truth for the workflow and stores per-step execution state in the job's `workflow_state` field.
+Blueprints that declare `workflow.steps` use a durable workflow-control layer
+alongside delivery records and job events. The runtime treats `workflow.steps`
+as the source of truth for the workflow and stores per-step execution state in
+the job's `workflow_state` field.
 
 Step status values are:
 
@@ -87,16 +101,17 @@ Executor stdout may emit structured JSON with `complete_step` or `complete_run`.
 
 ## Workflow Liveness
 
-Workflow executor steps use `agent_beacon` as the standard liveness signal. The OtterDesk default is:
+Workflow steps may emit `agent_beacon`; the ledger uses it to extend the
+current attempt's heartbeat deadline. A missed heartbeat deadline fails only
+the current attempt, after which the configured retry and failure policy
+decides whether the step retries, becomes partial or skipped, or fails the
+workflow.
 
-| Field | Default |
-| --- | --- |
-| Beacon event | `agent_beacon` |
-| Beacon interval | `15s` |
-| Beacon timeout | `45s` |
-| Missed beacon action | `fail_attempt` |
-
-The host runner emits runtime beacons while a command is alive, and worker scripts can emit richer activity beacons when they know what they are doing. A missed required beacon fails the current attempt with a retryable timeout-style reason. Existing retry and failure policies decide whether the step retries, becomes partial/skipped, or fails the job.
+The default step timeout is `300` seconds. A workflow step defaults its beacon
+timeout to that step timeout, which prevents a valid long-running model request
+from failing solely because it emits no intermediate beacons. Set
+`control.beacon_timeout_ms` or the worker's `beacon_timeout_ms` explicitly
+when the workload needs a shorter liveness boundary.
 
 Job details should render from `workflow_state` and workflow events. A healthy long step shows fresh liveness, a retrying step shows `retry_wait` and the next retry time, and a dependency problem shows `blocked` with the dependency reason instead of silently remaining `running`.
 
@@ -155,6 +170,30 @@ The effective recovery mode controls how far MirrorNeuron may go automatically.
 | `manual_recover` | Do not automatically restart or reschedule after failure. Pause for operator review. |
 
 Jobs without effective `cluster_recover` are never moved across machines automatically.
+
+## Requested and Effective Recovery Policy
+
+`policies.recovery_mode` is the requested policy. When it is omitted, the
+request is `auto`. At submission, `auto` selects `cluster_recover` only when
+all of these are true:
+
+- at least two healthy, connected runtime nodes have been stable for the
+  configured health window;
+- the job bundle is archived in Redis, shared storage, or shared-storage CAS;
+  and
+- every required execution profile is advertised by another healthy runtime
+  node.
+
+Otherwise `auto` resolves to `local_restart` without marking the job degraded.
+An explicit `cluster_recover` request that cannot meet those conditions also
+resolves to `local_restart`, but records `reliability_degraded: true` and the
+reason. `manual_recover` is never upgraded automatically.
+
+The resolved policy is persisted with the job. The reliability observer emits
+cluster and job degraded/restored events as the observed topology changes; it
+does not rewrite an existing job's effective recovery policy. `MN_RELIABILITY_STRATEGY`
+currently accepts only `auto`; choose recovery behavior in the manifest rather
+than through that environment variable.
 
 ## Restart And Reschedule Policies
 
@@ -253,8 +292,10 @@ When an agent is missing, unhealthy, or exits unexpectedly:
 1. The job coordinator checks the agent's restart policy.
 2. If an attempt is allowed, it records the attempt and schedules a delayed restart.
 3. The affected agent worker is terminated if still present.
-4. The durable snapshot is loaded.
-5. The agent restarts with restored local state, pending messages, and inflight replay data.
+4. A new agent process is initialized from the manifest rather than restored
+   from serialized local state.
+5. Eligible durable message deliveries can be reclaimed and replayed with
+   their delivery identities.
 6. On success, pending restart timers are cleared.
 
 If restart attempts are exhausted:
@@ -274,7 +315,7 @@ For affected agents on a failed node:
 
 1. Check that the job is active.
 2. Check that effective recovery is `cluster_recover`.
-3. Check durable bundle and snapshot safety.
+3. Check durable-bundle availability and clean-restart safety.
 4. Check the reschedule policy unless the trigger is a maintenance drain.
 5. Re-plan affected agents with the failed node excluded and the stale job placements ignored.
 6. Move only affected agents if the coordinator is alive.
@@ -285,9 +326,10 @@ Agent-level movement uses `only_agent_ids`, `exclude_nodes`, and `ignore_job_ids
 The coordinator handles `reschedule_agents` by:
 
 - terminating only affected live agents
-- reloading their durable snapshots
 - applying the merged scheduler plan
-- restarting those agents with updated `mirror_neuron_target_node`
+- starting new agent processes with updated `mirror_neuron_target_node`
+- reclaiming eligible durable deliveries rather than restoring arbitrary
+  process-local state
 - emitting per-agent reschedule events
 
 Unaffected agents stay running.
@@ -311,17 +353,20 @@ This avoids turning a short network hiccup into unnecessary cross-node movement.
 
 Automatic recovery pauses for review when safety is uncertain.
 
-MirrorNeuron blocks or pauses when:
+MirrorNeuron pauses whole-job clean recovery when:
 
-- required agent snapshots are missing
-- checkpoints are corrupt
 - the durable job bundle is unavailable
 - the job was already paused before runtime loss
 - the job uses `manual_recover`
-- an active or queued step has unsafe side effects
-- an executor has no retry-safety marker
+- an effectful executor or module node has no retry-safety marker
+- an effectful node explicitly requires review or marks its side effects unsafe
 
-Executor steps are considered safer to replay when their config includes one of:
+Agent checkpoints are not used to decide whether a whole job can be restarted:
+that recovery path always starts a new attempt from the manifest and initial
+inputs.
+
+Effectful executor and module nodes are considered safer to replay when their
+config includes one of:
 
 - `safe_to_retry: true`
 - `idempotent: true`
@@ -406,7 +451,7 @@ The current design has targeted unit, runtime, CLI, SDK, and joined-cluster cove
 - reschedule policy enforcement and unlimited mode
 - node loss reconciliation with live coordinator agent movement
 - whole-job recovery when the coordinator lease is gone
-- safe pause behavior for missing snapshots, corrupt snapshots, unsafe active steps, and manual recovery
+- clean-restart safety for paused jobs, manual recovery, and unsafe effectful nodes
 - node drain dry runs, service migration, batch waiting, system job ignore, blocked placement, cancellation, and maintenance toggles
 - two-box cluster verification using local plus `spark`
 - service registry health filtering and required service preflight
@@ -459,7 +504,8 @@ When the coordinator node dies:
 - the leader sweep detects the orphan
 - the durable bundle is loaded
 - a fresh scheduler plan is computed
-- the whole job is restarted only if recovery policy and safety allow it
+- the whole job starts a clean attempt from the manifest and initial inputs
+  only if recovery policy and safety allow it
 
 When Redis is unavailable:
 

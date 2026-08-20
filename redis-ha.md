@@ -7,6 +7,10 @@ MirrorNeuron can run Redis in two modes:
 
 Use Sentinel mode for clusters where one Redis process or one box going down should not stop durable state access. MirrorNeuron still writes correctness-critical state only to the Sentinel-elected primary. Replicas are copies and failover candidates, not independent writable stores.
 
+This is an operator how-to for the Core Sentinel integration and the supplied
+local helper. It does not replace the Redis and Sentinel security, backup, or
+networking procedures required for a production deployment.
+
 ## Why Sentinel
 
 MirrorNeuron stores job state, agent snapshots, event history, leader leases, and job leases in Redis. These records need a single authoritative write path. Redis OSS supports this with primary-replica replication plus Sentinel promotion.
@@ -21,19 +25,31 @@ Set these on every runtime and control node:
 export MN_REDIS_HA_MODE="sentinel"
 export MN_REDIS_SENTINELS="<sentinel-1-host>:26379,<sentinel-2-host>:26379"
 export MN_REDIS_SENTINEL_MASTER="mirror-neuron"
+export MN_REDIS_SENTINEL_PORT="26379"
 export MN_REDIS_DB="0"
 ```
 
 `MN_REDIS_URL` remains useful as the single-Redis fallback and to provide the Redis URL scheme. In Sentinel mode, MirrorNeuron resolves the current primary from Sentinel before opening the Redix connection.
 
-Optional authentication:
+For externally managed Redis and Sentinel, configure their client credentials
+on every runtime and control node as needed:
 
 ```bash
 export MN_REDIS_USERNAME="default"
-export MN_REDIS_PASSWORD="..."
+export MN_REDIS_PASSWORD="<redis-password>"
 export MN_REDIS_SENTINEL_USERNAME="default"
-export MN_REDIS_SENTINEL_PASSWORD="..."
+export MN_REDIS_SENTINEL_PASSWORD="<sentinel-password>"
 ```
+
+The `redis_ha.sh join` helper has a stricter rule: it requires a non-empty
+`MN_REDIS_PASSWORD` and uses it for Redis authentication and replication. If
+`MN_REDIS_SENTINEL_PASSWORD` is unset, the helper uses that same password for
+the local Sentinel client listener.
+
+Warning: the helper starts Redis and Sentinel bound for cluster peers. Restrict
+ports `6379` and `26379` to the trusted cluster network, keep the passwords out
+of shell history and source control, and set the credentials before joining.
+The helper intentionally refuses to start unauthenticated listeners.
 
 Optional durable write acknowledgement:
 
@@ -54,12 +70,19 @@ export MN_REDIS_RECONNECT_MAX_BACKOFF_MS="2000"
 
 The runtime retries reconnectable Redis failures, including closed connections and `READONLY` errors that can appear during promotion.
 
-## Join A Redis HA Cluster
+If Sentinel advertises a primary hostname that a runtime cannot resolve or
+route to directly, set `MN_REDIS_SENTINEL_HOST_MAP` to a comma-separated list
+of `<advertised-host>=<reachable-host>` mappings. Prefer fixing Redis's
+advertised address; the host map is for a deliberate network translation.
+
+## Join a Redis HA Cluster
 
 The helper script configures local Redis and local Sentinel:
 
 ```bash
 cd MirrorNeuron
+
+export MN_REDIS_PASSWORD="<strong-shared-redis-password>"
 
 bash scripts/redis_ha.sh join \
   --self-host <this-host> \
@@ -70,11 +93,17 @@ bash scripts/redis_ha.sh join \
   --quorum 1
 ```
 
-Run the same command on each box, changing `--self-host`.
+Run the same command on each box, changing `--self-host`. Configure the
+MirrorNeuron processes on all boxes with the same Sentinel endpoints and Redis
+credentials from [Runtime Configuration](#runtime-configuration).
 
 In production, run at least three Sentinel voters and use quorum appropriate for the deployment. A two-box quorum of `1` is useful for development smoke tests, but it can split-brain during network partitions.
 
-## Leave A Redis HA Cluster
+## Leave a Redis HA Cluster
+
+Warning: `--purge-local` runs `FLUSHDB` on the detached local Redis. Do not use
+it until the node is no longer a failover candidate and any required data has
+been backed up or preserved elsewhere.
 
 Graceful leave:
 
@@ -89,7 +118,11 @@ If the local Redis is primary, the script first asks Sentinel to fail over to an
 
 Data is preserved by default. Use `--purge-local` only when you intentionally want `FLUSHDB` after detaching.
 
-## Start A Two-Box Runtime Cluster With Redis HA
+## Start a Two-Box Runtime Cluster With Redis HA
+
+Before running either node's start command, export `MN_REDIS_PASSWORD` in that
+shell. The start helper invokes `redis_ha.sh join` by default in Sentinel mode,
+so it will otherwise exit before starting Core.
 
 Box 1:
 
@@ -201,7 +234,7 @@ Options:
 | `--remote-network` | `auto` | `auto`, `host`, or `bridge`. On Linux Docker, `auto` chooses host networking for the remote side. |
 | `--initial-primary` | `auto` | `auto`, `local`, or `remote`. `auto` falls back to remote-primary when the remote cannot reach the local Redis port. |
 
-The workspace wrapper runs the same smoke:
+From the workspace root, the workspace wrapper runs the same smoke:
 
 ```bash
 .venv/bin/python mn-system-tests/test_all.py --redis-ha \
