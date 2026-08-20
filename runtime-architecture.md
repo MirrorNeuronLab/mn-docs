@@ -27,7 +27,7 @@ Airflow's big lesson for this runtime is not "copy operators." It is "treat heav
 
 ## Workflow DAG execution model
 
-MirrorNeuron now separates the user-facing problem workflow from the lower-level agent runtime. For `mn.workflow/v2` blueprints, `workflow` is the problem DAG: it names the source, sink, step dependencies, branch requirements, join behavior, and accepted outcomes. `agents.nodes` and `agents.edges` are the runtime agent communication topology used by the BEAM runtime; they are not the problem workflow. Top-level `nodes`, `edges`, and `entrypoints` are runtime-submission compatibility fields and should not be authored in OtterDesk manifests.
+MirrorNeuron now separates the user-facing problem workflow from the lower-level agent runtime. For `mn.workflow/v1` blueprints, `workflow` is the problem DAG: it names the source, sink, step dependencies, branch requirements, join behavior, and accepted outcomes. `agents.nodes` and `agents.edges` are the runtime agent communication topology used by the BEAM runtime; they are not the problem workflow. Top-level `nodes`, `edges`, and `entrypoints` are runtime-submission compatibility fields and should not be authored in OtterDesk manifests.
 
 The DAG executor is a durable scheduler with per-step lifecycle state, explicit
 trigger rules, branch and guard skips, runtime-expanded mapped items for

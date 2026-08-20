@@ -2,7 +2,7 @@
 
 This page describes the canonical HTTP API used by the Web UI, OtterDesk, and
 HTTP automation. The CLI and Python SDK also use internal gRPC interfaces; the
-gRPC `v2` package name and domain schema labels such as `mn.workflow/v2` are
+gRPC `v2` package name and domain schema labels such as `mn.workflow/v1` are
 independent of the REST version.
 
 ## Reader and scope

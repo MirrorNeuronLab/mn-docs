@@ -1,5 +1,5 @@
 {
-  "apiVersion": "mn.workflow.source/v2",
+  "apiVersion": "mn.workflow/v1",
   "kind": "WorkflowSource",
   "standard": {
     "profile": "blueprint"

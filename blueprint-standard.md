@@ -860,8 +860,9 @@ Long-running, stream, service, or multi-stage blueprints should emit progress or
 
 ### Source authoring format
 
-New multi-step blueprints should use `mn.workflow.source/v2`. Each source step
-declares direct step dependencies in `needs` and an object-valued `run`:
+New multi-step blueprints should use `mn.workflow/v1` with `kind: WorkflowSource`.
+Each source step declares direct step dependencies in `needs` and an object-valued
+`run`:
 
 ```json
 {

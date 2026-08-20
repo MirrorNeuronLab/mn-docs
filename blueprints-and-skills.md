@@ -93,13 +93,13 @@ Job submitted successfully
 
 ## Prefer A Source Manifest For Multi-Step Blueprints
 
-Author multi-step blueprints as `mn.workflow.source/v2`. The source manifest is
-the DAG definition; the SDK expands it to the executable `mn.workflow/v2`
-shape used by Core.
+Author multi-step blueprints as `mn.workflow/v1` with `kind: WorkflowSource`.
+The source manifest is the DAG definition; the SDK expands it to the executable
+`mn.workflow/v1` shape used by Core.
 
 ```json
 {
-  "apiVersion": "mn.workflow.source/v2",
+  "apiVersion": "mn.workflow/v1",
   "kind": "WorkflowSource",
   "identity": {"id": "vc_assistant", "name": "VC Assistant"},
   "workflow": {
