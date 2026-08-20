@@ -16,19 +16,16 @@ set:
 
 <!-- BEGIN GENERATED MN COMMAND TREE -->
 ```text
-blueprint   list | add | show | update | remove | run | validate | doctor | cleanup | export
-job         list | create | show | start | archive | reset-data | delete
-run         list | show | watch | logs | result | resources | compare | pause | resume | cancel | delete
-run human   list | respond | ack
-model       list | add | show | update | remove | doctor
-runtime     start | stop | status | doctor | restart-sidecars | ensure-context-engine | update
-node        list | show | add | remove | reconcile | drain | undrain | maintenance | refresh-token
-operation   show | watch
-resource    show | usage | set
-service     list | show
-deployment  list | deploy | show | promote | rollback | pause | resume | fail
-schedule    list | add | show | pause | resume | run | remove
-event       list | emit
+blueprint  list add show update remove run validate doctor cleanup export
+job        list create show start archive reset-data delete
+run        list show watch logs result resources compare pause resume cancel delete
+run human  list respond ack
+model      list add show update remove doctor
+runtime    start stop status doctor restart-sidecars ensure-context-engine update
+node       list show add remove reconcile drain undrain maintenance refresh-token
+operation  show watch
+resource   show usage set
+service    list show
 ```
 <!-- END GENERATED MN COMMAND TREE -->
 
@@ -229,45 +226,13 @@ mn service show <service-name>
 Service readiness for a blueprint is diagnosed with `mn blueprint doctor`; a
 separate service-check command is not exposed.
 
-## Deployments, schedules, and events
-
-```bash
-mn deployment list
-mn deployment deploy ./bundle --key agent-api
-mn deployment show agent-api
-mn deployment promote agent-api
-mn deployment rollback agent-api --version v1 --yes
-mn deployment pause|resume|fail agent-api
-```
-
-`schedule add` requires exactly one mode:
-
-```bash
-# periodic; --cron may be repeated
-mn schedule add ./bundle --cron "0 2 * * *" --timezone America/New_York
-
-# delayed; choose exactly one of --at or --in
-mn schedule add ./bundle --at "2026-08-15T02:00:00Z"
-mn schedule add ./bundle --in 30m
-
-# event-driven
-mn schedule add ./bundle --event file_uploaded --filter '{"path":{"prefix":"/datasets/"}}'
-```
-
-```bash
-mn schedule list
-mn schedule list --kind event
-mn schedule show <schedule-id>
-mn schedule pause|resume|run <schedule-id>
-mn schedule remove <schedule-id> --yes
-mn event list
-mn event emit file_uploaded --payload-json '{"path":"/datasets/a.csv"}'
-```
-
 ## Removed paths
 
 Removed commands are not aliases and never execute. They return exit code `2`
 with the exact replacement, including `runtime health`, `job inspect`,
 `job runs`, `run status`, `run monitor`, `node join/expose/leave`,
 `blueprint install/uninstall/monitor/tail/logs/stream`, `resource ports`,
-`service check`, the old schedule verbs, and the `trigger` family.
+`service check`, and the old schedule verbs. The `deployment`, `schedule`, and
+`event` root command groups are not registered. To create a delayed or
+resource-wait schedule from the CLI, use `mn blueprint run <target> --schedule
+<delay-or-json>` or `--auto-schedule`.

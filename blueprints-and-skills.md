@@ -102,6 +102,7 @@ The source manifest is the DAG definition; the SDK expands it to the executable
   "apiVersion": "mn.workflow/v1",
   "kind": "WorkflowSource",
   "identity": {"id": "vc_assistant", "name": "VC Assistant"},
+  "response_service": {"enabled": true},
   "workflow": {
     "steps": [
       {
@@ -121,6 +122,10 @@ The source manifest is the DAG definition; the SDK expands it to the executable
   }
 }
 ```
+
+`response_service` is definition-scoped and remains at the manifest root when
+the SDK expands or compacts a source manifest. Do not place it in `workflow`,
+`agents`, `services`, auxiliary entrypoints, or the Run DAG.
 
 `handler` is a Python module, not `module:callable`. In the standard
 `blueprint` profile, `runtime/run_blueprint.py` resolves the selected handler

@@ -76,14 +76,15 @@ Warning: setting a listener host such as `MN_API_HOST=0.0.0.0` exposes it beyond
 - Review model-provider and connector endpoints before assuming data remains local.
 - Rotate a credential if it may have appeared in a bundle, run record, terminal transcript, or log.
 - The stable Job MCP is informational, not an artifact or log download surface.
-  Its `mn.mcp.stable_job_context.v1` projection removes secret/environment
+  Its `mn.mcp.job_context.v1` projection removes secret/environment
   values, raw logs, host paths, arbitrary files, and unrestricted artifact
   bodies, and limits responses to 256 KiB and 50 evidence records. This
   projection reduces exposure but does not make mission, schedule, safe
   configuration, or derived results public; protect the API token and listener.
-- Core's run-scoped `mn-job-collaboration` service is a different trust
-  boundary used by executing peers. Do not expose its loopback endpoint as a
-  replacement for the authenticated API-owned stable Job MCP.
+- A response-enabled Job persists bounded conversation content under that
+  Job's data directory. Question and answer content must not appear in logs or
+  lifecycle events. Archive, replacement, reset, and deletion use the stable
+  Job lifecycle; data reset clears both conversation and Job RAG state.
 
 ## Bundle review procedure
 

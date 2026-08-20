@@ -87,11 +87,11 @@ Durable configured work is a Job. One execution of that definition is a Run.
 Run URLs always use the public `run_id`; `runtime_run_id` is diagnostic metadata
 and is never part of a client URL.
 
-## Stable supervisory MCP
+## Stable Job MCP and real-time responses
 
-A blueprint that explicitly declares `mcp_collaboration.enabled` with the
-standard `mn-job-collaboration`, `streamable-http`, and `/mcp` descriptor gives
-each of its stable Jobs this Streamable HTTP endpoint:
+A legacy blueprint with `mcp_collaboration.enabled`, or a blueprint with the
+top-level `response_service: {"enabled": true}` declaration, gives each stable
+Job this Streamable HTTP endpoint:
 
 ```text
 POST /api/v1/jobs/{job_id}/mcp
@@ -99,16 +99,17 @@ POST /api/v1/jobs/{job_id}/mcp
 
 It uses the same bearer-authentication policy as protected REST routes. The URL
 binds the MCP session to one Job; no tool accepts a `job_id`, so a caller cannot
-switch Jobs through tool arguments. Tool discovery returns exactly these
-read-only tools:
+switch Jobs through tool arguments. Legacy Jobs discover exactly three
+read-only tools; response-enabled Jobs discover those three plus `ask_job`:
 
 | Tool | Result |
 | --- | --- |
 | `get_job_profile()` | Blueprint identity, mission, capabilities, safe configuration, schedule, and lifecycle state. |
 | `get_latest_run()` | Bounded latest-run status, result projection, structured evidence, warnings, and timestamps. |
 | `get_job_context(evidence_limit=50)` | Combined profile, schedule, latest-run summary, warnings, and truncation metadata. |
+| `ask_job(question, conversation_id?, request_id?)` | Fast grounded answer about purpose, status, progress, published results, or missing evidence; never starts a Run. Response-enabled Jobs only. |
 
-Results use `mn.mcp.stable_job_context.v1`. The lifecycle projection is one of
+Context results use `mn.mcp.job_context.v1`. The lifecycle projection is one of
 `never_run`, `running`, `idle`, `paused`, `scheduled_waiting`, or `archived`.
 The endpoint remains readable without an active target Run, including before
 the first Run and after completion or failure. If a recent Run's workflow or
@@ -122,10 +123,13 @@ configure, schedule, approve, or otherwise mutate the Job. Archived Jobs remain
 readable; deleted, unknown, and non-enabled Jobs return the same sanitized
 not-found class of error.
 
-Do not confuse this API-owned supervisory MCP with the runtime
-`mn-job-collaboration` service. The latter exists only during an active Run and
-supports peer-to-peer collaboration among executing workers. Its service
-discovery, active-run lifetime, and human-approval behavior are unchanged.
+`ask_job` accepts at most 8,000 question characters, a UUID conversation ID,
+and a 128-character idempotency ID. It returns `mn.mcp.job_answer.v1` with a
+12,000-character answer limit, at most 20 citations, and a 64 KiB total limit.
+The Job-scoped responder uses one retrieval and one completion, persists bounded
+conversation history, and returns a deterministic evidence-only summary with
+warnings if the model, RAG, or responder is unavailable. Conversation calls do
+not create Runs. No REST, SSE, or UI chat API is provided.
 
 ## Examples
 
