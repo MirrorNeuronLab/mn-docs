@@ -196,15 +196,22 @@ mn runtime update
 shared storage. `runtime doctor` adds coordination, Docker Model Runner,
 gateway, storage, and foundation checks. Repair belongs only to `doctor`.
 
-Worker onboarding has one flow:
+Every runtime is federation-capable and owns its own coordination store and
+jobs. Start both nodes with the same command:
 
 ```bash
-# On the worker
-mn runtime start --worker
+# On each node
+mn runtime start
 
-# On the primary
-mn node add <worker-host> --token <worker-token>
+# On either already-running peer, use the command printed by the other node
+mn node add <node-host> --token <join-token> --grpc-port <grpc-port>
 ```
+
+Successful startup prints the advertised host, gRPC endpoint, node identity,
+active join token, and exact add-node command. The token grants federation
+registration access: keep the terminal output private and rotate it with
+`mn node refresh-token` when exposed. The removed `--worker` option exits with
+code `2` and directs operators to `mn runtime start`.
 
 ```bash
 mn node list

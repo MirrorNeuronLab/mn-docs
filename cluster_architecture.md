@@ -1,78 +1,105 @@
-# MirrorNeuron Clustering Architecture
+# MirrorNeuron Federation Architecture
 
-MirrorNeuron supports horizontal scaling by seamlessly clustering multiple Elixir/Docker nodes. Under the hood, this relies on Distributed Erlang for real-time messaging, and Redis for shared durable state.
+MirrorNeuron scales across machines by federating independent Cores. Each Core
+owns a writable Redis, schedules its own jobs, and remains operational when a
+peer is unavailable. Nodes exchange authenticated control requests and cached
+job/run summaries over gRPC; they do not form a Distributed Erlang cluster or
+share Redis job state.
 
-## 1. Network Requirements
+## 1. Node and job ownership
 
-For two nodes, for example `<primary-host>` and `<worker-host>`, to communicate successfully:
+Every Core is a full runtime node. A job has exactly one `owner_node`, selected
+explicitly or by the resource/model selector before creation. The owner stores
+the authoritative job state and runs every agent, lease, schedule, and control
+loop for that job in its own Core.
 
-- **Erlang Port Mapper Daemon (EPMD):** Port `4369` must be open and reachable.
-- **Erlang Distribution Port:** MirrorNeuron helpers pin BEAM distribution to port `4370` with `MN_DIST_PORT` and `ERL_AFLAGS`.
-- **gRPC:** The deployed host gRPC port, usually `55051`, must be reachable for CLI, SDK, and node operator calls. The core container listens on `50051` internally.
-- **Redis:** Development clusters can use one shared Redis on port `6379`. Multi-box reliability should use Redis Sentinel HA so each box has a replicated Redis and MirrorNeuron reconnects to the Sentinel-elected primary.
-- **Redis Sentinel:** Sentinel uses port `26379` when HA mode is enabled.
+Another peer can forward create, read, and control requests to the owner. It
+stores only a cached summary projection containing availability, freshness,
+and last-sync metadata. If the owner is offline, its local work continues and
+direct access to that Core remains functional. Other peers can return cached
+summaries, but mutations, streams, logs, artifacts, and uncached reads fail
+with `503 MN_NODE_UNAVAILABLE`; requests are not queued.
 
-## 2. Docker Configuration
+## 2. Coordination and control plane
 
-When deploying a cluster across different host operating systems (like macOS and Linux), Docker networking behaves differently.
-- **Local Docker Compose:** MirrorNeuron uses a named bridge network and a persisted `MN_NODE_ALIAS` so the single-node BEAM identity is stable across laptop IP changes.
-- **Multi-host Docker:** Use an existing attachable Docker overlay network. The CLI validates the overlay and uses Docker DNS aliases for Erlang distribution and Redis.
-- **Legacy IP mode:** Set `MN_DOCKER_NETWORK_MODE=disabled` to use host/IP-backed Erlang names.
+Each node uses a distinct Redis identity. Federation rejects peers that point
+at the same coordination store, including legacy shared-store deployments.
+Redis and Redis Sentinel ports are local deployment details and are not opened
+between federated hosts.
 
-In Docker network mode, we inject `MN_NODE_NAME=mirror_neuron@<MN_NODE_ALIAS>` so the Erlang node is explicitly addressable without depending on the current LAN IP. In legacy mode, `MN_NODE_NAME=mirror_neuron@<IP>` remains available.
+Peer registration is reciprocal and authenticated. `mn node add` succeeds only
+after both nodes report the peer as federated, online, and job-capable. A peer
+appears in the authoritative node list with `connection_mode=federated`, but it
+must not appear in BEAM `connected_nodes`.
 
-## 3. Remote Payload Execution (`HostLocal` Runner)
+The Core gRPC port, normally `55051` on the host, must be reachable between
+trusted peers. EPMD port `4369`, BEAM distribution port `4370`, and Redis port
+`6379` are not federation requirements.
 
-When a Job is submitted via the REST API to the Leader node, its artifacts (like Python scripts inside `payloads/`) are extracted to a temporary directory in the Leader's `/tmp/bundle_xxx` path.
+## 3. Model plane
 
-As tasks are scheduled to execute remotely, the `MirrorNeuron.Runner.HostLocal` module dynamically detects if the execution is happening locally or remotely:
-- **Local:** It simply uses `File.cp_r` to natively copy the files to the sandbox.
-- **Remote:** It establishes a synchronous `rpc:call` back to the `coordinator_node` (the Leader) to recursively read the directory tree over the Erlang distribution network and writes the payloads to the remote container's Sandbox filesystem. 
-  
-This ensures that workflows can seamlessly map/reduce completely agnostic to the underlying hardware execution plane.
+Every agent calls the LiteLLM gateway belonging to its job owner, including
+when the selected model is installed on that same machine:
 
-## 4. Nomad-Inspired Control Loop
+```text
+local model:  agent -> owner LiteLLM -> owner DMR
+remote model: agent -> owner LiteLLM -> peer LiteLLM -> peer DMR
+```
 
-The clustered runtime now has a Nomad-inspired control loop:
+Agents never call Docker Model Runner directly. The private LiteLLM endpoint,
+normally port `4000`, must be reachable between trusted peers for declared
+remote-model routes. Restrict that port with a host firewall or private LAN/VPN
+policy. A duplicate model ID prefers the owner's local installation; a remote
+or alternate model is used only through an explicitly declared LiteLLM
+fallback.
 
-- the scheduler places agents on eligible nodes using resources, devices, ports, volumes, runtime drivers, constraints, and service requirements
-- node state in Redis decides whether a node is healthy, joining, draining, in maintenance, disconnected, offline, or quarantined
-- the reconciler handles node loss, orphaned jobs, and policy-driven reschedules
-- the job coordinator restarts agents locally first, then asks the reconciler to move safe work when restart policy is exhausted
-- node drain marks a node ineligible, moves safe service work, lets batch work finish, and leaves the node in maintenance until undrained
-- the leader sweeps recovery evals, due drains, orphaned jobs, and due schedules
+## 4. Starting and joining nodes
 
-See [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md), [Reliability Guide](reliability.md), and [Cluster Guide](cluster.md).
+There is no leader/worker start distinction. On each machine, start the same
+federation-capable runtime:
 
-## 5. Starting a Cluster
-
-### On Node 1 (The Leader / Initial Node)
 ```bash
 mn runtime start
 ```
-*Starts Redis, the API, and sets itself up as the coordinating node. Ensure your firewall permits access to 4369, Redis/Sentinel ports, and the configured Erlang distribution ports.*
 
-### On Node 2 (The Worker)
+The success output shows the advertised host, gRPC endpoint, node identity,
+active join token, and an exact command such as:
+
 ```bash
-mn runtime start --worker
+mn node add <node-host> --token <join-token> --grpc-port 55051
 ```
 
-### Back On Node 1
-```bash
-mn node add <WORKER_IP> --token <worker-token>
-# e.g., mn node add <worker-host> --token <worker-token>
-```
-*Promotes the main runtime to cluster mode if needed, then connects the worker. If Node 1 has multiple LAN addresses, pass `--local-host <NODE_1_IP>` to choose the advertised address.*
+Run that printed command on an already-running peer. The CLI waits for
+reciprocal readiness before returning success. The API's
+`POST /api/v1/nodes` follows the same SDK orchestration and returns `201` only
+after the same readiness check.
 
-### Verifying Connection
+Treat the displayed token as a credential: keep terminal output private and
+rotate it with `mn node refresh-token` if exposed. The former
+`mn runtime start --worker` option has been removed; use `mn runtime start` on
+every node.
+
+Verify the relationship from either peer:
+
 ```bash
 mn node list
+mn runtime status
 ```
-*You should see multiple items under `nodes`, and their respective hardware capacities pooled together in the `executor_pools`.*
 
-## 6. Avoiding Local Resource Exhaustion
-When running heavy distributed load tests such as the generated `mn-system-tests` parallel-worker smoke test, very high worker counts across a small two-node development setup may exhaust CPU and networking file descriptors, causing nodes to miss Erlang heartbeats (`timed out waiting for recovered agent ...`).
+The peer should be federated and job-capable, each node should report a
+different store identity, and no peer should be present in BEAM
+`connected_nodes`.
 
-To test scaling logic without overloading small development VMs, keep the default worker count. Set `MN_BENCHMARK_WORKER_COUNT=100` only for stress or nightly validation.
+## 5. Storage and scale
 
-This enables the framework to accurately demonstrate Map/Reduce scaling topologies, Remote RPC artifact synchronization (`MirrorNeuron.Runner.HostLocal`), and cross-node swarm orchestration entirely under manageable resource constraints.
+Syncthing may transport job blobs between peers, but shared blob visibility
+does not make Redis or job state shared. Storage checks are independent from
+federation readiness.
+
+Scaling means running independent owner-local jobs concurrently on eligible
+Cores. A single job's agents do not fan out across federated nodes. This keeps
+owner-local execution available during partitions and makes ownership and
+recovery deterministic.
+
+See [Reliability Guide](reliability.md), [Cluster Guide](cluster.md), and
+[Model Runtime](model-runtime.md) for operational procedures.

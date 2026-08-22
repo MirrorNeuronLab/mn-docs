@@ -1,536 +1,208 @@
-# Cluster Guide
+# Federation Guide
 
-This guide describes how MirrorNeuron forms a small multi-computer runtime and how the cluster places, moves, and protects work.
-
-MirrorNeuron's cluster model is intentionally lightweight. It is closer to a small Nomad-style lab scheduler than to a large container control plane: the runtime places agents on eligible machines, keeps durable job state in Redis, and uses conservative recovery when a node disappears.
+This guide describes how MirrorNeuron connects independent runtime Cores,
+selects one owner for each job, and preserves owner-local operation during a
+network partition.
 
 ## Architecture
 
-MirrorNeuron uses a peer-to-peer cluster model. Every runtime node runs the same core binary and can host job coordinators, agents, and executor work.
+Every machine runs a complete Core with its own writable Redis, API, runtime
+services, and LiteLLM gateway. Federation uses authenticated gRPC peer calls;
+it does not use a shared Redis, shared BEAM membership, Horde supervision, or a
+shared Erlang cookie.
 
-The cluster is built from:
+A job has exactly one `owner_node`. The owner stores its authoritative state
+and runs all agents, leases, schedules, and execution controls for that job.
+Explicit ownership takes priority; otherwise resource and model selection
+chooses one eligible owner before job creation. Federated peers keep only
+summary projections of remote jobs.
 
-- BEAM distribution for node-to-node messaging.
-- `libcluster` for peer discovery.
-- `Horde` for distributed supervision of job coordinators and agents.
-- Redis for durable jobs, events, snapshots, node state, recovery evals, leader election, and job leases.
+## Network requirements
 
-Single Redis is fine for development. Redis Sentinel HA is recommended once two or more physical machines are sharing real work.
-
-## Required Network Ports
-
-For Docker-network clusters, participating boxes need a shared attachable Docker
-network and a reachable host gRPC port:
+Permit these endpoints only between trusted LAN or VPN peers:
 
 | Port | Purpose |
 | --- | --- |
-| `55051` | Deployed host port for the MirrorNeuron core gRPC service. The core container listens on `50051` internally. |
-| `55052` | Host-side SDK gRPC service for native preparation, such as Docker Model Runner model install. Local Core reaches it through the Compose proxy, and remote cluster coordinators use the node's advertised address. Restrict this port to trusted cluster hosts. |
-| `26379` | Redis Sentinel when using Redis HA. |
+| `55051` | Core gRPC federation control and forwarded owner requests. |
+| `4000` | Private LiteLLM gateway-to-gateway model routing. |
+| Syncthing ports | Optional blob transport when `cluster.storage` is enabled. |
 
-Redis, EPMD, and BEAM distribution stay inside the Docker bridge/overlay network.
-Legacy IP-based clusters can still pin BEAM distribution to a fixed port:
+Redis, Redis Sentinel, EPMD, and BEAM distribution ports do not need to be
+reachable between hosts. Each Redis stays local to its Core. LiteLLM port
+`4000` is published for authenticated peer gateways, so restrict it with the
+host firewall rather than exposing it to an untrusted network.
 
-```bash
-export ERL_AFLAGS="-kernel inet_dist_listen_min 4370 inet_dist_listen_max 4370"
-export MN_DIST_PORT="4370"
-```
-
-This makes firewall and failure debugging much simpler than random dynamic distribution ports.
-
-## gRPC Advertisement And Node-Local SDK Sidecars
-
-Each node advertises host-reachable Core gRPC facts in cluster summaries:
-
-- `grpc_host`
-- `grpc_port`
-
-In Docker Compose deployments, Core listens on its container port, while the host publishes a separate external port. `MN_GRPC_ADVERTISE_PORT` is the external port other machines and SDK clients should dial. It is distinct from `MN_GRPC_PORT`, which is the Core listener port inside the container.
-
-Native preparation is node-local. For the local node, SDK/API/CLI sends `PrepareRuntimeModel` to local Core, which relays it to `MN_NATIVE_SDK_GRPC_TARGET` (normally `mn-native-sdk-grpc:55052`). For a remote node, the coordinator connects directly to that node's advertised native SDK gRPC endpoint, normally `<node-ip>:55052`. The remote host-side SDK performs the native operation.
-
-The `mn-native-sdk-grpc` Compose service is a small TCP proxy inside the runtime Compose network. It forwards container traffic through `host.docker.internal:55052` to the host-side SDK service on that same node. The host service binds to `0.0.0.0` by default so both the Docker host gateway and trusted remote cluster nodes can reach it. `MN_NATIVE_SDK_GRPC_ADVERTISE_HOST` remains separate and should contain the node's reachable LAN address.
-
-Do not use SSH as the normal model-install path for a remote runtime node. SSH can still be useful for operator maintenance or deployment, but model preparation during launch should go over the target node's gRPC runtime path.
-
-## Required Environment
-
-All runtime boxes must agree on the cluster cookie and Redis location.
+Each Core advertises a federation-reachable gRPC host and port. Use `--host`
+when automatic address selection would choose the wrong interface:
 
 ```bash
-export MN_COOKIE="replace-with-a-shared-secret"
-export MN_REDIS_URL="redis://<redis-host>:6379/0"
+mn runtime start --host <this-node-lan-or-vpn-address>
 ```
 
-For Redis Sentinel HA:
+## Start and join two nodes
 
-```bash
-export MN_REDIS_HA_MODE="sentinel"
-export MN_REDIS_SENTINELS="<sentinel-1-host>:26379,<sentinel-2-host>:26379"
-export MN_REDIS_SENTINEL_MASTER="mirror-neuron"
-export MN_REDIS_DB="0"
-```
-
-See [Redis High Availability](redis-ha.md) for Sentinel setup and failover tests.
-
-## Start A Two-Box Cluster
-
-MirrorNeuron uses one worker-onboarding flow.
-
-On the main box:
+There is no leader/worker start distinction. Start the same full runtime on
+both machines:
 
 ```bash
 mn runtime start
 ```
 
-On the worker box:
+Successful startup prints:
+
+- the advertised host and gRPC endpoint;
+- the node identity;
+- the active federation join token; and
+- the exact `mn node add` command for another peer.
+
+On one already-running node, execute the add command printed by the other:
 
 ```bash
-mn runtime start --worker
+mn node add <peer-host> --token <join-token> --grpc-port 55051
 ```
 
-Copy the worker token printed by `mn runtime start --worker`.
+The add operation authenticates the token, verifies distinct writable store
+identities, registers both peers, clears stale legacy links, and waits for
+reciprocal federation readiness. It returns success only after both sides are
+online and job-capable. Repeating the same identity/endpoint join is
+idempotent; identity conflicts fail without replacing the existing peer.
 
-Back on the main box, connect the worker:
+The join token is a credential. Keep startup output private and rotate it if
+exposed:
 
 ```bash
-mn node add <worker-host> --token <worker-token> --network overlay --docker-network mirror-neuron-runtime
+mn node refresh-token
 ```
 
-Docker multi-host clusters require an existing attachable overlay network:
+The former `mn runtime start --worker` option is removed. Every runtime can own
+jobs and resume its local work independently.
 
-```bash
-docker network create --driver overlay --attachable mirror-neuron-runtime
-```
+## Verify federation
 
-The CLI validates that the network exists, uses the `overlay` driver, and is attachable. The gRPC handshake uses `<worker-host>`, but Erlang distribution and Redis are advertised through stable Docker DNS aliases such as `mirror_neuron@mn-a1b2c3d4` and `mn-a1b2c3d4-redis`.
-
-When `mn node add` first connects a worker, it promotes the main box from
-local-only mode into cluster mode.
-
-For shared documents and large blueprint payloads, each box keeps a local
-`MN_HOST_SHARED_STORAGE_ROOT`. The CLI starts a Syncthing sidecar during
-`mn runtime start` and connects peers during join/startup so every container
-continues to read `/root/.mn/shared` from its local filesystem while files are
-replicated across boxes. Start the worker locally, then add it from the primary;
-there is no worker-side `--join-host` mode.
-
-Set `MN_SYNCTHING_REQUIRED=1` when a missing Syncthing sidecar or peer
-configuration should stop startup instead of continuing with a warning.
-
-### Syncthing Storage And Cache Rollout
-
-Syncthing watches the shared folder continuously and uses an hourly fallback
-rescan by default. `MN_SYNCTHING_RESCAN_INTERVAL_SECONDS` can set another
-positive interval. Runtime start and node add update existing folders as well
-as new folders, keep the watcher enabled with a 10-second coalescing delay, and
-avoid rewriting or restarting Syncthing when the folder configuration is
-already correct.
-
-The synchronized tree continues to carry:
-
-- `submissions/` for multi-node inputs, staged intermediate artifacts, and outputs;
-- `bundle_cache/` for executable bundles needed by peers; and
-- other operator-owned shared files that are not explicitly ignored.
-
-Derived HostLocal state is node-local:
-
-- Python environments use `$MN_HOME/cache/blueprint-python-envs`;
-- staged local Python sources use `$MN_HOME/cache/blueprint-python-sources`; and
-- compatibility checkpoints use `$MN_HOME/checkpoints`.
-
-Each peer receives managed rooted ignore patterns for the legacy shared
-`blueprint-python-envs`, `blueprint-python-sources`, and `checkpoints`
-directories. Operator-defined ignore lines are preserved. Syncthing does not
-synchronize `.stignore`, so starting or rejoining every node is required to
-apply the managed list everywhere.
-
-Warning: do not start an upgraded node while older nodes can still launch
-HostLocal work into the legacy shared environment directory. Mixed versions can
-make an upgraded peer ignore an environment that an older peer still expects.
-
-Use this rollout order:
-
-1. Drain HostLocal work on every node and keep the runtimes stopped.
-2. Upgrade every node without starting or rejoining any upgraded runtime.
-3. Start the main runtime, then start or rejoin each peer so its existing
-   Syncthing folder and local ignore list are reconciled.
-4. Run a representative HostLocal job and verify that its environment appears
-   under the selected node's `$MN_HOME/cache`, not under its shared root.
-5. Verify that the job's submission, intermediate artifacts, and outputs still
-   appear on a peer within the existing readiness timeout.
-6. Restart or rejoin once more and confirm that the folder remains on the
-   configured rescan interval with the watcher enabled.
-
-The Syncthing REST API exposes the effective settings. The API key is sensitive;
-do not paste its value into tickets or command output:
-
-```bash
-MN_OPERATOR_HOME="${MN_HOME:-$HOME/.mn}"
-MN_ST_GUI_PORT="${MN_SYNCTHING_GUI_PORT:-58384}"
-MN_ST_API_KEY="$(tr -d '\n' < "$MN_OPERATOR_HOME/syncthing.api-key")"
-curl -fsS -H "X-API-Key: $MN_ST_API_KEY" \
-  "http://127.0.0.1:$MN_ST_GUI_PORT/rest/config/folders/mirror-neuron-shared"
-curl -fsS -H "X-API-Key: $MN_ST_API_KEY" \
-  "http://127.0.0.1:$MN_ST_GUI_PORT/rest/db/ignores?folder=mirror-neuron-shared"
-unset MN_ST_API_KEY
-```
-
-Expected folder fields are `rescanIntervalS: 3600`,
-`fsWatcherEnabled: true`, and `fsWatcherDelayS: 10` unless the rescan interval
-was explicitly customized. The ignore response must contain the three managed
-rooted patterns on every node.
-
-Ignoring legacy caches removes their recurring scan cost but does not delete
-them. Virtual-environment executables contain absolute paths, so do not move
-legacy environments. After confirming that no persisted job refers to them,
-delete the derived directories independently on every node and let future jobs
-rebuild them locally:
-
-```bash
-MN_OPERATOR_HOME="${MN_HOME:-$HOME/.mn}"
-rm -rf -- \
-  "$MN_OPERATOR_HOME/shared/blueprint-python-envs" \
-  "$MN_OPERATOR_HOME/shared/blueprint-python-sources" \
-  "$MN_OPERATOR_HOME/shared/checkpoints"
-```
-
-Warning: the removal is irreversible and does not propagate because the paths
-are ignored. Do not include `submissions/`, `bundle_cache/`, run output,
-intentional `mn-system-tests` artifacts, or unrelated operator files.
-`cctv-*-debug-envs` remain manual cleanup candidates and are never removed by
-this rollout. MirrorNeuron does not automatically expire synchronized
-submissions or outputs.
-
-On the second box:
-
-```bash
-mn runtime start --worker --host <worker-host>
-```
-
-Copy the token printed by `mn runtime start --worker`.
-
-On the main box:
-
-```bash
-mn node add <worker-host> --token <token> --network overlay --docker-network mirror-neuron-runtime
-```
-
-`mn runtime start --worker` starts a core-only runtime that exposes host gRPC and keeps Redis/Erlang cluster traffic on the Docker network. It does not start the REST API, Web UI, OpenShell, or context engine. If that node is expected to prepare host-native resources such as Docker Model Runner models, a node-local SDK gRPC sidecar must also be available for Core to relay to.
-
-## Verify The Cluster
-
-From the main box:
+From either machine:
 
 ```bash
 mn node list
+mn node show <peer-node>
+mn runtime status
 mn resource show
 ```
 
-Expected stable signs:
+Expected signs include:
 
-- both physical boxes appear in `mn node list`
-- `mn resource show` shows aggregate CPU, memory, disk, and GPU capacity
-- node status is `healthy` or `joining`
-- `scheduling_eligible` is not `false`
+- both Cores report different coordination-store identities;
+- the peer has `connection_mode=federated`, is online, and is job-owner
+  eligible;
+- the peer is absent from BEAM `connected_nodes`; and
+- each node reports its own local scheduler eligibility and resources.
 
-For lower-level dev testing, the checked-in helper can still start a fixed two-node cluster:
+`POST /api/v1/nodes` uses the same SDK orchestration as the CLI. It returns
+`201` with `Location` only after reciprocal readiness. Authentication,
+readiness, or rollback failures return a sanitized error instead of premature
+success.
+
+## Job ownership and routing
+
+Create a job for a chosen Core with the appropriate CLI or API `owner_node`
+field/`--node` option. If ownership is omitted, the resource/model selector
+chooses one eligible Core before creation. The chosen owner schedules every
+agent locally; federation never splits one job's agents across peers.
+
+Requests received by another peer are forwarded to the owner with
+authenticated loop-prevention metadata. The owner validates ownership before
+applying the operation. The receiving peer caches only returned job/run
+summaries with:
+
+- `owner_available`;
+- `projection_level=summary`;
+- `projection_stale`; and
+- `last_synced_at`.
+
+## Partition behavior
+
+If federation connectivity is lost:
+
+- existing jobs continue on their owner Core;
+- direct API/CLI access to that owner remains functional;
+- peers can return previously cached summary projections, marked stale; and
+- cross-peer mutations, streams, logs, artifacts, and uncached reads return
+  `503 MN_NODE_UNAVAILABLE` and are not queued.
+
+After reconnection, reciprocal status and summary projections refresh. A Core
+that was federation-unlocked remains job-capable after restarting while
+disconnected because that state is persisted locally.
+
+## Model routing
+
+All agents call their job owner's LiteLLM gateway, even for local models:
+
+```text
+local model:  agent -> owner LiteLLM -> owner DMR
+remote model: agent -> owner LiteLLM -> peer LiteLLM -> peer DMR
+```
+
+An agent must never use a direct Docker Model Runner `:12434` endpoint. Local
+installations win for duplicate model IDs. A remote or alternate model is used
+only through an explicitly declared LiteLLM fallback.
+
+## Shared blobs are optional
+
+Syncthing can replicate submissions, executable bundles, intermediate
+artifacts, and outputs between local shared-storage roots. This is blob
+transport only; it does not share Redis, job state, leases, or scheduling.
+
+Set `MN_SYNCTHING_REQUIRED=1` when failure to establish the optional storage
+sidecar should stop startup. Derived HostLocal environments and checkpoints
+remain node-local under `$MN_HOME/cache` and `$MN_HOME/checkpoints`.
+
+The Syncthing API key is sensitive. Do not paste it or the federation join
+token into tickets, test reports, or shared command output.
+
+## Node operations
+
+Maintenance and drain controls change whether a Core can be selected as the
+owner of new jobs. They do not migrate individual agents from an existing job
+to another peer; the job remains single-home.
 
 ```bash
-cd MirrorNeuron
-bash scripts/start_cluster_node.sh --box1-ip <box1-host> --box2-ip <box2-host> --box 1
+mn node maintenance <node> --enable --reason "host maintenance"
+mn node drain <node> --reason "host maintenance" --wait
+mn node undrain <node> --reason "host ready" --mark-eligible
 ```
 
-Run the same helper on the second box with `--box 2`.
+Use an independent owner-local job on another eligible Core when capacity is
+needed during maintenance.
 
-## Scheduling Model
+## Troubleshooting
 
-The scheduler places workload agents on runtime nodes. It considers:
+### Join returns `MN_NODE_UNAVAILABLE`
 
-- node status and scheduling eligibility
-- available CPU, memory, disk, and GPU count
-- rich device inventory such as CUDA, Metal, GPU vendor, GPU memory, capabilities, and device IDs
-- explicit port conflicts
-- advertised host paths and runtime drivers
-- active job placements already consuming capacity
-- execution profiles advertised by each node
-- node capabilities and manifest constraints
-- node-scoped required services with passing health
-- the selected scheduler strategy
+Confirm the peer's advertised gRPC address is reachable and that both Cores
+are healthy. The join does not return success after only one-sided
+registration; fix connectivity and repeat the same idempotent command.
 
-Supported strategies:
+### Store identity conflict
 
-| Strategy | Behavior |
-| --- | --- |
-| `binpack` | Prefer fuller nodes so remaining capacity stays consolidated. |
-| `spread` | Prefer less-used nodes so work is distributed. |
+Both Cores are using the same Redis identity. Stop the joining node, configure
+a distinct writable Redis, and retry. Legacy shared-store deployments must
+drain jobs and rejoin; there is no implicit data migration.
 
-The default strategy is `binpack`.
+### Remote job summaries are stale
 
-### Placement Resources
+The owner is unreachable. Read the summary as cached evidence only. Connect
+directly to the owner for local controls or restore federation connectivity;
+mutations are intentionally not queued elsewhere.
 
-Per-agent resources can be declared on manifest nodes or under `config.resources`.
+### Remote model route fails
 
-Supported placement keys include:
+Verify port `4000` between trusted peers and inspect both LiteLLM gateway
+health checks. Do not bypass the gateways with a direct DMR URL.
 
-| Resource | Accepted forms |
-| --- | --- |
-| CPU | `cpu_cores`, `cores`, `cpu`, `cpu_millis`, `cpu_mcores` |
-| Memory | `memory_mb`, `memory`, `memory_gb` |
-| Disk | `disk_mb`, `disk`, `disk_gb` |
-| GPU count | `gpu_count`, `gpus`, `gpu`, or GPU-like entries in `devices` |
-| Devices | `devices` with `kind`, `type`, `count`, `vendor`, `driver`, `min_memory_mb`, `capabilities`, and `ids` |
-| Ports | `ports` with `label`, `port`, and `protocol` |
-| Volumes | `volumes` with `name`, `source`, `target`, `mode`, and `type: host` |
-| Runtime driver | `runtime_driver` such as `host_local` or `openshell` |
+## Related docs
 
-Execution profiles can also imply GPU demand. If a node asks for a profile whose runtime profile has `gpu: true`, the scheduler requires at least one GPU.
-
-Placement records include concrete allocations for selected devices, reserved ports, volumes, and runtime driver. Core injects safe environment hints such as `MN_ALLOCATION_JSON`, `MN_ALLOCATED_DEVICE_IDS`, `CUDA_VISIBLE_DEVICES`, `MN_PORT_<LABEL>`, and `MN_VOLUME_<NAME>`.
-
-See [Resources and Devices](resources-and-devices.md) for the full resource model.
-
-### Constraints And Capabilities
-
-Constraints can be declared globally in `policies.constraints` or per node in `constraints` / `config.constraints`.
-
-A string constraint means "the target node must advertise this capability." Object constraints can use fields such as `attribute`, `operator`, and `value`.
-
-Common examples:
-
-```json
-{
-  "policies": {
-    "scheduler_strategy": "binpack",
-    "constraints": ["cuda"]
-  },
-  "nodes": [
-    {
-      "node_id": "worker",
-      "type": "executor",
-      "resources": {"cpu_cores": 2, "memory_mb": 4096, "gpu_count": 1}
-    }
-  ]
-}
-```
-
-## Job Types
-
-MirrorNeuron supports four Nomad-inspired job types.
-
-| Type | Cluster behavior | Typical use |
-| --- | --- | --- |
-| `service` | Long-running job. Unexpected exit is treated as restartable. | APIs, workers, model servers, queues. |
-| `batch` | Runs to completion. Failure retries are policy-limited. | Evals, embedding jobs, dataset processing. |
-| `system` | Runs one copy of the whole agent group on every eligible node and keeps it running. | Node monitors, local runtime workers, log collectors. |
-| `sysbatch` | Runs one copy of the whole agent group on every eligible node until each target completes. | Diagnostics, cache warmups, cleanup commands. |
-
-`system` and `sysbatch` placements use generated runtime agent ids like `agent@node-name` while preserving the source agent id in the scheduler plan. This lets one logical agent definition expand across every eligible node.
-
-## Node States
-
-Node state is persisted in Redis and used by the scheduler.
-
-| State | Meaning |
-| --- | --- |
-| `healthy` | Node is active and schedulable unless `scheduling_eligible` is `false`. |
-| `joining` | Node is active enough to receive placements. |
-| `maintenance` | Node is connected but not eligible for new placements. Existing work is not moved automatically. |
-| `draining` | Node is not eligible for new placements and safe work is being moved or allowed to finish. |
-| `disconnected` | Node failed reconnect attempts but is still inside the disconnect grace window. |
-| `offline` | Node is unavailable after reconnect and grace handling. |
-| `quarantined` | Node is treated as inactive. |
-
-The scheduler only places new work on `healthy` or `joining` nodes with `scheduling_eligible != false`.
-
-Node heartbeats do not overwrite an active `maintenance` or `draining` state. This prevents a reconnect from accidentally making a cordoned node schedulable.
-
-## Automatic Reconciliation
-
-When a node disappears, MirrorNeuron does not immediately restart everything.
-
-The recovery path is:
-
-1. `NodeMonitor` observes `nodedown`.
-2. The runtime attempts reconnect with exponential backoff.
-3. If reconnect is exhausted, the node is marked `disconnected` and executor capacity for that node is released.
-4. During the disconnect grace window, recovery evals may wait for the node to return.
-5. If the node remains unavailable, the node is marked `offline`.
-6. The reconciler inspects active jobs with scheduler placements on that node.
-
-The reconciler uses hybrid recovery:
-
-- If the job coordinator is alive, only affected agents are moved.
-- If the job coordinator or job lease is gone, the durable job bundle is loaded and the whole job is restarted with a fresh plan.
-- If the job is not effectively `cluster_recover`, it is paused for review instead of moved automatically.
-- If snapshots are missing, corrupt, unsafe, or the durable bundle cannot be loaded, the job is paused for review.
-
-Operators can trigger the same path manually:
-
-```bash
-mn node reconcile mirror_neuron@<node-host> --reason "manual recovery check" --dry-run
-```
-
-Expected output is JSON with counters such as `checked`, `recovered`, `paused`, `blocked`, `skipped`, and `failed`.
-
-## Maintenance Mode
-
-Maintenance mode stops new placements without moving current work.
-
-Enable it before rebooting or changing a box when you want existing jobs to continue in place:
-
-```bash
-mn node maintenance mirror_neuron@<node-host> --enable --reason "reboot after current work"
-```
-
-Disable it when the node is ready:
-
-```bash
-mn node maintenance mirror_neuron@<node-host> --disable --reason "maintenance complete"
-```
-
-Maintenance sets `scheduling_eligible` to `false` when enabled and back to `true` when disabled.
-
-## Drain Mode
-
-Drain mode is maintenance plus graceful movement.
-
-Use a dry run first:
-
-```bash
-mn node drain mirror_neuron@<node-host> --reason "GPU driver update" --deadline 30m --dry-run
-```
-
-Then run the drain:
-
-```bash
-mn node drain mirror_neuron@<node-host> --reason "GPU driver update" --deadline 30m --wait
-```
-
-Drain behavior:
-
-- the node is marked `draining`
-- `scheduling_eligible` becomes `false`
-- safe `service` jobs with effective `cluster_recover` migrate through the reconciler
-- if the job coordinator lease is on the draining node, the whole job is recovered elsewhere
-- `batch` jobs are allowed to finish before the deadline
-- after the deadline, batch work migrates only if recovery is safe and cluster-recoverable
-- `system` and `sysbatch` jobs are ignored by default
-- unsafe leftovers are paused for review rather than force-killed
-- blocked placement keeps the node in `draining` so the leader can retry later
-
-Drain migrations are operator-requested maintenance moves. They do not consume failure reschedule policy attempts.
-
-Cancel a drain:
-
-```bash
-mn node undrain mirror_neuron@<node-host> --reason "cancel update"
-```
-
-A completed drain leaves the node in maintenance/ineligible state. Make it schedulable again explicitly:
-
-```bash
-mn node undrain mirror_neuron@<node-host> --reason "ready for work" --mark-eligible
-```
-
-## Submit A Cluster Job
-
-Small parallel worker test from the generated system-test fixture:
-
-```bash
-cd mn-system-tests
-RUN_MN_SYSTEM_TESTS=1 ../.venv/bin/python -m pytest integration -k parallel_worker
-```
-
-Stress-style run:
-
-```bash
-MN_BENCHMARK_WORKER_COUNT=100 RUN_MN_SYSTEM_TESTS=1 \
-  ../.venv/bin/python -m pytest integration -k parallel_worker
-```
-
-Inspect the job:
-
-```bash
-mn job list --running-only
-mn job status <job-id>
-```
-
-`mn job status` returns the scheduler plan, recovery fields, restart/reschedule policies, and per-agent policy state when present.
-
-## Common Failure Patterns
-
-### `:nodistribution`
-
-Usually means:
-
-- `epmd` is not running
-- port `4369` is blocked
-- the fixed BEAM distribution port, usually `4370`, is blocked
-
-### Invalid Challenge Reply
-
-Usually means `MN_COOKIE` differs between machines.
-
-Set the same non-default cookie on every physical box:
-
-```bash
-export MN_COOKIE="replace-with-a-shared-secret"
-```
-
-### HTTP Port `eaddrinuse`
-
-Usually means two local runtimes are trying to bind the same HTTP API port.
-
-Use a different HTTP API port for one of them:
-
-```bash
-export MN_API_PORT=4001
-```
-
-Keep `MN_API_PORT` separate from `MN_DIST_PORT`.
-
-### Node Name Already In Use
-
-Usually means:
-
-- a runtime node is already running on that machine
-- a previous CLI or helper process still exists with the same BEAM node name
-
-Stop the stale process before starting another runtime with the same node name.
-
-### No Schedulable Nodes
-
-Usually means every known node is offline, draining, in maintenance, ineligible, missing a required profile, missing a capability, or short on requested resources.
-
-Check:
-
-```bash
-mn node list
-mn resource show
-```
-
-Then inspect the job scheduler plan:
-
-```bash
-mn job status <job-id>
-```
-
-### Redis And Split Brain
-
-Redis is the arbiter for leader and job leases. In single Redis mode, the partition that can communicate with Redis maintains leadership and job ownership.
-
-In Sentinel mode, the Sentinel-elected primary is the only write target.
-
-For production Redis HA, use at least three Sentinel voters. A two-box Sentinel quorum of `1` is useful for development smoke tests, but it can split-brain during network partitions.
-
-## Related Docs
-
-- [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md)
+- [Federation Architecture](cluster_architecture.md)
 - [Reliability Guide](reliability.md)
 - [Resources and Devices](resources-and-devices.md)
-- [Services and Health Checks](services-and-health-checks.md)
-- [Redis High Availability](redis-ha.md)
 - [CLI Reference](cli.md)
-- [Runtime Architecture](runtime-architecture.md)
+- [Model Runtime](model-runtime.md)
 - [Troubleshooting](troubleshooting.md)

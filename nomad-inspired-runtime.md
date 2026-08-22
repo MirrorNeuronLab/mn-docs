@@ -1,14 +1,17 @@
 # Nomad-Inspired Runtime Features
 
-MirrorNeuron now has a small-lab orchestration layer inspired by Nomad. It is not a Kubernetes clone and it is not a full Nomad replacement. The goal is narrower: run agent workloads across a few machines, make placement decisions from real resources, recover safely when nodes fail, and expose enough operator control for AI lab maintenance.
+MirrorNeuron has a small-lab orchestration layer inspired by Nomad. It is not a
+Kubernetes clone or a full Nomad replacement. The goal is narrower: choose one
+eligible owner Core for each job, run all of that job's agents there, recover
+locally, and expose enough operator control for AI lab maintenance.
 
 ## Feature Status
 
 | Feature | Status | Start here |
 | --- | --- | --- |
-| Reconciliation and automatic rescheduling | Implemented | [Reliability Guide](reliability.md) and [Cluster Guide](cluster.md) |
+| Owner-local reconciliation and restart | Implemented | [Reliability Guide](reliability.md) and [Federation Guide](cluster.md) |
 | Full job type behavior | Implemented | [Reliability Guide](reliability.md) |
-| Restart and reschedule policies | Implemented | [Reliability Guide](reliability.md) |
+| Restart policy and legacy reschedule-schema compatibility | Implemented | [Reliability Guide](reliability.md) |
 | Node drain and maintenance | Implemented | [Cluster Guide](cluster.md) |
 | Service registry and health checks | Implemented | [Services and Health Checks](services-and-health-checks.md) |
 | Stronger resources and devices | Implemented | [Resources and Devices](resources-and-devices.md) |
@@ -20,23 +23,25 @@ MirrorNeuron now has a small-lab orchestration layer inspired by Nomad. It is no
 The runtime uses a desired-vs-actual model:
 
 - the manifest describes desired agents, services, resources, policies, and schedules
-- Redis stores durable job state, node state, snapshots, leases, schedules, services, and deployments
-- the scheduler chooses eligible target nodes and concrete allocations
+- the owner's Redis stores durable job state, snapshots, leases, schedules, services, and deployments
+- federation selects one eligible owner before creation
+- the owner's scheduler chooses concrete local allocations
 - job coordinators keep agents running and apply lifecycle policy
-- the leader sweeps recovery evals, orphaned jobs, due drains, and due schedules
-- the reconciler moves only the affected agents when it can, and restarts a whole job only when the coordinator lease is gone
+- local sweeps reconcile owned jobs, due drains, and schedules
+- remote peers forward controls and cache summaries; they do not move agents or take over jobs
 
-That gives MirrorNeuron the Nomad-like heart for small clusters without requiring a heavy control plane.
+That gives MirrorNeuron a Nomad-like owner-local control loop without requiring
+a heavy shared control plane.
 
 ## How To Use The Features Together
 
-Use `cluster_recover` for work that can be replayed safely:
+Use a bounded local restart policy for work that can be replayed safely:
 
 ```json
 {
   "type": "service",
   "policies": {
-    "recovery_mode": "cluster_recover",
+    "recovery_mode": "local_restart",
     "restart": {
       "attempts": 3,
       "interval_ms": 600000,
@@ -44,18 +49,13 @@ Use `cluster_recover` for work that can be replayed safely:
       "delay_function": "exponential",
       "max_delay_ms": 30000,
       "mode": "fail"
-    },
-    "reschedule": {
-      "unlimited": true,
-      "delay_ms": 5000,
-      "delay_function": "exponential",
-      "max_delay_ms": 300000
     }
   }
 }
 ```
 
-Use `system` for one copy per eligible machine:
+Use `system` for owner-local long-running system work. It does not expand one
+federated job across peer Cores:
 
 ```json
 {
@@ -134,9 +134,9 @@ mn event emit file_uploaded --payload-json '{"path":"/datasets/eval.jsonl"}'
 | Resource spec and allocation env | `MirrorNeuron/lib/mirror_neuron/resource_spec.ex` |
 | Node inventory and resource API | `MirrorNeuron/lib/mirror_neuron/resource.ex` |
 | Job coordinator lifecycle | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex` |
-| Restart and reschedule policy | `MirrorNeuron/lib/mirror_neuron/runtime/lifecycle_policy.ex` |
-| Reconciliation | `MirrorNeuron/lib/mirror_neuron/cluster/reconciler.ex` |
-| Node monitor and leader sweeps | `MirrorNeuron/lib/mirror_neuron/cluster/node_monitor.ex`, `MirrorNeuron/lib/mirror_neuron/cluster/leader.ex` |
+| Restart and legacy policy normalization | `MirrorNeuron/lib/mirror_neuron/runtime/lifecycle_policy.ex` |
+| Owner-local reconciliation | `MirrorNeuron/lib/mirror_neuron/cluster/reconciler.ex` |
+| Federation monitoring | `MirrorNeuron/lib/mirror_neuron/cluster/federation_monitor.ex` |
 | Drain and maintenance | `MirrorNeuron/lib/mirror_neuron/cluster/node_drainer.ex` |
 | Service declarations | `MirrorNeuron/lib/mirror_neuron/service_spec.ex` |
 | Service checks and registry | `MirrorNeuron/lib/mirror_neuron/service_check.ex`, `MirrorNeuron/lib/mirror_neuron/service_registry.ex`, `MirrorNeuron/lib/mirror_neuron/service_monitor.ex`, `MirrorNeuron/lib/mirror_neuron/service_preflight.ex` |

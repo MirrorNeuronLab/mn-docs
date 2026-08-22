@@ -8,7 +8,8 @@ MirrorNeuron is not trying to replicate Airflow as a general-purpose data schedu
 
 - keep orchestration and collaboration in BEAM
 - let worker code run in safe isolated sandboxes
-- support cross-node execution
+- keep every job and all of its workers on one owner Core
+- federate independent Cores for owner selection and remote control
 - keep inter-agent communication event-driven and observable
 - avoid turning the BEAM control plane into a pile of heavyweight OS processes
 
@@ -119,7 +120,7 @@ The control plane lives in BEAM:
 - retries and backoff
 - event history
 - aggregation
-- cluster coordination
+- authenticated federation, owner routing, and summary projection
 - service registry health state
 - deployment and schedule dispatch state
 
@@ -140,7 +141,9 @@ This work is comparatively expensive. It should be bounded and scheduled, not la
 
 ## Native preparation boundary
 
-Core is responsible for running jobs on a single node or across a cluster. It is not responsible for preparing host-native resources.
+Core is responsible for running every agent of its owner-local jobs. It is not
+responsible for preparing host-native resources or scheduling one job's agents
+on a federated peer.
 
 Native preparation includes:
 
@@ -172,12 +175,20 @@ Local node:
   -> MN_NATIVE_SDK_GRPC_TARGET -> Compose proxy mn-native-sdk-grpc
   -> host-side SDK gRPC service -> Docker Model Runner
 
-Remote cluster node:
-  SDK/API/CLI -> target node's advertised native SDK gRPC endpoint
-  -> host-side SDK gRPC service -> Docker Model Runner
+Federated owner selection:
+  SDK/API/CLI -> selected owner Core
+  -> owner's node-local SDK gRPC service -> Docker Model Runner
 ```
 
-Core's local relay keeps the Core boundary small, while direct native SDK routing avoids asking remote Core containers to perform host operations. The SDK service owns the model operation and returns concrete service facts for later scheduling and worker environment injection.
+Core's local relay keeps the Core boundary small. A request received by another
+peer is forwarded to the selected owner, whose SDK service performs the native
+operation. The service returns concrete facts for owner-local scheduling and
+worker environment injection.
+
+Model inference follows a separate mandatory gateway boundary: agents call the
+owner's LiteLLM gateway; declared remote models route owner LiteLLM to peer
+LiteLLM and then to that peer's DMR. Agents never call a local or remote DMR
+directly.
 
 ## Logical workers vs physical execution leases
 
@@ -249,7 +260,9 @@ Executor node config can request a pool and slot count:
 }
 ```
 
-At the moment, pools are enforced per runtime node. That means the cluster scales by adding nodes, each with its own bounded execution capacity.
+Pools are enforced per owner Core. Federation scales by selecting different
+owners for independent jobs, each with its own bounded execution capacity; it
+does not combine several peers' pools for one job.
 
 ## Message model
 
@@ -269,22 +282,26 @@ That also enables multi-language workers: Python and shell code consume the payl
 
 ## Nomad-Inspired Orchestration Layer
 
-MirrorNeuron now has a small-cluster orchestration layer above the message graph:
+MirrorNeuron has an owner-local orchestration layer above the message graph:
 
-- desired-vs-actual reconciliation for failed nodes and orphaned jobs
-- full `service`, `batch`, `system`, and `sysbatch` job type behavior
-- restart and reschedule policy with sliding windows and backoff
-- node maintenance and drain
-- Redis-backed service registry and health checks
+- desired-vs-actual reconciliation for local agents and jobs
+- local restart policy with sliding windows and backoff
+- owner eligibility, maintenance, and drain
+- owner-local Redis-backed service registry and health checks
 - CUDA, Metal, port, volume, and runtime-driver aware placement
 - rolling, canary, promote, rollback, and version history for long-running deployments
 - periodic, delayed, and event-triggered job dispatch
+
+Federation adds authenticated owner request forwarding and cached summary
+projections. It does not reschedule individual agents or take over an offline
+owner's active job.
 
 The detailed map is in [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md).
 
 ## Why artifacts matter
 
-Passing large blobs directly between agents is a bad fit for a clustered runtime.
+Passing large blobs directly between agents is a bad fit for an owner-local
+runtime and for optional federation transport.
 
 Instead, messages should stay small and carry:
 
@@ -295,7 +312,7 @@ Instead, messages should stay small and carry:
 
 This is the same core operational lesson many schedulers learn: small control messages scale much better than inline large payloads.
 
-Cluster BlobRef sharing uses a simple peer HTTP content-addressed store. Blob URLs
+Federated BlobRef sharing uses a simple peer HTTP content-addressed store. Blob URLs
 are not individually bearer-token authenticated; operators should expose the
 artifact port only on trusted loopback, Docker, VPN, or LAN interfaces and use
 firewall rules or bind/publish host settings to keep it inside the intended
@@ -333,15 +350,15 @@ That means a logical worker does not "become Python." It requests external execu
 A healthy deployment usually looks like this:
 
 - many logical workers
-- modest executor concurrency per node
-- more nodes added when more real execution capacity is needed
+- modest executor concurrency per owner Core
+- independent jobs assigned to more Cores when more capacity is needed
 
 Example:
 
-- 1000 logical workers
-- 4 nodes
-- 8 executor slots per node
-- real concurrent sandbox count: 32
+- four jobs with 250 logical workers each
+- four owner Cores
+- eight executor slots per Core
+- up to eight concurrent sandboxes per job owner
 
 That is still a large multi-agent workload, but it does not overload a single OpenShell gateway.
 
@@ -349,8 +366,8 @@ That is still a large multi-agent workload, but it does not overload a single Op
 
 The current implementation improves the runtime boundary a lot, but a few things are still intentionally simple:
 
-- executor pools are local to each node, not globally brokered
-- there is no cluster-wide lease balancer yet
+- executor pools are local to each owner Core, not globally brokered
+- active jobs do not migrate to another Core when their owner is unavailable
 - sensor and deferred waiting primitives can still grow richer
 - artifacts are modeled in messages, but the runtime does not provide a full external artifact-store abstraction
 - resource allocation is scheduling metadata and environment hints, not OS-level isolation

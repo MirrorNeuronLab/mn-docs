@@ -211,25 +211,35 @@ Core areas to keep covered:
 | Deployments | Rolling, canary isolation, promotion, rollback, service discovery roles. |
 | Schedules and events | Cron parsing, timezone, delayed runs, overlap prevention, missed policies, event filters, idempotent dispatch. |
 
-Two-box cluster checks should use a shared Redis namespace and sync the remote workspace through Git rather than editing files directly on the remote machine.
+Two-box federation checks must use distinct writable Redis identities. Sync the
+remote workspace through a fast-forward Git update and exact commit parity;
+never edit tracked files directly on the remote machine.
 
-Typical joined-cluster verification:
+Typical federation verification:
 
 ```bash
+# Run once on each node
 mn runtime start
-mn runtime start --worker
-mn node add <worker-ip> --token <worker-token>
+
+# Run the command printed by the joining node on an existing peer
+mn node add <peer-ip> --token <join-token> --grpc-port 55051
 mn node list
 mn resource show
 ```
 
 Then run targeted system tests for:
 
-- one due schedule dispatching exactly once across both boxes
-- `system` jobs expanding across both eligible nodes
-- service jobs moving from a drained node to the other node
-- resource placement avoiding a node without the requested CUDA/Metal/device capability
-- required service preflight blocking before agents launch
+- reciprocal readiness and the absence of BEAM membership;
+- one owner-local job on each Core, with no cross-node agent placement;
+- owner autonomy and stale projections during a network partition;
+- explicit and automatic owner selection from resource/model capabilities;
+- owner-LiteLLM-first local and remote gateway routing; and
+- secret redaction in topology artifacts, reports, and diagnostics.
+
+`cluster.federation.local` is an ungated deterministic CI topology. The gated
+two-box `cluster.federation`, `cluster.storage`, `cluster.job-controls`,
+`cluster.models`, `cluster.scale`, and `cluster.llm-live` suites cover the real
+network boundary after both hosts are on the same commit.
 
 ## Environment Rules
 

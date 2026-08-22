@@ -65,18 +65,25 @@ Run these commands after any installation or upgrade:
 mn --help
 mn runtime start
 mn runtime status
-mn runtime status
 mn node list
 ```
 
 Verification criteria:
 
 - `mn --help` displays the command groups.
+- `mn runtime start` reports `Runtime node ready` followed by the advertised
+  endpoint, node identity, active join token, and an exact `mn node add`
+  command. There is no separate worker start mode.
 - `mn runtime status` reports the Core, REST API, and Web UI health checks without a failed required component.
 - `mn runtime status` reports the resolved endpoints, runtime state, nodes, jobs, and shared storage.
-- `mn node list` returns the local runtime-node view or the configured cluster view.
+- `mn node list` returns the local Core and any reciprocally registered
+  federated peers.
 
 If a command fails, collect its output and continue with [Troubleshooting](troubleshooting.md) rather than deleting local state.
+
+The startup token is a credential, even though it is intentionally displayed
+once the runtime is ready. Do not paste it into issue reports or shared logs.
+Run `mn node refresh-token` if it has been exposed.
 
 ## Local state, ports, and configuration
 
@@ -84,12 +91,12 @@ If a command fails, collect its output and continue with [Troubleshooting](troub
 | --- | --- | --- |
 | Runtime state root | `~/.mn` | CLI, API, SDK, runtime services. |
 | REST API | `http://localhost:54001/api/v1` | `mn-api`; override with `MN_API_PORT`. |
-| Core gRPC endpoint | `localhost:55051` | MirrorNeuron Core; override with `MN_GRPC_PORT` and client target settings. |
-| Docker Model Runner/LiteLLM gateway | port `4000` when enabled | Model runtime. |
+| Core gRPC endpoint | port `55051` | MirrorNeuron Core and authenticated federation control; override with `MN_GRPC_PORT` and client target settings. |
+| LiteLLM gateway | port `4000` when enabled | Owner-first model gateway; restrict peer access to trusted LAN/VPN networks. |
 | Web UI | port `55173` by default | Docker Compose service; local mode builds the mounted `mn-web-ui` source there. |
 | Blueprint run records | `~/.mn/runs/<run_id>/` | Blueprint run-store contract. |
 
-See [Environment Variables](env_variables.md) for the full configuration reference. Do not publish `~/.mn/docker-compose.env`, tokens, or generated endpoint files because they can contain deployment-specific configuration.
+See [Environment Variables](env_variables.md) for the full configuration reference. Do not publish `~/.mn/docker-compose.env`, startup output, tokens, or generated endpoint files because they can contain deployment-specific configuration.
 
 ## Prepare a local model only when a blueprint requires it
 

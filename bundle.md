@@ -60,7 +60,7 @@ Each item in the `nodes` array defines an agent that will be supervised by the B
 | `resources` | Object | Optional. CPU, memory, disk, GPU, device, port, volume, and runtime-driver requirements. |
 | `services` | Array | Optional. Services registered by this specific agent. |
 | `requires_services` | Array | Optional. Node-scoped service requirements used during placement. |
-| `policies` | Object | Optional. Per-agent restart and reschedule overrides. |
+| `policies` | Object | Optional. Per-agent restart overrides and legacy policy fields. |
 
 ### Job Types
 
@@ -68,10 +68,10 @@ MirrorNeuron supports four Nomad-inspired job types:
 
 | Type | How to declare | Behavior |
 | --- | --- | --- |
-| `service` | top-level `"type": "service"` or scheduler policy | Long-running and restarted/rescheduled by policy until stopped. |
+| `service` | top-level `"type": "service"` or scheduler policy | Long-running and restarted locally by policy until stopped. |
 | `batch` | default top-level type | Runs to completion and retries within policy limits. |
-| `system` | `policies.scheduler.job_type: "system"` | Runs one copy on every eligible node. |
-| `sysbatch` | `policies.scheduler.job_type: "sysbatch"` | Runs one one-off copy on every eligible node. |
+| `system` | `policies.scheduler.job_type: "system"` | Runs owner-local long-running system work. It does not expand across federated peers. |
+| `sysbatch` | `policies.scheduler.job_type: "sysbatch"` | Runs owner-local one-off system work. It does not expand across federated peers. |
 
 Example:
 
@@ -86,14 +86,17 @@ Example:
 }
 ```
 
-### Restart And Reschedule Policies
+### Restart Policies
 
-Job-level policies live under `policies.restart` and `policies.reschedule`. Per-agent overrides live under `nodes[].policies.restart` and `nodes[].policies.reschedule`.
+Job-level restart policy lives under `policies.restart`; per-agent overrides
+live under `nodes[].policies.restart`. Legacy `reschedule` fields remain
+accepted for stored-manifest compatibility, but federation does not move a job
+or agent to another Core.
 
 ```json
 {
   "policies": {
-    "recovery_mode": "cluster_recover",
+    "recovery_mode": "local_restart",
     "restart": {
       "attempts": 3,
       "interval_ms": 600000,
@@ -101,12 +104,6 @@ Job-level policies live under `policies.restart` and `policies.reschedule`. Per-
       "delay_function": "exponential",
       "max_delay_ms": 30000,
       "mode": "fail"
-    },
-    "reschedule": {
-      "unlimited": true,
-      "delay_ms": 5000,
-      "delay_function": "exponential",
-      "max_delay_ms": 300000
     }
   }
 }
@@ -451,7 +448,7 @@ You can validate and run a job bundle using the MirrorNeuron CLI:
 # Validate the bundle structure and manifest constraints
 mn blueprint validate path/to/my_job_bundle
 
-# Execute the bundle in the cluster
+# Execute the bundle on its selected owner Core
 mn blueprint run path/to/my_job_bundle
 ```
 
