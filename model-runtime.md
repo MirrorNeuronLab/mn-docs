@@ -6,7 +6,8 @@ is used by blueprints that declare `provider: "docker_model_runner"` in
 `llm.configs`.
 
 Without an operator override, MirrorNeuron selects its built-in default from
-the host hardware: `nemotron3` on a suitable NVIDIA system and `gemma4:e2b`
+the host hardware: `nemotron-3.5-lightning:latest` on a suitable high-memory
+accelerator and `gemma4:e2b`
 otherwise. A model added with `--default` takes priority over both built-ins.
 
 ## Ownership Boundary
@@ -50,7 +51,7 @@ catalog-only choices. Human output uses `ID`, `Kind`, `Source`, `State`, and
 `--default` is valid for either a DMR reference or a provider JSON file that
 defines exactly one model. The registry stores only that model's ID as the
 operator-selected priority; it never stores resolved provider secrets. Removing
-the selected model restores automatic `nemotron3`/`gemma4:e2b` selection.
+the selected model restores automatic `nemotron-3.5-lightning:latest`/`gemma4:e2b` selection.
 
 DMR adds and blueprint validation block incompatible hardware by default. Use
 `--force` only when you accept slow CPU execution or a partial accelerator
