@@ -57,6 +57,27 @@ DMR adds and blueprint validation block incompatible hardware by default. Use
 `--force` only when you accept slow CPU execution or a partial accelerator
 path.
 
+## Nemotron 3.5 Lightning Compatibility
+
+The built-in `nemotron-3.5-lightning:latest` alias pulls
+`hf.co/bartowski/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-GGUF:Q4_K_M` and then
+tags that artifact locally as `nemotron-3.5-lightning:latest`. MirrorNeuron
+does not use the defective `ai/nemotron-3.5-lightning:latest` artifact.
+
+On a Linux host with NVIDIA hardware, `mn-deploy/install.sh` ensures Docker
+Model Runner uses the CUDA-enabled llama.cpp `b10524` build before it prepares
+models. The one-time upgrade downloads the Model Runner source and CUDA image,
+replaces the `docker-model-runner` controller container, and retains the named
+`docker-model-runner-models` volume. It does not delete model artifacts.
+
+After installation or a lazy model preparation, verify the local alias with:
+
+```bash
+docker model status
+docker model list
+docker model run nemotron-3.5-lightning:latest "Explain Docker containers in one sentence."
+```
+
 ## Provider Models
 
 Use a provider definition when a model is served by an external
