@@ -32,7 +32,7 @@ The `manifest.json` is a JSON document that defines the execution graph.
 | `job_name` | String | Optional. A human-readable name for the job. Defaults to `graph_id` if missing. |
 | `type` | String | Optional. Set to `"service"` for workflows intended to run until manually stopped. Omit for default batch workflows. `system` and `sysbatch` are selected through scheduler policy. |
 | `response_service` | Object | Optional. Exactly `{"enabled": true}` enables one definition-scoped real-time Job responder. It is not a DAG node or Run service and accepts no command, handler, port, prompt, or endpoint fields. |
-| `requiredContextEngine` | Boolean | Optional. Set to `true` when the workflow requires the Context Engine. The runtime checks `CONTEXT_ENGINE_ADDR` or port `50052` and rejects the run before scheduling agents if the service is unavailable. Defaults to `false`. |
+| `required_context_engine` | Boolean | Optional. Set to `true` when the workflow requires the Context Engine. The runtime checks `CONTEXT_ENGINE_ADDR` or port `50052` and rejects the run before scheduling agents if the service is unavailable. Defaults to `false`. |
 | `services` | Array | Optional. Services registered by the job. See [Services and Health Checks](services-and-health-checks.md). |
 | `required_services` | Array | Optional. Services that must be healthy before job start. |
 | `deployment` | Object | Optional. Stable deployment key and metadata. See [Deployments](deployments.md). |
@@ -378,7 +378,7 @@ Here is a simple example of a complete `manifest.json` for a Map-Reduce style wo
 {
   "manifest_version": "1.0",
   "graph_id": "document_summarizer",
-  "requiredContextEngine": false,
+  "required_context_engine": false,
   "entrypoints": ["dispatcher"],
   "initial_inputs": {
     "dispatcher": [
