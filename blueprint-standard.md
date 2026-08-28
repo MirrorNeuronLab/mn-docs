@@ -1669,7 +1669,7 @@ Runtime infrastructure agents are not blueprint workers. If transport or wrapper
 
 ### Custom OpenShell Image Port Note
 
-Agents that run with a customized OpenShell image should declare any input or output ports that must be reachable from outside the sandbox. This applies to custom images declared with fields such as `custom_openshell_image` and runners such as `MirrorNeuron.Sandbox.OpenShell`.
+Agents that run with a customized OpenShell image should declare any input or output ports that must be reachable from outside the sandbox. This applies to custom images declared with fields such as `custom_openshell_image` and runners such as `MirrorNeuron.Sandbox.OpenShell`. A portable bundle may also pair a `from` image ending in `:local` with `payloads/openshell_image/Dockerfile`; the CLI builds that conventional context before it creates the sandbox.
 
 If an OpenShell agent consumes or exposes a network service, the blueprint should use SSH port tunneling to verify and preserve connectivity for those ports. This includes:
 
