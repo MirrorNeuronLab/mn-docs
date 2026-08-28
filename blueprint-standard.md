@@ -265,7 +265,10 @@ Recommended shape:
 }
 ```
 
-Launchers should use this contract and `metadata.init_config_review.fields` to ask only about meaningful runtime values such as data source, stream endpoint, model endpoint, output destination, or human-control mode.
+Launchers should use this contract and `metadata.init_config_review` to decide
+whether pre-launch configuration review is needed. A blueprint with complete,
+safe first-run defaults can explicitly disable that review; see
+[Configuration Review Contract](#configuration-review-contract).
 
 ### Stream Inputs
 
@@ -1877,7 +1880,54 @@ When a quick test is disabled, the metadata must explain why and provide the saf
 
 ## Configuration Review Contract
 
-Blueprints with operationally sensitive or environment-specific defaults should declare `metadata.init_config_review`.
+`metadata.init_config_review` declares pre-launch review UX. It does not replace
+the runtime input contract or prove that a live external service is reachable.
+An input may remain required by `contracts.inputs` while its resolved value is
+already supplied by `config/default.json`.
+
+A blueprint that has complete, safe first-run defaults and needs no setup prompt
+should explicitly declare:
+
+```json
+{
+  "metadata": {
+    "init_config_review": {
+      "required": false,
+      "fields": []
+    }
+  }
+}
+```
+
+Use this form only when the default configuration supplies every value needed
+for the default run, including usable bundled or synthetic inputs and a safe
+local output destination. `fields` must be empty: the current launcher treats a
+non-empty field list as a request for interactive review even when `required`
+is `false`. An omitted `init_config_review` remains compatible but does not make
+the blueprint's no-setup intent explicit to catalog consumers.
+
+Blueprints with operationally sensitive, missing, or environment-specific
+values should instead declare `required: true` and a non-empty `fields` list.
+For example:
+
+```json
+{
+  "metadata": {
+    "init_config_review": {
+      "required": true,
+      "instruction": "Choose the approved stream before launch.",
+      "fields": [
+        {
+          "path": "video_source.uri",
+          "label": "Stream URI",
+          "default": "",
+          "description": "Approved RTSP or RTMP source."
+        }
+      ]
+    }
+  }
+}
+```
 
 Use init config review for fields such as:
 
@@ -1896,6 +1946,10 @@ Each review field should include:
 - `description`
 
 The review step should let the user keep defaults or provide overrides before launch.
+`required: true` requests review; it is not a hard non-interactive launch gate.
+The current CLI warns and keeps the resolved configuration when standard input
+is non-interactive. Blueprint validation and runtime input validation remain
+responsible for rejecting unusable required values.
 
 ## Validation Checklist
 
