@@ -21,7 +21,7 @@ job        list create show start archive reset-data delete
 run        list show watch logs result resources compare pause resume cancel delete
 run human  list respond ack
 model      list add show update remove doctor
-runtime    start stop status doctor restart-sidecars ensure-context-engine update
+runtime    start stop status doctor cleanup restart-sidecars ensure-context-engine update
 node       list show add remove reconcile drain undrain maintenance refresh-token
 operation  show watch
 resource   show usage set
@@ -187,6 +187,8 @@ mn runtime stop
 mn runtime status
 mn runtime doctor
 mn runtime doctor --repair
+mn runtime cleanup --dry-run
+mn runtime cleanup --yes
 mn runtime restart-sidecars
 mn runtime ensure-context-engine
 mn runtime update
