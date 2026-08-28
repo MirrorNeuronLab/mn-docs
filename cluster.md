@@ -58,7 +58,7 @@ Successful startup prints:
 On one already-running node, execute the add command printed by the other:
 
 ```bash
-mn node add <peer-host> --token <join-token> --grpc-port 55051
+mn node add <peer-host> --token <join-token>
 ```
 
 The add operation authenticates the token, verifies distinct writable store

@@ -204,7 +204,7 @@ jobs. Start both nodes with the same command:
 mn runtime start
 
 # On either already-running peer, use the command printed by the other node
-mn node add <node-host> --token <join-token> --grpc-port <grpc-port>
+mn node add <node-host> --token <join-token>
 ```
 
 Successful startup prints the advertised host, gRPC endpoint, node identity,
@@ -212,6 +212,9 @@ active join token, and exact add-node command. The token grants federation
 registration access: keep the terminal output private and rotate it with
 `mn node refresh-token` when exposed. The removed `--worker` option exits with
 code `2` and directs operators to `mn runtime start`.
+
+The printed command uses the default gRPC port (`55051`) implicitly. If the
+advertised gRPC endpoint uses another port, it includes `--grpc-port`.
 
 ```bash
 mn node list
