@@ -36,6 +36,7 @@ mn model add gemma4:e2b
 mn model add --file mn-docs/examples/openai-compatible-model-proxy.json
 mn model add hf.co/acme/chat:Q4_K_M --default
 mn model add --file mn-docs/examples/muse-glimmer-gomokubench-config.json --default
+mn model probe gemma4:e2b
 mn model doctor gemma4:e2b
 mn model update gemma4:e2b
 mn model remove gemma4:e2b --yes
@@ -47,6 +48,27 @@ catalog-only choices. Human output uses `ID`, `Kind`, `Source`, `State`, and
 `Node`. JSON output explicitly reports `kind`, `state`, `registered`,
 `installed`, `routed`, `node`, `cataloged`, and `verification`. States are
 `ready`, `degraded`, `unmanaged`, and catalog-only `available`.
+
+Use `mn model probe <model-id>` after the model and managed LiteLLM gateway are
+ready to replace catalog assumptions with a live behavioral matrix. The default
+probe covers embeddings, image input, strict JSON Schema output, SSE streaming,
+and thinking. It forces fresh requests even when the catalog already contains
+values and persists the effective LiteLLM-facing result in
+`$MN_HOME/models/catalog.json`:
+
+```bash
+mn model probe gemma4:e2b
+mn model probe gemma4:e2b --capabilities json-schema,streaming
+mn model probe nemotron-3.5-lightning:latest --json
+```
+
+For a DMR artifact selected on the current node, the command also probes the
+host Docker Model Runner endpoint and requires exact parity through LiteLLM.
+For a remote-owner or provider model, the command respects the routing boundary
+and does not attempt direct access. A completed probe may contain `false`
+capabilities; these are verified unsupported behaviors, not command failures.
+An unknown result, unreachable endpoint, missing route, or direct/proxy mismatch
+fails the command.
 
 `--default` is valid for either a DMR reference or a provider JSON file that
 defines exactly one model. The registry stores only that model's ID as the
@@ -84,6 +106,51 @@ Use a provider definition when a model is served by an external
 OpenAI-compatible endpoint instead of local Docker Model Runner. Added DMR and
 provider records are stored together in `$MN_HOME/models/registry.json`.
 Provider routes are loaded by MirrorNeuron's managed LiteLLM gateway.
+
+### Adaptive output budgets
+
+The managed LiteLLM gateway prepares a bounded output-token limit before each
+generation request reaches a model. Initial requests default to 1024 tokens;
+an explicitly marked, harness-managed continuation defaults to 2048. A valid
+caller limit is never increased. The forwarded limit is the smallest known
+positive cap from the caller, phase, model metadata, hardware safety policy,
+remaining job budget, and reliably estimated remaining context.
+
+Configure the node-local policy with:
+
+```bash
+MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_ENABLED=true
+MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_INITIAL_TOKENS=1024
+MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_CONTINUATION_TOKENS=2048
+MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_CONTEXT_RESERVE_TOKENS=256
+MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_HARDWARE_SAFE_MAX_TOKENS=4096
+MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_FAIL_OPEN=true
+```
+
+Model definitions may add `max_output_tokens`,
+`hardware_safe_max_output_tokens`, and `total_context_window`. Catalog
+`context_size` is projected as the total context window. Per-model operator
+overrides can be supplied with
+`MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_MODEL_OVERRIDES_JSON`.
+
+Continuation is an explicit request protocol, not an automatic proxy retry:
+
+```json
+{
+  "metadata": {
+    "mn_adaptive_budget_enabled": true,
+    "mn_budget_phase": "continuation",
+    "mn_budget_attempt": 1,
+    "mn_remaining_output_tokens": 5000
+  }
+}
+```
+
+Set `mn_adaptive_budget_enabled` to `false` to preserve the request limit.
+Internal controls are stripped before upstream forwarding. Response headers
+`x-mn-output-budget-phase`, `x-mn-output-budget-applied`, and
+`x-mn-output-budget-reason` expose the decision without recording prompts or
+response content.
 
 Register a provider definition:
 

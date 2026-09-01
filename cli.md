@@ -20,7 +20,7 @@ blueprint  list add show update remove run validate doctor cleanup export
 job        list create show start archive reset-data delete
 run        list show watch logs result resources compare pause resume cancel delete
 run human  list respond ack
-model      list add show update remove doctor
+model      list add show probe update remove doctor
 runtime    start stop status doctor cleanup restart-sidecars ensure-context-engine update
 node       list show add remove reconcile drain undrain maintenance refresh-token
 operation  show watch
@@ -153,11 +153,28 @@ mn model add <model> --node <node>
 mn model add <model> --local
 mn model add --file ./provider-models.json
 mn model show <model-id>
+mn model probe <model-id>
+mn model probe <model-id> --capabilities image,json-schema,stream,thinking
 mn model update <model-id>
 mn model update --all
 mn model remove <model-id> --yes
 mn model doctor <model-id>
 ```
+
+`mn model probe` requires the model to be installed and routed through the
+managed LiteLLM gateway. It force-tests embeddings, image input, strict JSON
+Schema output, SSE streaming, and thinking, then writes the effective matrix to
+`$MN_HOME/models/catalog.json`. `--capabilities` accepts a comma-separated
+subset and the SDK's aliases, such as `image`, `json-schema`, and `stream`.
+
+When the selected DMR artifact is on the current node, the command runs the
+same requests directly against Docker Model Runner and fails with
+`MN_MODEL_CAPABILITY_MISMATCH` if LiteLLM changes a result. For a provider or a
+remote-owner route, only the managed LiteLLM path is tested; the JSON result
+reports the direct path as `not_run`. Exit code `0` and `status: verified` mean
+the requested probes completed, including legitimate unsupported results such
+as `embeddings: false`. Unknown results or endpoint failures return exit code
+`1`.
 
 Use `--default` while adding exactly one DMR or provider model to make it the
 highest-priority logical `default`:
