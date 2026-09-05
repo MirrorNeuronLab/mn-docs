@@ -1,23 +1,13 @@
-# Job Bundle Format
+# Generated Job Runtime Format
 
-In MirrorNeuron, a **Job Bundle** is the standard deployment package for a multi-agent workflow. It defines the structure of the agent graph, the initial state, and any necessary executable payloads or static data required to run the job in an isolated execution sandbox.
+Blueprint folders and ZIP distributions use the [canonical blueprint package](blueprint-standard.md).
+The SDK compiles that package into Core's executable workflow envelope and then
+lowers it for submission. This page documents that generated runtime artifact;
+its graph and runner fields do not belong in an authored blueprint manifest.
 
-## Bundle Structure
-
-A valid job bundle is a directory with the following structure:
-
-```text
-my_job_bundle/
-├── manifest.json
-└── payloads/
-    ├── worker_script.py
-    └── data.json
-```
-
-- **`manifest.json`**: The declarative workflow definition. It maps out nodes (agents), edges (message routing), and execution policies.
-- **`payloads/`**: A required directory containing all external static assets, shell scripts, Python code, and data files referenced by the executor nodes. The runtime resolves any relative `source` paths in the manifest against this directory before uploading them to the OpenShell sandbox.
-
----
+The package's referenced documents and assets travel together. Workers receive
+`runtime/manifest.json`, a generated resolved descriptor containing the package
+documents and invocation configuration. Core receives the executable graph.
 
 ## The `manifest.json` Schema
 

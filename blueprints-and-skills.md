@@ -8,15 +8,19 @@ Blueprints and skills are the main extension points for MirrorNeuron.
 
 ## Create A Minimal Blueprint
 
-A runnable bundle has this shape:
+A blueprint folder and its ZIP distribution use the same canonical package:
 
 ```text
 my_bundle/
   manifest.json
+  workflow.json
+  execution.json
+  contracts.json
+  config/default.json
   payloads/
 ```
 
-For a pure routing workflow, `payloads/` can be empty. For executor workflows, put scripts, Python packages, policies, templates, and data under `payloads/`.
+For a pure routing workflow, `payloads/` can be empty. For executor workflows, put scripts, Python packages, policies, templates, and data under `payloads/`. The manifest identifies the package and references its role documents. See the [Blueprint Standard](blueprint-standard.md) for the complete format, offline schemas, configuration precedence, and extension registry.
 
 Blueprints that need Python packages at runtime should declare them on the executor node instead of adding them to the core image. For `MirrorNeuron.Runner.HostLocal`, add a dependency file under `payloads/` and reference it with `python_environment`:
 
@@ -34,13 +38,13 @@ The runtime creates a cached virtualenv keyed by Python version and dependency c
 
 For private or disconnected deployments, the blueprint can own Python packages
 directly. Put source trees or wheels under `payloads/skills` and
-`payloads/agents`, declare them with `source: payload`, and pin the exact
+`payloads/agents`, declare them in `dependencies.json` with `source: payload`, and pin the exact
 distribution name and version. A bundled `payloads/agents/index.json` is used
 to render local agent templates. Payload packages override matching GAR
 declarations.
 
 Models and other large assets can also be included. Declare GGUF, Safetensors,
-or DDUF files under `runtime.models.*.source` with `type: payload`; MirrorNeuron
+or DDUF files under `runtime.models.*.source` in `execution.json` with `type: payload`; MirrorNeuron
 streams them into its blob store and prepares the Docker Model Runner package
 locally. See [Job Bundle Format](bundle.md) for the complete shapes.
 
@@ -91,51 +95,56 @@ Expected output:
 Job submitted successfully
 ```
 
-## Prefer A Source Manifest For Multi-Step Blueprints
+## Declare Multi-Step Workflows
 
-Author multi-step blueprints as `mn.workflow/v1` with `kind: WorkflowSource`.
-The source manifest is the DAG definition; the SDK expands it to the executable
-`mn.workflow/v1` shape used by Core.
+Set `execution.mode` to `compiled` and declare the logical graph in
+`workflow.json`. The SDK generates Core's executable manifest during compilation.
+For native or custom physical graphs, use `explicit` mode in the same package
+format. Neither mode uses an authored `apiVersion` or `kind` marker.
+
+This `workflow.json` selects two Python handlers:
 
 ```json
 {
-  "apiVersion": "mn.workflow/v1",
-  "kind": "WorkflowSource",
-  "identity": {"id": "vc_assistant", "name": "VC Assistant"},
-  "response_service": {"enabled": true},
-  "workflow": {
-    "steps": [
-      {
-        "id": "intake",
-        "needs": [],
-        "run": {"handler": "vc_assistant.steps.intake"}
-      },
-      {
-        "id": "research",
-        "needs": ["intake"],
-        "run": {
-          "handler": "vc_assistant.steps.research",
-          "with": {"operation": "company_identity"}
-        }
+  "$schema": "https://mirrorneuron.dev/schemas/blueprint/v1/workflow.schema.json",
+  "steps": [
+    {
+      "id": "intake",
+      "needs": [],
+      "run": {"handler": "vc_assistant.steps.intake"}
+    },
+    {
+      "id": "research",
+      "needs": ["intake"],
+      "run": {
+        "handler": "vc_assistant.steps.research",
+        "with": {"operation": "company_identity"}
       }
-    ]
-  }
+    }
+  ]
 }
 ```
 
-`response_service` is definition-scoped and remains at the manifest root when
-the SDK expands or compacts a source manifest. Do not place it in `workflow`,
-`agents`, `services`, auxiliary entrypoints, or the Run DAG.
+Definition-scoped response services belong in the registered `mn.response`
+extension. They are separate from workflow steps and execution services.
 
-`handler` is a Python module, not `module:callable`. In the standard
-`blueprint` profile, `runtime/run_blueprint.py` resolves the selected handler
-and calls its conventional `run()` function. `run.with` contains declarative
+`handler` is a Python module, not `module:callable`. With the format's default
+execution settings, `mn_sdk.step_runtime` resolves the selected handler
+and calls its conventional `run()` function. Declare the worker image in
+`execution.defaults.worker.with.image`, or provide an explicit worker choice.
+`run.with` contains declarative
 parameters that let several manifest steps reuse one behavior module.
 
 Use this split:
 
 ```text
-manifest.json                         DAG, dependencies, retry policy, handler selection
+manifest.json                         identity and document references
+workflow.json                         DAG, retry policy, handler selection
+execution.json                        workers, runners, resources, services
+contracts.json                        inputs, outputs, artifacts, events
+dependencies.json                     agent and skill packages, when needed
+config/default.json                   operator-tunable defaults
+extensions/                           registered platform and domain features
 payloads/
   runtime/
     run_blueprint.py                  worker entrypoint and runtime helpers
@@ -156,7 +165,8 @@ Worker-context directories are siblings in the payload tree, but they are
 consumed by their worker preparer rather than copied into each runtime attempt.
 
 The scheduler invokes the runtime entrypoint once per ready node. The entrypoint
-uses the staged `runtime/manifest.json` to select that node's handler. Keep step
+uses the complete resolved descriptor staged at `runtime/manifest.json` to select
+that node's handler through the SDK. Keep step
 order, fan-out/fan-in, and handler selection out of configuration files and
 Python registries. This is the same useful separation as an Airflow DAG versus
 an operator implementation, with MirrorNeuron's durable workflow ledger and
@@ -230,7 +240,7 @@ The compiler:
 - resolves safe literals, `workflow.input(...)`, and registered constants
 - maps agent calls to manifest nodes and edges
 - packages declared files and includes under the generated payload
-- emits a normal MirrorNeuron bundle
+- emits a canonical blueprint package with the same documents as a handwritten folder
 
 The compiler does not:
 
@@ -272,7 +282,7 @@ Use this split:
 
 Before publishing or running a blueprint or skill:
 
-- Read every command in `manifest.json`.
+- Follow every document reference in `manifest.json` and review commands in the execution and workflow documents.
 - Read every file under `payloads/`.
 - Check whether `runner` is `host_local` or OpenShell.
 - Check all `pass_env` entries.
@@ -290,11 +300,7 @@ cd mn-python-sdk
 .venv/bin/python -m pytest tests
 ```
 
-Expected output:
-
-```text
-12 passed
-```
+Verify that the command exits successfully; the test count changes with the SDK.
 
 Run blueprint quick generation:
 
@@ -310,6 +316,7 @@ All selected test suites passed.
 
 ## Related Pages
 
+- [Blueprint Standard](blueprint-standard.md)
 - [Job Bundle Format](bundle.md)
 - [Python SDK](SDK.md)
 - [Security Model](security.md)
