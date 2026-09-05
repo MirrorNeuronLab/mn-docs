@@ -106,7 +106,7 @@ This `workflow.json` selects two Python handlers:
 
 ```json
 {
-  "$schema": "https://mirrorneuron.dev/schemas/blueprint/v1/workflow.schema.json",
+  "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/workflow.schema.json",
   "steps": [
     {
       "id": "intake",

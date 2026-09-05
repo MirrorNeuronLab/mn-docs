@@ -2,7 +2,7 @@
 
 For blueprint authors and SDK, CLI, API, and UI maintainers. This reference describes the source format implemented by `mn-python-sdk/mn_sdk/blueprints` and its packaged JSON Schemas. It covers development folders, installed folders, catalog packages, generated blueprints, and ZIP distributions. Core's generated execution manifest is documented separately in [Job Bundle Format](bundle.md).
 
-The format identifier is `https://mirrorneuron.dev/schemas/blueprint/v1/manifest.schema.json`. The blueprint's `version` is its semantic release version. There is no authored `apiVersion`, `kind`, `manifest_version`, profile, or raw runtime-manifest override in the core document.
+The format identifier is `https://mirrorneuron.io/schemas/blueprint/v1/manifest.schema.json`. The blueprint's `version` is its semantic release version. There is no authored `apiVersion`, `kind`, `manifest_version`, profile, or raw runtime-manifest override in the core document.
 
 ## Package layout
 
@@ -26,7 +26,7 @@ legal_assistant/
 
 ```json
 {
-  "$schema": "https://mirrorneuron.dev/schemas/blueprint/v1/manifest.schema.json",
+  "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/manifest.schema.json",
   "id": "legal_assistant",
   "name": "Legal Assistant",
   "version": "1.0.0",
