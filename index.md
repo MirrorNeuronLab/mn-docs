@@ -18,6 +18,7 @@ Every user-visible behavior has one canonical detailed page in this directory:
 | Environment defaults | [Environment Variables](env_variables.md) | CLI, API, SDK, and Core configuration definitions. |
 | Blueprint and manifest contracts | [Blueprint Standard](blueprint-standard.md), [Job Bundle Format](bundle.md) | Schemas, SDK validators, and checked-in blueprints. |
 | Reliability and recovery | [Reliability Guide](reliability.md) | Core persistence, lease, scheduler, and recovery tests. |
+| Bounded working context and compression | [Context Memory And Compression](context-memory.md) | Membrane working-memory contract and Python SDK context-session tests. |
 | Security boundaries | [Security Model](security.md) | Runner, network, Redis, secret, and policy behavior. |
 | Repeated operational failures | [Troubleshooting](troubleshooting.md) | Reproducible diagnostics and component tests. |
 
@@ -47,7 +48,8 @@ Do not duplicate large command tables, API shapes, or environment-variable lists
 2. [Blueprint Standard](blueprint-standard.md)
 3. [Blueprints and Skills](blueprints-and-skills.md)
 4. [Python SDK](SDK.md)
-5. [Testing](testing.md)
+5. [Context Memory And Compression](context-memory.md)
+6. [Testing](testing.md)
 
 ### Operator
 
@@ -76,7 +78,7 @@ Do not duplicate large command tables, API shapes, or environment-variable lists
 | CLI, API, SDK, and configuration | [cli.md](cli.md), [api.md](api.md), [SDK.md](SDK.md), [env_variables.md](env_variables.md) |
 | Models, OpenShell, services, and resources | [model-runtime.md](model-runtime.md), [docker_and_openshell_for_blueprints.md](docker_and_openshell_for_blueprints.md), [services-and-health-checks.md](services-and-health-checks.md), [resources-and-devices.md](resources-and-devices.md) |
 | Cluster, deployment, schedules, and HA | [cluster.md](cluster.md), [deployments.md](deployments.md), [schedules-and-events.md](schedules-and-events.md), [redis-ha.md](redis-ha.md) |
-| Architecture, reliability, and security | [runtime-architecture.md](runtime-architecture.md), [cluster_architecture.md](cluster_architecture.md), [reliability.md](reliability.md), [security.md](security.md) |
+| Architecture, context, reliability, and security | [runtime-architecture.md](runtime-architecture.md), [cluster_architecture.md](cluster_architecture.md), [context-memory.md](context-memory.md), [reliability.md](reliability.md), [security.md](security.md) |
 | Internal quality and contributor process | [testing.md](testing.md), [contributing.md](contributing.md), [documentation-style.md](documentation-style.md) |
 
 ## Source-doc update rule
