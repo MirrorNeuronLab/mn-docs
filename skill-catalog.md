@@ -11,7 +11,7 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 | Folder | Python package |
 | --- | --- |
 | `actor_review_skill` | `mirrorneuron-actor-review-skill` |
-| `blueprint_support_skill` | `mirrorneuron-blueprint-support-skill` |
+| `autonomous_research_skill` | `mirrorneuron-autonomous-research-skill` |
 | `client_report_skill` | `mirrorneuron-client-report-skill` |
 | `code_generation_skill` | `mirrorneuron-code-generation-skill` |
 | `document_reading_skill` | `mirrorneuron-document-reading-skill` |
@@ -19,28 +19,30 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 | `email_receive_agentmail_skill` | `mirrorneuron-email-receive-agentmail-skill` |
 | `email_send_resend_skill` | `mirrorneuron-email-send-resend-skill` |
 | `evidence_engine_skill` | `mirrorneuron-evidence-engine-skill` |
-| `external_rate_limit_skill` | `mirrorneuron-external-rate-limit-skill` |
 | `first_draft_slides_skill` | `mirrorneuron-first-draft-slides-skill` |
 | `generate_fake_data_skill` | `mirrorneuron-generate-fake-data-skill` |
+| `graph_analysis_skill` | `mirrorneuron-graph-analysis-skill` |
 | `implementation_plan_skill` | `mirrorneuron-implementation-plan-skill` |
 | `live_video_analysis_skill` | `mirrorneuron-live-video-analysis-skill` |
 | `llm_ocr_skill` | `mirrorneuron-llm-ocr-skill` |
 | `market_research_skill` | `mirrorneuron-market-research-skill` |
 | `marketing_email_skill` | `mirrorneuron-marketing-email-skill` |
-| `mcp_client_skill` | `mirrorneuron-mcp-client-skill` |
 | `meeting_summary_skill` | `mirrorneuron-meeting-summary-skill` |
 | `pdf_extract_skill` | `mirrorneuron-pdf-extract-skill` |
 | `process_map_skill` | `mirrorneuron-process-map-skill` |
 | `public_research_orchestrator_skill` | `mirrorneuron-public-research-orchestrator-skill` |
-| `rag_skill` | `mirrorneuron-rag-skill` |
 | `scoring_framework_skill` | `mirrorneuron-scoring-framework-skill` |
 | `slack_communicate_skill` | `mirrorneuron-slack-communicate-skill` |
 | `spreadsheet_analysis_skill` | `mirrorneuron-spreadsheet-analysis-skill` |
 | `text_analysis_skill` | `mirrorneuron-text-analysis-skill` |
 | `vendor_comparison_skill` | `mirrorneuron-vendor-comparison-skill` |
 | `web_browser_skill` | `mirrorneuron-web-browser-skill` |
-| `web_ui_skill` | `mirrorneuron-web-ui-skill` |
-| `websocket_stream_skill` | `mirrorneuron-websocket-stream-skill` |
+
+Runtime infrastructure is maintained as independent SDK component packages:
+`mn-python-sdk-common`, `mn-python-sdk-web-ui`, `mn-python-sdk-models`,
+`mn-python-sdk-rag`, `mn-python-sdk-mcp`, `mn-python-sdk-collaboration`, and
+`mn-python-sdk-job-response`. See [Python SDK](SDK.md#optional-components).
+MCP usage and work-packet authoring retain instruction-only Agent Skills.
 
 ## Browser skills
 

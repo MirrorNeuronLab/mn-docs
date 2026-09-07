@@ -53,10 +53,10 @@ locally. See [Job Bundle Format](bundle.md) for the complete shapes.
 Any code execution that is part of a blueprint workflow should be represented by
 an agent. Plain Python does not need a custom wrapper; use the shared
 `mn-agents.data_python_executor@1.0.0` executor through
-`mn_blueprint_support`:
+`mn_sdk.blueprint_support`:
 
 ```python
-from mn_blueprint_support import python_executor_template_node
+from mn_sdk.blueprint_support import python_executor_template_node
 
 node = python_executor_template_node(
     "target_discovery",
@@ -142,7 +142,7 @@ manifest.json                         identity and document references
 workflow.json                         DAG, retry policy, handler selection
 execution.json                        workers, runners, resources, services
 contracts.json                        inputs, outputs, artifacts, events
-dependencies.json                     agent and skill packages, when needed
+dependencies.json                     SDK components, agent and skill packages
 config/default.json                   operator-tunable defaults
 extensions/                           registered platform and domain features
 payloads/
@@ -213,8 +213,8 @@ Generate a Python-defined blueprint from a local source-mode blueprint folder:
 
 ```bash
 cd path/to/python-source-blueprint
-.venv/bin/python -m pip install -e ../../mn-skills/blueprint_support_skill
-python -m mn_blueprint_support.python_workflow_bundle_cli \
+.venv/bin/python -m pip install -e ../../mn-python-sdk/packages/common -e ../../mn-python-sdk
+python -m mn_sdk.blueprint_support.python_workflow_bundle_cli \
   --blueprint-dir . \
   --quick-test \
   --output-dir /tmp/mn-python-research
@@ -274,7 +274,8 @@ Use this split:
 
 - Runtime scheduling, leases, events, and recovery belong in `MirrorNeuron`.
 - Workflow-specific code belongs in a blueprint catalog such as `otterdesk-blueprints`.
-- Reusable worker helpers belong in `mn-skills`.
+- Task instructions and tools belong in `mn-skills`.
+- Reusable runtime capabilities belong in independent `mn-python-sdk/packages/` distributions.
 - Python workflow authoring helpers belong in `mn-python-sdk`.
 - CLI and API integration belongs in `mn-cli` and `mn-api`.
 

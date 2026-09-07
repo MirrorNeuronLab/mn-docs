@@ -11,7 +11,7 @@ The MirrorNeuron Python SDK provides:
 From the workspace root:
 
 ```bash
-.venv/bin/python -m pip install -e mn-python-sdk
+.venv/bin/python -m pip install -e mn-python-sdk/packages/common -e mn-python-sdk
 ```
 
 Expected output:
@@ -21,6 +21,49 @@ Successfully installed mirrorneuron-python-sdk
 ```
 
 The `mn-system-tests/requirements.txt` file installs the SDK and CLI together for test runs.
+
+## Optional Components
+
+Blueprint authors select runtime capabilities in `dependencies.json`:
+
+```json
+{
+  "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/dependencies.schema.json",
+  "components": ["mcp", {"name": "rag", "extras": ["milvus"]}]
+}
+```
+
+The base SDK installs only its common component. RAG without the `milvus` extra
+supports injected stores and embedders without installing Milvus. Each component
+is a separate distribution built and tested from `mn-python-sdk/packages/`.
+Email, browsing, and task-oriented research remain skills.
+
+Submission preparation installs the declared package closure into the Python
+worker environment. Editable source mode stages matching projects; Git installs
+pin sibling subdirectories to the SDK's exact installed commit. Wheel mode uses
+exact component versions. Declared versions must be supported `0.1.x` releases;
+source projects must match the declaration before staging or installation.
+
+Prepared workers use the per-blueprint registry:
+
+```python
+from mn_sdk.components import ComponentRegistry
+
+registry = ComponentRegistry.from_environment()
+call_tool = registry.service("mcp", "call_tool")
+```
+
+`ComponentRegistry.from_manifest(manifest)` serves standalone callers. Providers
+register through the `mn_sdk.components` Python entry-point group, or through
+`registry.register(name, factory)` for explicitly enabled custom services.
+Lookup is lazy and never installs packages. An installed but undeclared provider
+is unavailable to that registry. The native response-service factory separately
+prepares its host dependencies, including RAG/MCP only when its configuration
+needs them. Failed installation is retryable and fails before engine creation.
+
+The source and wheel contracts are exercised by the SDK's component tests and
+`scripts/verify_component_installs.py`. Package-index and release publication are
+separate operator actions; this migration does not publish a release.
 
 ## Client Usage
 
@@ -93,8 +136,8 @@ Generate a Python-defined blueprint from a local source-mode blueprint folder:
 
 ```bash
 cd path/to/python-source-blueprint
-.venv/bin/python -m pip install -e ../../mn-skills/blueprint_support_skill
-python -m mn_blueprint_support.python_workflow_bundle_cli \
+.venv/bin/python -m pip install -e ../../mn-python-sdk/packages/common -e ../../mn-python-sdk
+python -m mn_sdk.blueprint_support.python_workflow_bundle_cli \
   --blueprint-dir . \
   --quick-test \
   --output-dir /tmp/mn-python-research
@@ -236,12 +279,10 @@ cd mn-python-sdk
 
 Expected output:
 
-```text
-12 passed
-```
+The command exits successfully; test counts change with the SDK.
 
 For checked-in source-mode examples, use the same
-`mn_blueprint_support.python_workflow_bundle_cli` command from the owning
+`mn_sdk.blueprint_support.python_workflow_bundle_cli` command from the owning
 blueprint folder and write generated bundles outside the source tree.
 
 ## Related Pages
