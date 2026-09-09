@@ -179,6 +179,11 @@ curl -i -X POST http://localhost:54001/api/v1/jobs/<job-id>/runs \
 The response is a pending Run with `202 Accepted`. Pause, resume, or cancel it
 through one desired-state update:
 
+Catalog-backed Jobs may also send `config_overrides`. The API rebuilds and
+prepares the Job definition with those overrides before starting the Run;
+`inputs` remains reserved for runtime workflow input rather than blueprint
+configuration.
+
 ```bash
 curl -s -X PATCH http://localhost:54001/api/v1/runs/<run-id> \
   -H "Content-Type: application/json" \
