@@ -92,6 +92,11 @@ models. The one-time upgrade downloads the Model Runner source and CUDA image,
 replaces the `docker-model-runner` controller container, and retains the named
 `docker-model-runner-models` volume. It does not delete model artifacts.
 
+On an NVIDIA DGX Spark or comparable ARM64 Ubuntu host, prepare the Docker APT
+source, Model Runner plugin, and NVIDIA container runtime by following
+[Prepare Docker Model Runner on NVIDIA DGX Spark](docker-model-runner-arm64-nvidia.md)
+before running the MirrorNeuron installer.
+
 After installation or a lazy model preparation, verify the local alias with:
 
 ```bash

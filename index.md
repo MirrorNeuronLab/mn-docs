@@ -76,7 +76,7 @@ Do not duplicate large command tables, API shapes, or environment-variable lists
 | First local workflow | [quickstart.md](quickstart.md) |
 | Checked-in blueprint selection | [examples.md](examples.md) |
 | CLI, API, SDK, and configuration | [cli.md](cli.md), [api.md](api.md), [SDK.md](SDK.md), [env_variables.md](env_variables.md) |
-| Models, OpenShell, services, and resources | [model-runtime.md](model-runtime.md), [docker_and_openshell_for_blueprints.md](docker_and_openshell_for_blueprints.md), [services-and-health-checks.md](services-and-health-checks.md), [resources-and-devices.md](resources-and-devices.md) |
+| Models, OpenShell, services, and resources | [model-runtime.md](model-runtime.md), [docker-model-runner-arm64-nvidia.md](docker-model-runner-arm64-nvidia.md), [docker_and_openshell_for_blueprints.md](docker_and_openshell_for_blueprints.md), [services-and-health-checks.md](services-and-health-checks.md), [resources-and-devices.md](resources-and-devices.md) |
 | Cluster, deployment, schedules, and HA | [cluster.md](cluster.md), [deployments.md](deployments.md), [schedules-and-events.md](schedules-and-events.md), [redis-ha.md](redis-ha.md) |
 | Architecture, context, reliability, and security | [runtime-architecture.md](runtime-architecture.md), [cluster_architecture.md](cluster_architecture.md), [context-memory.md](context-memory.md), [reliability.md](reliability.md), [security.md](security.md) |
 | Internal quality and contributor process | [testing.md](testing.md), [contributing.md](contributing.md), [documentation-style.md](documentation-style.md) |
