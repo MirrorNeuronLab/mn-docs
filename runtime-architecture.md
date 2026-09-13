@@ -1,13 +1,13 @@
 # MirrorNeuron Runtime Architecture
 
-This document explains the runtime model behind MirrorNeuron and why the project now looks the way it does.
+For runtime maintainers: this explanation covers compilation, owner-local execution, and federation boundaries in the current checkout. Sources are `mn_sdk/blueprints`, Core `runtime/stable_job.ex`, `runtime/workflow_ledger.ex`, `runtime/child_workflow.ex`, and `runner/`. Validate changes with SDK compilation and Core workflow-ledger tests; release maturity is determined by the owning release artifacts.
 
 ## Design goals
 
 MirrorNeuron is not trying to replicate Airflow as a general-purpose data scheduler. It is a multi-agent runtime with a narrower job:
 
 - keep orchestration and collaboration in BEAM
-- let worker code run in safe isolated sandboxes
+- execute workers through declared host, Docker, or OpenShell runners
 - keep every job and all of its workers on one owner Core
 - federate independent Cores for owner selection and remote control
 - keep inter-agent communication event-driven and observable
@@ -28,7 +28,7 @@ Airflow's big lesson for this runtime is not "copy operators." It is "treat heav
 
 ## Workflow DAG execution model
 
-MirrorNeuron now separates the user-facing problem workflow from the lower-level agent runtime. For `mn.workflow/v1` blueprints, `workflow` is the problem DAG: it names the source, sink, step dependencies, branch requirements, join behavior, and accepted outcomes. `agents.nodes` and `agents.edges` are the runtime agent communication topology used by the BEAM runtime; they are not the problem workflow. Top-level `nodes`, `edges`, and `entrypoints` are runtime-submission compatibility fields and should not be authored in OtterDesk manifests.
+MirrorNeuron now separates the user-facing problem workflow from the lower-level agent runtime. In the generated `mn.workflow/v1` runtime descriptor, `workflow` is the problem DAG: it names the source, sink, step dependencies, branch requirements, join behavior, and accepted outcomes. `agents.nodes` and `agents.edges` are the runtime agent communication topology used by the BEAM runtime; they are not the problem workflow. Blueprint authors instead supply the referenced `workflow.json` and `execution.json` roles in the [canonical source package](blueprint-standard.md). Generated `nodes`, `edges`, bindings, and entrypoints belong to the compilation/submission boundary.
 
 The DAG executor is a durable scheduler with per-step lifecycle state, explicit
 trigger rules, branch and guard skips, runtime-expanded mapped items for
@@ -104,6 +104,25 @@ GOAP/PDDL-style planning remains outside the runtime contract. Dynamic
 conditions and planning decisions are ordinary controller logic; Core provides
 only bounded topology validation, durable ordering, scheduling, and recovery.
 
+## Durable definitions, runs, and child workflows
+
+A public Job stores reusable configuration; a public Run identifies one execution.
+Core's internal execution identifiers must not be substituted for public REST run
+IDs. Run pause/resume/cancel acts on an execution, while archive and data reset
+belong to the durable definition.
+
+Bounded child workflows run through the workflow ledger inside the parent's
+execution. They admit declared templates, enforce round and step limits, and
+hold the parent boundary until child completion. They are distinct from schedule
+dispatch, which creates separate work. Child completion output travels through
+step-source delivery so downstream steps receive the mapped boundary output.
+
+DockerWorker buffers command output and does not stream workflow beacons. Its
+node-level beacon timeout is ignored; the task deadline remains authoritative.
+An explicit workflow `control.beacon_timeout_ms` still applies when a separate
+producer supplies beacons. HostLocal node beacon settings are unchanged. See
+`tests/unit/child_workflow_test.exs` and `tests/unit/workflow_ledger_test.exs`.
+
 ## Control plane vs execution plane
 
 MirrorNeuron now has a sharper two-layer model.
@@ -128,7 +147,7 @@ These are all cheap, stateful, highly concurrent tasks that BEAM is excellent at
 
 ### Execution plane
 
-The execution plane lives in OpenShell:
+The execution plane uses the declared runner. HostLocal runs trusted code with host permissions; DockerWorker and DockerCompose use prepared native Docker resources; OpenShell handles policy-controlled sandbox execution. OpenShell responsibilities include:
 
 - sandbox creation
 - external process startup
@@ -340,7 +359,7 @@ The project is not BEAM-only in the sense of "all useful code must be Elixir." T
 Instead:
 
 - BEAM owns coordination
-- OpenShell owns isolated execution
+- the declared runner owns external execution and its isolation boundary
 - worker payloads can be shell, Python, or other supported runtimes
 
 That means a logical worker does not "become Python." It requests external execution when needed.
@@ -375,5 +394,5 @@ The current implementation improves the runtime boundary a lot, but a few things
 Those are good next steps, but the current runtime is already much closer to the intended design:
 
 - BEAM as the lightweight orchestrator
-- OpenShell as bounded worker execution
+- declared runners as bounded worker execution
 - message-driven collaboration across supervised logical workers

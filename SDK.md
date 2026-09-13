@@ -6,6 +6,12 @@ The MirrorNeuron Python SDK provides:
 - workflow and agent decorators for pure Python bundle authoring
 - a compiler that turns restricted Python workflow definitions into normal MirrorNeuron bundles
 
+For canonical split-document packages, use `mn_sdk.blueprints.open_blueprint`,
+`resolve_config`, and `compile_blueprint`; see [Blueprint Standard](blueprint-standard.md).
+The decorator/compiler sections below describe the lower-level Python workflow
+interface, not the authored package manifest. A compiled descriptor still needs
+submission preparation before execution.
+
 ## Install For Local Development
 
 From the workspace root:
@@ -29,7 +35,10 @@ Blueprint authors select runtime capabilities in `dependencies.json`:
 ```json
 {
   "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/dependencies.schema.json",
-  "components": ["mcp", {"name": "rag", "extras": ["milvus"]}]
+  "packages": [
+    {"type": "pip", "source": "gar", "name": "mn-python-sdk-mcp", "version": ">=1.3,<2.0"},
+    {"type": "pip", "source": "gar", "name": "mn-python-sdk-rag", "version": ">=1.3,<2.0", "extras": ["milvus"]}
+  ]
 }
 ```
 
@@ -40,9 +49,10 @@ Email, browsing, and task-oriented research remain skills.
 
 Submission preparation installs the declared package closure into the Python
 worker environment. Editable source mode stages matching projects; Git installs
-pin sibling subdirectories to the SDK's exact installed commit. Wheel mode uses
-exact component versions. Declared versions must be supported `0.1.x` releases;
-source projects must match the declaration before staging or installation.
+pin sibling subdirectories to the SDK's exact installed commit. Binary preparation resolves declared version constraints. SDK component distributions
+share the SDK release version; the former independent `0.1.x` restriction does
+not describe the current contract. Source development validates distribution
+identity and uses local source metadata. See [Dependency versions](blueprint-standard.md#dependency-versions).
 
 Prepared workers use the per-blueprint registry:
 
@@ -72,11 +82,8 @@ from mn_sdk import Client
 
 client = Client(target="localhost:55051")
 
-manifest_json = '{"manifest_version": "1.0", "graph_id": "simple", "nodes": [], "edges": []}'
-job_id = client.submit_job(manifest_json, payloads={})
-
-print(job_id)
-print(client.get_job(job_id))
+print(client.list_jobs())
+print(client.list_runs())
 ```
 
 Important environment variables:
@@ -158,7 +165,7 @@ mn blueprint validate /tmp/mn-python-research
 Expected output:
 
 ```text
-Job bundle at '/tmp/mn-python-basic' is valid.
+Job bundle at '/tmp/mn-python-research' is valid.
 ```
 
 ## Compiler Model

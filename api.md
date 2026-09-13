@@ -89,9 +89,10 @@ and is never part of a client URL.
 
 ## Stable Job MCP and real-time responses
 
-A legacy blueprint with `mcp_collaboration.enabled`, or a blueprint with the
-top-level `response_service: {"enabled": true}` declaration, gives each stable
-Job this Streamable HTTP endpoint:
+For authored source packages, register an `mn.response` extension with
+`enabled: true`; the SDK projects it into the generated descriptor's
+`response_service` field. Legacy runtime descriptors may instead declare
+`mcp_collaboration.enabled`. Enabled stable Jobs expose this Streamable HTTP endpoint:
 
 ```text
 POST /api/v1/jobs/{job_id}/mcp

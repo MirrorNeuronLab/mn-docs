@@ -1,101 +1,82 @@
 # Run Your First Local Workflow
 
-This tutorial is the canonical first workflow path for contributors and local operators. It intentionally uses a checked-in medical de-identification blueprint only with its sample configuration: do not add private or regulated documents while learning the runtime.
+For developers with the CLI installed and a reviewed local blueprint package. This tutorial covers preflight, launch, inspection, and cancellation; it does not install a particular catalog or promise a domain-correct result.
 
 ## Reader and outcome
 
-- **Reader:** first-time developer or operator with a local MirrorNeuron installation.
-- **Outcome:** a model-backed blueprint has been preflighted, submitted, and inspected with its job ID and run ID.
+- **Reader:** first-time developer or local operator.
+- **Outcome:** launch one blueprint and inspect its public run ID, logs, and results.
 - **Page type:** tutorial.
-- **Sources of truth:** `mn-cli` command definitions, the `medical_deid_record_intake_assistant` manifest/configuration, and model validation behavior.
-
-## What you will learn
-
-- how runtime health differs from blueprint preflight;
-- how local model requirements block submission until satisfied;
-- how job inspection differs from run-store inspection; and
-- how to stop a job and preserve diagnostic evidence.
+- **Maturity:** current checkout contract; availability in an installed release must be checked with `mn --version` and command help.
+- **Sources of truth:** `mn-cli/mn_cli/main.py`, `libs/run_cmds/`, `libs/run_public.py`, and `libs/job_definition_cmds.py`.
+- **Validation:** command help and focused CLI contract tests; executing a chosen blueprint additionally requires its inputs and runtime services.
 
 ## Before you begin
 
-- Complete [Installation](installation.md).
-- Start Docker and make Docker Model Runner available.
-- Run commands from the workspace root.
-- Keep the blueprint's checked-in sample configuration. Its outputs are review material and are not approval to release data.
+Complete [Installation](installation.md). Obtain a blueprint folder from a catalog or its author, and read its README, referenced execution/configuration documents, dependencies, and payloads. Use its documented sample inputs. Commands below run from the directory containing that folder; replace `./my-blueprint` with its actual relative or absolute path.
+
+> Review worker code, mounted files, passed environment variables, model endpoints, and external actions before launch. Validation does not establish that a package is safe to execute.
 
 ## Step 1: Start and inspect the runtime
 
 ```bash
 mn runtime start
 mn runtime status
-mn runtime status
 ```
 
-Verification: `mn runtime status` must not report a failed required component. If it does, resolve that failure before changing blueprint configuration; use [Troubleshooting](troubleshooting.md) to collect diagnostics.
+Resolve failed required components before submitting work. Use `mn runtime doctor` for deeper diagnostics. Startup prints a federation join credential; keep it private.
 
-## Step 2: Install the model required by this tutorial
-
-The selected blueprint resolves its default model requirement to `gemma4:e2b` during local validation. Install and diagnose that model:
+## Step 2: Validate and diagnose the blueprint
 
 ```bash
-mn model add gemma4:e2b
-mn model doctor gemma4:e2b
+mn blueprint validate ./my-blueprint
+mn blueprint doctor ./my-blueprint
 ```
 
-Verification: `mn model doctor` must report a usable local model. If hardware compatibility fails, do not force the install. Choose a compatible model profile or a blueprint that fits the available machine.
+Validation checks the local package and declared requirements. Doctor diagnoses launch prerequisites. Resolve reported models, services, inputs, or hardware requirements before continuing; see [Model Runtime](model-runtime.md) and [Troubleshooting](troubleshooting.md). There is no universal model requirement for all blueprints.
 
-## Step 3: Preflight the blueprint
+Local launch and doctor targets must begin with `./`, `../`, or `/`; other targets are interpreted as catalog IDs. Use [Examples](examples.md) to select a catalog entry.
+
+## Step 3: Launch
 
 ```bash
-mn blueprint validate otterdesk-blueprints/medical_deid_record_intake_assistant
+mn blueprint run ./my-blueprint --detached
 ```
 
-This checks the bundle and declared requirements without creating a job. Treat any missing model, service, input, or schema error as a blocker. The expected success signal is a zero exit status with no validation errors.
+Record the returned `<job-id>` and `<run-id>`. The job is a durable definition; the run is this execution. Starting a run may prepare dependencies and runtime resources and execute the blueprint's external actions. `--detached` skips the live workflow UI; it does not cancel the execution.
 
-## Step 4: Submit the workflow
+## Step 4: Inspect the result
 
 ```bash
-mn blueprint run otterdesk-blueprints/medical_deid_record_intake_assistant
+mn job show <job-id>
+mn run show <run-id>
+mn run watch <run-id>
+mn run logs <run-id> --channel logs
+mn run logs <run-id> --channel events
+mn run result <run-id>
 ```
 
-Record the returned values:
+Ctrl+C detaches from the watcher. Inspect the terminal run state, warnings, artifacts, and any required human review before using the result. Completion means execution finished, not that its domain conclusions are correct.
 
-- `<job_id>` identifies the runtime execution.
-- `<run_id>` identifies the blueprint run store and local artifacts.
-
-Never put actual IDs, paths, tokens, or customer data into documentation examples or issue reports.
-
-## Step 5: Inspect runtime state and run artifacts
-
-```bash
-mn job show <job_id>
-mn run watch <run_id>
-mn run logs <run_id> --channel logs
-mn run logs <run_id> --channel events
-```
-
-A terminal job state is `completed`, `failed`, or `cancelled`. A terminal state proves that the runtime reached an end state; it does not prove that a domain result is correct. Inspect `events.jsonl`, `result.json`, `final_artifact.json`, warnings, and required human-control records before using outputs.
-
-## What happened
-
-The CLI preflighted the folder, the runtime accepted a job, and the scheduler executed its declared agents. Runtime state is available through job commands and API routes. Blueprint-oriented output is written to `~/.mn/runs/<run_id>/` by default and is accessed through blueprint log/tail/export commands.
-
-The blueprint manifest controls runners, model configuration, inputs, service requirements, environment access, and output contracts. The runtime does not infer a safe data classification or a safe external destination for you.
+`run result` downloads outputs into `$MN_HOME/outputs/<run-id>` by default. Blueprint run records live under `$MN_HOME/runs/<run-id>`, with `MN_HOME` defaulting to `~/.mn`. For pending human requests and report export, see [Monitor](monitor.md).
 
 ## Clean up
 
-Cancel an unfinished job before stopping local services:
+If the run is unfinished and should stop:
 
 ```bash
-mn job cancel <job_id>
+mn run cancel <run-id>
+```
+
+Cancellation cannot undo external actions already performed. Preserve diagnostic records and outputs. Stop local services when other runs no longer need them:
+
+```bash
 mn runtime stop
 ```
 
-Do not delete the run store until you have collected the artifacts and events needed for review or troubleshooting.
-
 ## Next steps
 
-- [Examples](examples.md) to choose a blueprint based on task, resources, and data boundary.
-- [Core Concepts](core-concepts.md) for the vocabulary used by the runtime and docs.
-- [Blueprint Standard](blueprint-standard.md) to author a compatible workflow package.
-- [Security Model](security.md) before providing real data, secrets, or network access.
+- [Examples](examples.md): select another blueprint.
+- [CLI Reference](cli.md): create reusable jobs, start runs, and inspect output.
+- [Blueprint Standard](blueprint-standard.md): author a package.
+- [Security Model](security.md): review execution and data boundaries.

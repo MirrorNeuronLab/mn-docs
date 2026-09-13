@@ -160,7 +160,7 @@ response content.
 Register a provider definition:
 
 ```bash
-export OPENAI_API_KEY=...
+export OPENAI_API_KEY="<provider-api-key>"
 mn model add --file mn-docs/examples/openai-compatible-model-proxy.json
 mn model list
 ```
@@ -254,13 +254,11 @@ the runtime monitor adds and removes them as node inventories change.
 }
 ```
 
-At launch, MirrorNeuron resolves the config to:
-
-- `MN_LLM_PROVIDER=docker_model_runner`
-- `MN_LLM_MODEL=ai/gemma4:E2B`
-- `MN_LLM_RUNTIME_MODEL=ai/gemma4:E2B`
-- `MN_LLM_API_BASE=http://localhost:12434/engines/v1` for HostLocal workers
-- `MN_LLM_API_BASE=http://model-runner.docker.internal/engines/v1` for container or sandbox workers
+At launch, preparation resolves model IDs and injects the owner's managed
+LiteLLM gateway endpoint and credentials. Worker inference uses that gateway;
+it must not call Docker Model Runner directly. A remote model route goes from
+the owner's gateway to the peer gateway and then to the peer's DMR. Direct DMR
+calls in `mn model probe` are diagnostic parity checks, not worker routing.
 
 ## Catalog Overrides
 
@@ -296,7 +294,11 @@ Only explicit `hf.co/<owner>/<repo>[:tag]` and `huggingface.co/<owner>/<repo>[:t
 
 MirrorNeuron does not perform model-specific hardware compatibility checks for this mode. It selects the healthy, schedulable, custom-model-capable node with the greatest accelerator capacity and attempts installation there. Failure on that selected node stops launch; it does not fall back locally or try another node. The resulting model and ownership records remain marked `unverified`.
 
-See [`examples/custom-hf-model`](examples/custom-hf-model) for a source manifest and matching blueprint config.
+The fragment above is a runtime model descriptor. For authored source packages,
+place execution model declarations in the referenced execution document and
+follow [Blueprint Standard](blueprint-standard.md). The historical
+`examples/custom-hf-model` manifest uses the retired source shape and is not a
+current runnable tutorial.
 
 Custom model preparation uses the same timeout policy in CLI and API launches. Set
 `MN_RUNTIME_MODEL_PREPARE_TIMEOUT_SECONDS` to a positive number of seconds to override the

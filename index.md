@@ -81,6 +81,12 @@ Do not duplicate large command tables, API shapes, or environment-variable lists
 | Architecture, context, reliability, and security | [runtime-architecture.md](runtime-architecture.md), [cluster_architecture.md](cluster_architecture.md), [context-memory.md](context-memory.md), [reliability.md](reliability.md), [security.md](security.md) |
 | Internal quality and contributor process | [testing.md](testing.md), [contributing.md](contributing.md), [documentation-style.md](documentation-style.md) |
 
+## Runtime alignment record
+
+See [September 2026 alignment](runtime-alignment-2026-09.md) for the current
+job/run, source-package, dependency, model-routing, and execution-boundary
+corrections, with validation evidence and unexercised integrations.
+
 ## Source-doc update rule
 
 When a pull request changes a command, API route, configuration key, manifest field, runtime guarantee, runner boundary, or failure behavior:

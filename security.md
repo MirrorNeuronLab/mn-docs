@@ -8,7 +8,7 @@ MirrorNeuron can execute worker code, access declared files, pass selected envir
 
 ## Before you begin
 
-- Identify the runner for each worker: HostLocal or OpenShell.
+- Identify the runner for each worker: HostLocal, DockerWorker, DockerCompose, or OpenShell.
 - Read `manifest.json`, `payloads/`, policy files, service declarations, and `pass_env` entries.
 - Identify every listener, external provider, and output destination.
 - Keep Redis, API, gRPC, artifact sharing, and cluster traffic on trusted networks.
@@ -37,9 +37,13 @@ HostLocal workers run directly on the machine. They can act with the permissions
 
 OpenShell provides a stronger execution boundary. It does not remove the need to review sandbox policy, uploads, mounted data, network access, environment variables, and exposed services. A sandboxed worker can still leak data or spend money through an allowed external integration.
 
+### Docker execution
+
+DockerWorker and DockerCompose use prepared images or service projects. Review bind mounts, container privileges, environment, published ports, and image provenance; container execution is not a blanket guarantee of isolation.
+
 ### Cluster execution
 
-Runtime nodes share control-plane state and membership credentials. Do not join an untrusted machine to a cluster, and change `MN_COOKIE` before using a non-local cluster. Keep Redis and runtime listeners off public networks unless a deliberate authentication and network boundary is in place.
+Federated nodes keep independent coordination stores and execute each job on its owner Core. Registration uses join credentials; protect and rotate them with `mn node refresh-token`. Federation does not provide automatic takeover of an offline owner. Keep Redis, gRPC, artifact sharing, and model gateways inside the intended trusted network boundary.
 
 ## Local defaults and listener checks
 
@@ -55,7 +59,7 @@ Verify the actual local deployment rather than assuming defaults:
 
 ```bash
 mn runtime status
-mn runtime status
+mn runtime doctor
 ```
 
 The model gateway commonly uses port `4000` when enabled; the Web UI default is port `55173`. See [Environment Variables](env_variables.md) for all listener and bind-host settings.
@@ -90,7 +94,7 @@ Warning: setting a listener host such as `MN_API_HOST=0.0.0.0` exposes it beyond
 
 Before launching a bundle from another person or repository:
 
-1. Read the complete `manifest.json` and all payload files.
+1. Read `manifest.json`, every referenced role and extension document, and all payload files.
 2. Identify HostLocal commands, OpenShell policies, uploads, service declarations, and `pass_env` values.
 3. Identify model providers, external API destinations, output skills, and network listeners.
 4. Validate the bundle:
@@ -106,7 +110,7 @@ Before launching a bundle from another person or repository:
 
 If you suspect an exposure:
 
-1. Stop or cancel the affected job if doing so is safe: `mn job cancel <job_id>`.
+1. Cancel the affected run if doing so is safe: `mn run cancel <run-id>`.
 2. Preserve the job ID, run ID, timestamps, sanitized configuration, and relevant event/log records.
 3. Rotate potentially exposed credentials and remove access where possible.
 4. Do not publish exploit details or secrets in an issue. Use the project's private security-reporting channel or contact maintainers privately.

@@ -36,12 +36,14 @@ Blueprints that need Python packages at runtime should declare them on the execu
 
 The runtime creates a cached virtualenv keyed by Python version and dependency contents, then rewrites `python`, `python3`, or `python3.11` commands to run from that environment. Root-level blueprint `requirements.txt` files remain documentation or developer setup files unless an executor explicitly references a dependency file under `payloads/`.
 
-For private or disconnected deployments, the blueprint can own Python packages
-directly. Put source trees or wheels under `payloads/skills` and
-`payloads/agents`, declare them in `dependencies.json` with `source: payload`, and pin the exact
-distribution name and version. A bundled `payloads/agents/index.json` is used
-to render local agent templates. Payload packages override matching GAR
-declarations.
+In source development, reusable skills may live in `mn-skills` or under
+`payloads/skills/*/pyproject.toml`. Keep the normal distribution-name and version
+declarations in `dependencies.json`; `MN_USE_LOCAL_SKILLS=1` resolves matching
+local projects without changing the authored declaration. Binary mode resolves
+declared constraints and does not automatically use bundled source. See
+[Dependency versions](blueprint-standard.md#dependency-versions). Low-level
+payload package transport is a separate generated-runtime contract in
+[Job Bundle Format](bundle.md).
 
 Models and other large assets can also be included. Declare GGUF, Safetensors,
 or DDUF files under `runtime.models.*.source` in `execution.json` with `type: payload`; MirrorNeuron
@@ -74,7 +76,7 @@ launches.
 Validate the bundle:
 
 ```bash
-mn blueprint validate my_bundle
+mn blueprint validate ./my_bundle
 ```
 
 Expected output:
@@ -86,7 +88,7 @@ Job bundle at 'my_bundle' is valid.
 Run it:
 
 ```bash
-mn blueprint run my_bundle
+mn blueprint run ./my_bundle
 ```
 
 Expected output:
@@ -285,7 +287,7 @@ Before publishing or running a blueprint or skill:
 
 - Follow every document reference in `manifest.json` and review commands in the execution and workflow documents.
 - Read every file under `payloads/`.
-- Check whether `runner` is `host_local` or OpenShell.
+- Check host permissions, Docker mounts/privileges, and OpenShell policy for each declared runner.
 - Check all `pass_env` entries.
 - Check network policies and API base URLs.
 - Check whether the workflow is a service.

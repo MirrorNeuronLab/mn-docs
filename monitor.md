@@ -55,12 +55,17 @@ mn blueprint export <run-id> --format markdown --output report.md
 mn run pause <run-id>
 mn run resume <run-id>
 mn run cancel <run-id>
-mn run delete <terminal-run-id> --yes
 ```
 
 Cancellation stops runtime work but cannot reverse an external action already
 performed by a worker. Review side-effecting adapters and idempotency before
 launch.
+
+> Deleting a terminal run removes stored run data. Preserve needed evidence first; deletion is not a way to stop active work.
+
+```bash
+mn run delete <terminal-run-id> --yes
+```
 
 ## Human collaboration
 

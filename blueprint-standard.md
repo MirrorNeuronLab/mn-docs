@@ -59,6 +59,16 @@ All references are ordinary package-relative POSIX paths. Documents have fixed r
 
 The SDK ships Draft 2020-12 schemas for each role and known extension. Canonical schema identifiers resolve against the SDK's local registry without fetching schemas from the network. Unknown core fields, duplicate JSON properties, invalid release versions, missing documents, and unsupported schema identifiers are errors.
 
+## Dependency versions
+
+Declare SDK distributions under `packages` and reusable workers under `skills` or `agents` in `dependencies.json`. Every declared dependency needs a version. Package records use `type: "pip"`, `source: "gar"`, and the distribution name.
+
+Versions accept exact releases (`1.3.47`), PEP 440 ranges (`>=1.3.5,<2.0`), compatible releases (`~=1.3.5`), and trailing wildcards (`1.3.x` or `1.3.*`). Empty values, bare `*`, URLs, environment markers, caret ranges, and `||` are rejected. Authored constraints survive compilation; binary preparation resolves an available compatible artifact. Exact pins provide stronger reproducibility than ranges.
+
+With `MN_USE_LOCAL_SKILLS=1`, source development resolves matching local distribution identities regardless of their declared release range. With `MN_USE_LOCAL_SKILLS=0`, binary preparation preserves constraints and does not automatically select bundled source. Unversioned skills fail preparation; there is no SDK-version fallback for a skill.
+
+Evidence: `mn_sdk/version_constraints.py`, `blueprints/schemas/dependencies.schema.json`, `components/dependencies.py`, and the SDK version-constraint tests.
+
 ## Execution modes
 
 `execution.mode` is required:
@@ -153,21 +163,19 @@ Folders and extracted ZIPs use the same package path validator. Absolute documen
 
 ## Verification
 
-Run the SDK package, submission lifecycle, compiler, bundle, and payload tests. Run CLI and API catalog/launch tests, blueprint behavior contracts, UI tests/build, and Core/system boundary gates for affected runtime behavior. The migration inventory contains 39 present packages: 31 in `mn-blueprints` and 8 in `otterdesk-blueprints`. `demo_air_gapped` remains unpublished. The four previously deleted OtterDesk coworker packages remain deleted.
+Run the SDK package, submission lifecycle, compiler, bundle, and payload tests. Run CLI and API catalog/launch tests, blueprint behavior contracts, UI tests/build, and Core/system boundary gates for affected runtime behavior. Catalog inventories are independently versioned; derive the current published set from each catalog's `index.json` rather than a fixed package count.
 
 Source packages intentionally require the canonical format. Runtime artifacts and historical run records remain their own contracts. The documentation describes this source migration; publishing a coordinated SDK/CLI/API release is a separate release operation.
 
 ## Coordinated release
 
-This is a breaking source-format change targeting SDK 2.0. CLI, API, and blueprint
-support require `mirrorneuron-python-sdk>=2.0,<3`; distribute them together with
-the migrated catalogs. Git tags remain the distribution version authority.
-For a local pre-release build before tagging, set
-`SETUPTOOLS_SCM_PRETEND_VERSION=2.0.0` while building the workspace packages.
-Do not mix these catalogs with an earlier installed SDK.
-
-The documentation-site repository was not present in this workspace; its concise
-blueprint format reference must be updated when this coordinated release is published.
+The source schema version and Python distribution version are separate contracts.
+Current CLI metadata declares `mirrorneuron-python-sdk>1.3,<2.0`; do not infer
+an SDK 2.0 requirement from the source-format migration. Git tags and owning
+package metadata determine distribution compatibility. Ship compatible CLI, API,
+SDK components, and catalogs together, and validate installed artifacts against
+the schemas they actually package. The external blueprint-authoring reference
+is maintained in `mn-doc-site/content/docs/blueprint-standard.mdx`.
 
 Execution defaults for this format are frozen in the SDK's packaged
 `execution.schema.json` under `x-mn-compilation-defaults`. The compiler reads

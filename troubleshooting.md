@@ -9,7 +9,7 @@ Run these commands first and retain the output with secrets removed:
 ```bash
 mn --version
 mn runtime status
-mn runtime status
+mn runtime doctor
 mn node list
 ```
 
@@ -222,21 +222,20 @@ Fix:
 - stop the old runtime first
 - avoid starting the same box twice
 
-### cluster forms but work does not land on both boxes
+### Federation is connected but one run uses only one node
 
-Possible causes:
-
-- job is too small
-- remote bundle sync failed
-- stale CLI/control nodes are confusing routing
-- one box has less executor capacity
-
-Check:
+This is expected: all workers of one job execute on its owner Core. Federation
+selects owners for independent jobs; it does not distribute one job's agents or
+migrate an active run when its owner goes offline.
 
 ```bash
-bash scripts/cluster_cli.sh --box1-ip <box1-host> --box2-ip <box2-host> --self-ip <box1-host> -- inspect nodes
 mn node list
+mn job show <job-id>
+mn run show <run-id>
 ```
+
+Inspect ownership and node eligibility before submitting another independent job.
+See [Cluster](cluster.md) for registration and trust boundaries.
 
 ## Monitor issues
 
@@ -269,7 +268,7 @@ Symptoms:
 Fix:
 
 ```bash
-export GEMINI_API_KEY="..."
+export GEMINI_API_KEY="<provider-api-key>"
 ```
 
 ### Python version mismatch across boxes

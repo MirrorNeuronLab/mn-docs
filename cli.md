@@ -128,7 +128,9 @@ mn run logs <run-id> --channel all --follow
 mn run result <run-id>
 mn run resources <run-id>
 mn run compare <run-a> <run-b>
-mn run pause|resume|cancel <run-id>
+mn run pause <run-id>
+mn run resume <run-id>
+mn run cancel <run-id>
 mn run delete <run-id> --yes
 ```
 
