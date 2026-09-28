@@ -270,6 +270,13 @@ my_skill/
 
 Some skills are copied into blueprint payloads. Others are installed as local Python packages. Keep skill APIs narrow and testable.
 
+`opencode_skill` launches OpenCode inside a caller-owned OpenShell worker for
+generation, editing, and read-only review. Its default model is
+`opencode/muse-spark-1.3-contributor-free`; model and sandbox folder are explicit
+inputs. The blueprint owns staging, network policy, credentials, and generated
+artifact export. See the [package contract](../mn-skills/opencode_skill/SKILL.md)
+and [setup and API examples](../mn-skills/opencode_skill/README.md).
+
 ## Where To Put Code
 
 Use this split:

@@ -28,6 +28,7 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 | `market_research_skill` | `mirrorneuron-market-research-skill` |
 | `marketing_email_skill` | `mirrorneuron-marketing-email-skill` |
 | `meeting_summary_skill` | `mirrorneuron-meeting-summary-skill` |
+| `opencode_skill` | `mirrorneuron-opencode-skill` |
 | `pdf_extract_skill` | `mirrorneuron-pdf-extract-skill` |
 | `process_map_skill` | `mirrorneuron-process-map-skill` |
 | `public_research_orchestrator_skill` | `mirrorneuron-public-research-orchestrator-skill` |
