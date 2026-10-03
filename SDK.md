@@ -37,13 +37,13 @@ Blueprint authors select runtime capabilities in `dependencies.json`:
   "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/dependencies.schema.json",
   "packages": [
     {"type": "pip", "source": "gar", "name": "mn-python-sdk-mcp", "version": ">=1.3,<2.0"},
-    {"type": "pip", "source": "gar", "name": "mn-python-sdk-rag", "version": ">=1.3,<2.0", "extras": ["milvus"]}
+    {"type": "pip", "source": "gar", "name": "mn-python-sdk-rag", "version": ">=1.3.58.dev0,<2"}
   ]
 }
 ```
 
-The base SDK installs only its common component. RAG without the `milvus` extra
-supports injected stores and embedders without installing Milvus. Each component
+The base SDK installs only its common component. The RAG distribution includes
+DuckDB and supports injected parsers, stores and embedders. Each component
 is a separate distribution built and tested from `mn-python-sdk/packages/`.
 Email, browsing, and task-oriented research remain skills.
 
@@ -74,6 +74,29 @@ needs them. Failed installation is retryable and fails before engine creation.
 The source and wheel contracts are exercised by the SDK's component tests and
 `scripts/verify_component_installs.py`. Package-index and release publication are
 separate operator actions; this migration does not publish a release.
+
+## External knowledge RAG storage
+
+The RAG backend is `duckdb` with exact cosine search. Complete parsed external
+knowledge lives in immutable Markdown revisions selected by a
+`mn.rag_corpus.v1` filesystem manifest. DuckDB stores vectors, references, UTF-8
+byte spans, hashes and small metadata, with no document or chunk bodies.
+Retrieval verifies the active manifest and Markdown hashes before loading spans.
+
+For jobs, canonical Markdown lives under
+`MN_JOB_DATA_DIR/knowledge/canonical/<scope-id>/` and the index is
+`MN_JOB_DATA_DIR/databases/rag/knowledge.duckdb`. Standalone corpora live under
+`MN_HOME/rag/<namespace>/<blueprint_id>/knowledge/`, beside the separately named
+`<blueprint_id>.duckdb`. Membrane runtime memory remains separate.
+
+The SDK injects the existing document-reading and OCR skills; unsupported,
+failed and explicitly incomplete extraction is visible. OCR is lazy. Index
+deletion preserves canonical knowledge; reindexing reads Markdown without
+reparsing originals. `mn.rag_export.v2` bundles carry Markdown and provenance;
+restore rebuilds the destination index. Database-only exports are rejected.
+Milvus dependencies and migration commands have been removed. Activate matching
+packages and worker environments after stopping active jobs and draining responses.
+The detailed implementation contract and tests live in the RAG component README.
 
 ## Client Usage
 
