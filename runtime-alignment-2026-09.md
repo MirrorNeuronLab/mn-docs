@@ -25,7 +25,7 @@
 Detailed internal ownership remains in [CLI](cli.md), [API](api.md),
 [Blueprint Standard](blueprint-standard.md), [SDK](SDK.md),
 [Runtime Architecture](runtime-architecture.md), [Model Runtime](model-runtime.md),
-and [Context Memory](context-memory.md).
+and [Context Intelligent System](context-memory.md).
 
 ## External manual
 

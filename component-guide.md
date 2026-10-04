@@ -19,7 +19,7 @@ This is the canonical repository map for contributors and maintainers. Use it to
 | `mn-agents` | Shared agent templates and contracts used by blueprints. | [Blueprints and Skills](blueprints-and-skills.md) | Component test suite |
 | `mn-skills` | Reusable Python skill packages. | [Blueprints and Skills](blueprints-and-skills.md) | Package-specific tests |
 | `mn-system-tests` | Cross-component smoke, integration, end-to-end, security, and benchmark checks. | [Testing](testing.md) | `cd mn-system-tests && python3 test_all.py --fast` |
-| `Membrane` | Context engine, context-memory SDK, and context-compression tooling. | [Context Memory](context-memory.md) | Component test suite |
+| `Membrane` | Context Intelligent System: memory, query planning, retrieval, evidence assembly and context admission. | [Context Intelligent System](context-memory.md) | Component test suite |
 | `otterdesk-blueprints` | Self-contained user-facing workflow blueprints. | [Examples](examples.md), [Blueprint Standard](blueprint-standard.md) | Blueprint validation and repository tests |
 | `otterdesk-desktop-app` | Desktop application for launching and monitoring blueprints. | [Deployments](deployments.md) | `cd otterdesk-desktop-app && npm run doctor` |
 

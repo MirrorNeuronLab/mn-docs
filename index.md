@@ -18,7 +18,7 @@ Every user-visible behavior has one canonical detailed page in this directory:
 | Environment defaults | [Environment Variables](env_variables.md) | CLI, API, SDK, and Core configuration definitions. |
 | Blueprint and manifest contracts | [Blueprint Standard](blueprint-standard.md), [Job Bundle Format](bundle.md) | Schemas, SDK validators, and checked-in blueprints. |
 | Reliability and recovery | [Reliability Guide](reliability.md) | Core persistence, lease, scheduler, and recovery tests. |
-| Bounded working context and compression | [Context Memory And Compression](context-memory.md) | Membrane working-memory contract and Python SDK context-session tests. |
+| Bounded working context and compression | [Context Intelligent System](context-memory.md) | Membrane working-memory contract and Python SDK context-session tests. |
 | Security boundaries | [Security Model](security.md) | Runner, network, Redis, secret, and policy behavior. |
 | Repeated operational failures | [Troubleshooting](troubleshooting.md) | Reproducible diagnostics and component tests. |
 
@@ -48,7 +48,7 @@ Do not duplicate large command tables, API shapes, or environment-variable lists
 2. [Blueprint Standard](blueprint-standard.md)
 3. [Blueprints and Skills](blueprints-and-skills.md)
 4. [Python SDK](SDK.md)
-5. [Context Memory And Compression](context-memory.md)
+5. [Context Intelligent System](context-memory.md)
 6. [Testing](testing.md)
 
 ### Operator

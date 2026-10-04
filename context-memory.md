@@ -1,4 +1,4 @@
-# Context Memory And Compression
+# Membrane Context Intelligent System
 
 - **Reader:** blueprint authors, runtime integrators, and operators
 - **Outcome:** design and operate model turns whose context remains bounded over
@@ -12,8 +12,16 @@
 - **Validation:** Membrane Rust tests; Python SDK context-session,
   LiteLLM-context, model-context-capacity, and submission-preparation tests
 
-MirrorNeuron uses the Membrane projects for shared working memory, context
-selection, context compression, and benchmark evaluation.
+Membrane is a Context Intelligent System. Its capabilities include runtime
+memory, query planning, table/vector/graph retrieval, evidence assembly,
+provenance, budget admission and optional context compaction. Memory is one
+part of the system.
+
+This guide focuses on bounded working context and compression. See the
+[current Markdown/DuckDB contract](../Membrane/docs/markdown-memory.md) for the
+system's storage, query and evidence interfaces, and the
+[query benchmark](../Membrane/mn-context-auto-optimizer-benchmark/docs/cross-datatype.md)
+for measured retrieval and context quality.
 
 This page is for blueprint authors and runtime operators. It explains how to
 keep long-running jobs useful when their accumulated evidence is larger than
