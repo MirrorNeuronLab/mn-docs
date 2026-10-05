@@ -310,6 +310,22 @@ The former `GET /blueprints/<blueprint-id>/installation`,
 `DELETE /blueprints/<blueprint-id>/installation` routes are removed and return
 `404`; clients must migrate to additions and removals.
 
+## Model catalog and default installation
+
+`GET /api/v1/models` includes all catalog models and discovered installations
+by default. Its paginated items carry `default: true` for the configured
+default/fallback chain. Use `?installed_only=true` for installed models only;
+`GET /api/v1/models/<model-id>` retains the individual detail view.
+
+`PUT /api/v1/models/default/installation` with JSON body `{}` eagerly prepares
+the first compatible configured default on a local or cluster node. It uses
+catalog overrides and fallbacks without changing the default policy. The
+existing request options are `backend` (default `auto`), optional `context_size`,
+and `force` (default `false`). DMR options are rejected for provider defaults.
+Send `Idempotency-Key` for safe replay. The response is `202` with an Operation
+Location; poll or follow its SSE stream for completion and sanitized failures.
+Explicit model installation uses the same background SDK preparation boundary.
+
 ## Server-Sent Events
 
 The only realtime HTTP surfaces are authenticated, resumable SSE:

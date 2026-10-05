@@ -154,6 +154,8 @@ mn model add <catalog-id-or-dmr-reference>
 mn model add <model> --node <node>
 mn model add <model> --local
 mn model add --file ./provider-models.json
+mn model add --default
+mn model show
 mn model show <model-id>
 mn model probe <model-id>
 mn model probe <model-id> --capabilities image,json-schema,stream,thinking
@@ -162,6 +164,13 @@ mn model update --all
 mn model remove <model-id> --yes
 mn model doctor <model-id>
 ```
+
+`mn model show` displays every model in the merged catalog, with `default`
+markers for the configured default and its fallbacks. With a model argument it
+returns that model's stored facts. Neither form performs live health checks.
+`mn model add --default` prepares the first hardware-compatible configured
+default on a local or cluster node; `--local` and `--node` constrain placement.
+It reuses registrations and does not pin a chosen fallback as a new default.
 
 `mn model probe` requires the model to be installed and routed through the
 managed LiteLLM gateway. It force-tests embeddings, image input, strict JSON
