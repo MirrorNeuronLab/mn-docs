@@ -14,7 +14,7 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 | `autonomous_research_skill` | `mirrorneuron-autonomous-research-skill` |
 | `client_report_skill` | `mirrorneuron-client-report-skill` |
 | `code_generation_skill` | `mirrorneuron-code-generation-skill` |
-| `document_reading_skill` | `mirrorneuron-document-reading-skill` |
+| `docs_to_markdown_skill` | `mirrorneuron-docs-to-markdown-skill` |
 | `email_delivery_skill` | `mirrorneuron-email-delivery-skill` |
 | `email_receive_agentmail_skill` | `mirrorneuron-email-receive-agentmail-skill` |
 | `email_send_resend_skill` | `mirrorneuron-email-send-resend-skill` |
@@ -24,12 +24,10 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 | `graph_analysis_skill` | `mirrorneuron-graph-analysis-skill` |
 | `implementation_plan_skill` | `mirrorneuron-implementation-plan-skill` |
 | `live_video_analysis_skill` | `mirrorneuron-live-video-analysis-skill` |
-| `llm_ocr_skill` | `mirrorneuron-llm-ocr-skill` |
 | `market_research_skill` | `mirrorneuron-market-research-skill` |
 | `marketing_email_skill` | `mirrorneuron-marketing-email-skill` |
 | `meeting_summary_skill` | `mirrorneuron-meeting-summary-skill` |
 | `opencode_skill` | `mirrorneuron-opencode-skill` |
-| `pdf_extract_skill` | `mirrorneuron-pdf-extract-skill` |
 | `process_map_skill` | `mirrorneuron-process-map-skill` |
 | `public_research_orchestrator_skill` | `mirrorneuron-public-research-orchestrator-skill` |
 | `scoring_framework_skill` | `mirrorneuron-scoring-framework-skill` |
@@ -45,10 +43,19 @@ Runtime infrastructure is maintained as independent SDK component packages:
 `mn-python-sdk-job-response`. See [Python SDK](SDK.md#optional-components).
 MCP usage and work-packet authoring retain instruction-only Agent Skills.
 
+## Document processing
+
+`docs_to_markdown_skill` owns complete local Markdown conversion, embedded PDF
+extraction, lazy OCR and document-intake helpers. The separate document-reading,
+PDF-extraction and OCR packages are removed from the current source catalog;
+callers import `mn_docs_to_markdown_skill` directly. There are no compatibility
+packages or import aliases. SourceCorpus retrieval and indexing remain SDK-owned.
+See the [package contract](../mn-skills/docs_to_markdown_skill/SKILL.md).
+
 ## Browser skills
 
 `web_browser_skill` is the unified local browser package. It returns
-readability-extracted plain text or Markdown, selects w3m or the native
+readability-extracted plain text or Markdown, selects bounded local HTTP extraction or the native
 agent-browser CLI internally, and exposes a policy-governed ref-based actuator
 with isolated sessions, approval gates, audits, and bounded artifacts. All
 browser consumers should use `web_browser_skill`; workflows remain the planner.
