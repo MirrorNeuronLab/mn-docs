@@ -104,10 +104,10 @@ Prism llama.cpp. The catalog declares that customization, and the SDK prepares
 it automatically during normal installation or first use.
 
 Run from any directory with MirrorNeuron and Docker Desktop/Engine installed.
-The initial backend build also requires Python 3.11+, Git, Go 1.25.8+ and a C
-toolchain (Xcode command-line tools on macOS, a CGO-capable compiler on Windows
-or Linux). The first preparation downloads pinned source/backend assets and Go
-build dependencies; the model installation then downloads the weights. Preparation
+The installed Python SDK downloads a prepared native runner from public GAR
+and verifies its catalog-pinned SHA-256 before extraction. Users need no Go,
+Git, compiler or Google Cloud credentials. The first preparation downloads
+runner/backend assets; model installation then downloads the weights. Preparation
 starts a managed host listener: control uses loopback, and container inference
 requires the generated token. Keep runner state and gateway env files private.
 
@@ -120,11 +120,15 @@ Automatic `default` selection uses this same preparation when the selected owner
 has at least 24 GB and less than 48 GB accelerator memory. Blueprint launch
 keeps its lazy installation behavior: actual model use triggers preparation.
 macOS Apple Silicon selects Metal, NVIDIA PCs select CUDA, and AMD/Intel GPUs
-select Vulkan. The catalog also contains explicit HIP assets. Windows ARM64 GPU
-and Linux ARM64 CUDA assets are unavailable in the pinned release.
+select Vulkan. The catalog also contains explicit HIP assets. Linux ARM64 CUDA
+uses a prepared GAR backend for Spark's GB10 (SM 12.1), Ubuntu 24.04 and NVIDIA
+driver 580+, with CUDA 13 runtime libraries bundled. Windows ARM64 GPU assets
+remain unavailable. Metal runs natively on macOS; Docker's Linux VM cannot
+provide Apple Metal acceleration.
 
-The SDK builds a native DMR from a full commit SHA and inserts its fixed managed
-HTTP policy. It uses pinned backend assets, verifies the backend commit, and sets
+Release builds compile the native DMR from a full commit SHA with the SDK's fixed
+managed HTTP, native transport and Prism version-parser patches. The installed SDK
+downloads those prepared binaries, uses pinned backend assets, verifies the backend commit, and sets
 `LLAMA_SERVER_PATH` and `DISABLE_SERVER_UPDATE=true`. Per-recipe/platform caches
 under `MN_HOME/model-runners` hold the runner, backend, weights, logs and private
 state. Repeated preparation reuses the cache; changed customization creates a
@@ -139,7 +143,8 @@ No manual launcher, global endpoint exports or Docker Desktop backend replacemen
 is required. Workers continue using their node-local LiteLLM route.
 
 The catalog contract is `preparation.kind: "dmr_native"`, version 1. Its `runner`
-contains an HTTPS GitHub repository and immutable revision; its `backend`
+contains an HTTPS GitHub source repository, immutable revision, SDK policy and
+per-platform prepared archives (`name`, public HTTPS `url`, mandatory `sha256`). Its `backend`
 contains a repository, release, commit and per-platform asset lists. For example,
 the packaged Bonsai2 recipe includes:
 
@@ -150,7 +155,15 @@ the packaged Bonsai2 recipe includes:
     "version": 1,
     "runner": {
       "repository": "https://github.com/docker/model-runner",
-      "revision": "ab88713fadabe6a6da5d7c7fe8ce3407ecf2d4da"
+      "revision": "ab88713fadabe6a6da5d7c7fe8ce3407ecf2d4da",
+      "policy": 2,
+      "assets": {
+        "darwin-arm64": {
+          "name": "managed-dmr-darwin-arm64.tar.gz",
+          "url": "https://artifactregistry.googleapis.com/download/v1/projects/mirrorneuron-public-packages/locations/us-central1/repositories/mirrorneuron-binaries/files/managed-dmr%3Aab88713fadab-policy2%3Amanaged-dmr-darwin-arm64.tar.gz:download?alt=media",
+          "sha256": "10ec21136c63b4f4f8e7cbe1c7795a058d2f8773483256eabbd337b7703d6c34"
+        }
+      }
     },
     "backend": {
       "repository": "https://github.com/PrismML-Eng/llama.cpp",
@@ -173,8 +186,11 @@ default `auto` uses the owner accelerator. `backend.transport` accepts `auto`,
 ports on Windows and Unix sockets on macOS/Linux. Operators can use
 `MN_HOME/models/catalog.json` or `MN_MODEL_CATALOG_PATH` for catalog overrides.
 Asset entries can also be `{ "name": "backend.zip", "sha256": "<digest>" }`
-objects. The SDK rejects unsupported fields, arbitrary scripts, unpinned runner
-revisions and unsafe archive paths before build effects.
+objects. A public HTTPS `url` can select a GAR backend; an explicit URL always
+requires a pinned SHA-256. Otherwise the archive comes from the pinned GitHub
+release. The SDK rejects unsupported fields, arbitrary scripts, unpinned runner
+revisions and unsafe archive paths before download effects. Missing prepared
+runner assets fail explicitly; normal installation never compiles source.
 
 Python callers can warm the backend independently of the model artifact:
 
@@ -188,13 +204,18 @@ The deploy `scripts/build-prism-dmr.py` helper calls this same SDK API. Normal
 load/unload and last-job cleanup target the matching runner. Unload releases
 weights from accelerator memory and keeps downloaded artifacts and the backend
 cache; `mn model remove small --local --yes` removes the model installation and
-route while preserving the backend cache. Build prerequisite failures have an
-actionable retry message; startup failures point to the bundle's launcher log,
+route while preserving the backend cache. Failed archive checksums stop preparation
+before execution; startup failures point to the bundle's launcher log,
 and occupied ports fail without adopting another service.
 
 Verification covers offline selection, safe preparation, cache reuse/restart,
-load/unload and gateway routing. Live Bonsai2 Metal, Windows Docker Desktop and
-Linux inference remains an opt-in acceptance check.
+load/unload and gateway routing. Live acceptance on 2026-10-12 passed native
+inference with all 65/65 model layers on Apple M4 Pro Metal and Spark GB10 CUDA.
+The Mac's normal LiteLLM path passed streaming and JSON-schema probes with Go
+absent from `PATH`. A fresh Spark SDK wheel downloaded and verified the public
+GAR runner/backend, installed and configured Bonsai2, and passed JSON-schema and
+streaming inference with both Go and `nvcc` absent from `PATH`. Windows and Linux x64 binaries are cross-compiled; live
+inference on those platforms remains an opt-in acceptance check.
 
 ## Nemotron 3.5 Lightning Compatibility
 
