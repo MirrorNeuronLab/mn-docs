@@ -6,9 +6,25 @@ is used by blueprints that declare `provider: "docker_model_runner"` in
 `llm.configs`.
 
 Without an operator override, MirrorNeuron selects its built-in default from
-the host hardware: `nemotron-3.5-lightning:latest` on a suitable high-memory
-accelerator and `gemma4:e2b`
-otherwise. A model added with `--default` takes priority over both built-ins.
+healthy cluster hardware, in this order:
+
+| Tier | Model | Accelerator memory minimum |
+| --- | --- | --- |
+| `medium` | Nemotron 3.5 Lightning | 48 GB VRAM or integrated/shared GPU memory |
+| `small` | Bonsai2 27B PTQ1_0 (~5.95 GB weights) | 24 GB VRAM or integrated/shared GPU memory |
+| `nano` | Gemma 4 E2B | 8 GB VRAM or 16 GB unified memory |
+
+`default` selects the first feasible tier: medium → small → nano. CPU RAM alone
+does not qualify as accelerator memory. An operator-selected default takes
+priority over automatic selection.
+
+Tier thresholds use total hardware capacity. Explicit worker GPU allocations
+still require free memory. On Windows, detection uses
+[DXGI dedicated VRAM](https://learn.microsoft.com/en-us/windows/win32/api/dxgi/ns-dxgi-dxgi_adapter_desc1)
+and [D3D12 UMA architecture](https://learn.microsoft.com/en-us/windows/win32/api/d3d12/ns-d3d12-d3d12_feature_data_architecture):
+confirmed integrated AMD/Intel adapters use installed shared host memory;
+discrete cards use dedicated VRAM. Driver acceleration must be verified with
+`mn model probe` on the target machine.
 
 ## Ownership Boundary
 
@@ -73,11 +89,112 @@ fails the command.
 `--default` is valid for either a DMR reference or a provider JSON file that
 defines exactly one model. The registry stores only that model's ID as the
 operator-selected priority; it never stores resolved provider secrets. Removing
-the selected model restores automatic `nemotron-3.5-lightning:latest`/`gemma4:e2b` selection.
+the selected model restores automatic medium → small → nano selection.
 
 DMR adds and blueprint validation block incompatible hardware by default. Use
 `--force` only when you accept slow CPU execution or a partial accelerator
 path.
+
+## Bonsai2 on Docker Model Runner
+
+The unreleased `small` catalog entry uses
+`hf.co/prism-ml/Ternary-Bonsai-2-27B-gguf:PTQ1_0`, tagged locally as
+`bonsai2:ptq1_0`, with a 32,768-token initial context. Its ternary packing requires
+Prism llama.cpp. The catalog declares that customization, and the SDK prepares
+it automatically during normal installation or first use.
+
+Run from any directory with MirrorNeuron and Docker Desktop/Engine installed.
+The initial backend build also requires Python 3.11+, Git, Go 1.25.8+ and a C
+toolchain (Xcode command-line tools on macOS, a CGO-capable compiler on Windows
+or Linux). The first preparation downloads pinned source/backend assets and Go
+build dependencies; the model installation then downloads the weights. Preparation
+starts a managed host listener: control uses loopback, and container inference
+requires the generated token. Keep runner state and gateway env files private.
+
+```bash
+mn model add small --local
+mn model probe small
+```
+
+Automatic `default` selection uses this same preparation when the selected owner
+has at least 24 GB and less than 48 GB accelerator memory. Blueprint launch
+keeps its lazy installation behavior: actual model use triggers preparation.
+macOS Apple Silicon selects Metal, NVIDIA PCs select CUDA, and AMD/Intel GPUs
+select Vulkan. The catalog also contains explicit HIP assets. Windows ARM64 GPU
+and Linux ARM64 CUDA assets are unavailable in the pinned release.
+
+The SDK builds a native DMR from a full commit SHA and inserts its fixed managed
+HTTP policy. It uses pinned backend assets, verifies the backend commit, and sets
+`LLAMA_SERVER_PATH` and `DISABLE_SERVER_UPDATE=true`. Per-recipe/platform caches
+under `MN_HOME/model-runners` hold the runner, backend, weights, logs and private
+state. Repeated preparation reuses the cache; changed customization creates a
+separate bundle. A stopped owned controller restarts automatically during
+preparation or request admission. Preparation leaves model weights unloaded.
+
+Control calls use the selected runner's host-loopback address. Container
+inference uses authenticated `/engines/` access through the owner LiteLLM gateway;
+its SDK-generated private Compose env file supplies the token. Public configs
+hold environment references. Normal models keep their regular DMR endpoint.
+No manual launcher, global endpoint exports or Docker Desktop backend replacement
+is required. Workers continue using their node-local LiteLLM route.
+
+The catalog contract is `preparation.kind: "dmr_native"`, version 1. Its `runner`
+contains an HTTPS GitHub repository and immutable revision; its `backend`
+contains a repository, release, commit and per-platform asset lists. For example,
+the packaged Bonsai2 recipe includes:
+
+```json
+{
+  "preparation": {
+    "kind": "dmr_native",
+    "version": 1,
+    "runner": {
+      "repository": "https://github.com/docker/model-runner",
+      "revision": "ab88713fadabe6a6da5d7c7fe8ce3407ecf2d4da"
+    },
+    "backend": {
+      "repository": "https://github.com/PrismML-Eng/llama.cpp",
+      "release": "prism-b10743-adfffbe",
+      "commit": "adfffbe",
+      "assets": {
+        "darwin-arm64-metal": [
+          "llama-prism-b10743-adfffbe-bin-macos-arm64.tar.gz"
+        ]
+      }
+    }
+  }
+}
+```
+
+The full packaged recipe includes Windows and Linux assets. An optional
+`backend.accelerator` selects `metal`, `cuda`, `hip`, `vulkan` or `cpu`; the
+default `auto` uses the owner accelerator. `backend.transport` accepts `auto`,
+`tcp` or `unix`. Automatic transport uses loopback TCP with independent backend
+ports on Windows and Unix sockets on macOS/Linux. Operators can use
+`MN_HOME/models/catalog.json` or `MN_MODEL_CATALOG_PATH` for catalog overrides.
+Asset entries can also be `{ "name": "backend.zip", "sha256": "<digest>" }`
+objects. The SDK rejects unsupported fields, arbitrary scripts, unpinned runner
+revisions and unsafe archive paths before build effects.
+
+Python callers can warm the backend independently of the model artifact:
+
+```python
+from mn_sdk import prepare_dmr_model, resolve_model_entry
+
+prepared = prepare_dmr_model(resolve_model_entry("small"))
+```
+
+The deploy `scripts/build-prism-dmr.py` helper calls this same SDK API. Normal
+load/unload and last-job cleanup target the matching runner. Unload releases
+weights from accelerator memory and keeps downloaded artifacts and the backend
+cache; `mn model remove small --local --yes` removes the model installation and
+route while preserving the backend cache. Build prerequisite failures have an
+actionable retry message; startup failures point to the bundle's launcher log,
+and occupied ports fail without adopting another service.
+
+Verification covers offline selection, safe preparation, cache reuse/restart,
+load/unload and gateway routing. Live Bonsai2 Metal, Windows Docker Desktop and
+Linux inference remains an opt-in acceptance check.
 
 ## Nemotron 3.5 Lightning Compatibility
 
@@ -312,7 +429,10 @@ recorded as installed with a gateway failure instead of being reported as ready.
 
 ## Hardware Validation
 
-| Hardware profile | `gemma4:e2b` default result | Backend | Rule |
+The following table describes the `nano` Gemma4 policy; larger tiers use the
+memory minima at the top of this page.
+
+| Hardware profile | `gemma4:e2b` result | Backend | Rule |
 | --- | --- | --- | --- |
 | Apple Silicon, 16GB+ unified memory | Pass | llama.cpp / Metal | Default supported target. |
 | Apple Silicon, 8GB unified memory | Fail | llama.cpp / Metal | Too tight for default policy. |
@@ -327,7 +447,10 @@ recorded as installed with a gateway failure instead of being reported as ready.
 
 ## Validation
 
-`mn blueprint validate` and `mn blueprint run` check and prepare runtime-managed models before Core submission whenever the selected flow is allowed to prepare native host resources. Missing models fail with a fix like:
+`mn blueprint validate` and `mn blueprint run` validate declared model
+requirements before Core submission. Generation-model installation stays lazy:
+first actual use selects an owner and prepares its runner, artifact and gateway
+route. Explicit installation remains available with:
 
 ```bash
 mn model add gemma4:e2b
