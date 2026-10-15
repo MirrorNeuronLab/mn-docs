@@ -81,7 +81,7 @@ HostLocal copies files from the submitted payload into an agent workspace:
   "upload_path": "worker",
   "upload_as": "worker",
   "workdir": "/sandbox/job/worker",
-  "command": ["python3.11", "scripts/run_blueprint.py"]
+  "command": ["python3.12", "scripts/run_blueprint.py"]
 }
 ```
 
@@ -151,7 +151,7 @@ manifest:
   "type": "stream",
   "config": {
     "runner_module": "MirrorNeuron.Runner.HostLocal",
-    "command": ["python3.11", "example_web_ui.py"]
+    "command": ["python3.12", "example_web_ui.py"]
   },
   "resources": {
     "ports": [{"label": "web_ui", "port": 61000, "protocol": "http"}]

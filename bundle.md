@@ -260,7 +260,7 @@ In this example, the runtime will look for `my_job_bundle/payloads/process_data.
     "upload_path": "person_detector",
     "upload_as": "person_detector",
     "workdir": "/sandbox/job/person_detector",
-    "command": ["python3.11", "scripts/analyze_door_camera_frame.py"],
+    "command": ["python3.12", "scripts/analyze_door_camera_frame.py"],
     "python_environment": {
       "requirements": "person_detector/requirements.txt",
       "packages": ["opencv-python-headless>=4.10,<5"]

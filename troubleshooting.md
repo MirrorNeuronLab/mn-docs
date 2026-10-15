@@ -281,7 +281,7 @@ Symptoms:
 Check:
 
 ```bash
-python3.11 --version
+python3.12 --version
 ```
 
 Try to keep both boxes on a compatible Python version.

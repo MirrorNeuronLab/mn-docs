@@ -16,7 +16,7 @@
   "defaults": {
     "worker": {
       "with": {
-        "image": "python:3.11-slim"
+        "image": "python:3.12-slim"
       }
     }
   },

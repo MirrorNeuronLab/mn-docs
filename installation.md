@@ -14,7 +14,7 @@ This is the canonical installation procedure for maintainers, contributors, and 
 - Supported local environments are macOS, Linux, and Windows with WSL2.
 - Docker must be installed and running.
 - `git` is required for checkout-based installation.
-- Python 3.11+ and Elixir/Erlang are required for editable workspace development, not for every released-package installation.
+- Python 3.12+ and Elixir/Erlang are required for editable workspace development, not for every released-package installation.
 - Docker Model Runner is required only for blueprints that use local models. Docker Desktop provides it on macOS and Windows; Linux operators must install the plugin when they need that capability. NVIDIA DGX Spark and ARM64 Ubuntu operators should complete [Prepare Docker Model Runner on NVIDIA DGX Spark](docker-model-runner-arm64-nvidia.md) first.
 - npm is not required to install or run the Web UI; its Node build runs inside
   the Docker Compose Web UI service.

@@ -16,7 +16,7 @@ Thanks for helping improve MirrorNeuron. The best first contribution is usually 
 From the workspace root:
 
 ```bash
-python3.11 -m venv .venv
+python3.12 -m venv .venv
 . .venv/bin/activate
 .venv/bin/python -m pip install -r mn-system-tests/requirements.txt
 ```

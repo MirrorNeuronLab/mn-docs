@@ -128,7 +128,7 @@ Script:
 ```json
 {
   "type": "script",
-  "command": ["python3.11", "payloads/check_model_cache.py"],
+  "command": ["python3.12", "payloads/check_model_cache.py"],
   "timeout_ms": 5000
 }
 ```
@@ -199,7 +199,7 @@ blueprint service.
   "type": "stream",
   "config": {
     "runner_module": "MirrorNeuron.Runner.HostLocal",
-    "command": ["python3.11", "<blueprint_web_ui_service>.py"]
+    "command": ["python3.12", "<blueprint_web_ui_service>.py"]
   },
   "resources": {
     "ports": [{"label": "web_ui", "port": 61000, "protocol": "http"}]

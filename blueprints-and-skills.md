@@ -34,7 +34,7 @@ Blueprints that need Python packages at runtime should declare them on the execu
 }
 ```
 
-The runtime creates a cached virtualenv keyed by Python version and dependency contents, then rewrites `python`, `python3`, or `python3.11` commands to run from that environment. Root-level blueprint `requirements.txt` files remain documentation or developer setup files unless an executor explicitly references a dependency file under `payloads/`.
+The runtime creates a cached virtualenv keyed by Python version and dependency contents, then rewrites `python`, `python3`, or `python3.12` commands to run from that environment. Root-level blueprint `requirements.txt` files remain documentation or developer setup files unless an executor explicitly references a dependency file under `payloads/`.
 
 In source development, reusable skills may live in `mn-skills` or under
 `payloads/skills/*/pyproject.toml`. Keep the normal distribution-name and version
