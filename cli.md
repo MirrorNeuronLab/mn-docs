@@ -17,11 +17,11 @@ set:
 <!-- BEGIN GENERATED MN COMMAND TREE -->
 ```text
 blueprint  list add show update remove run validate doctor cleanup export
-job        list create show start archive reset-data delete
-run        list show watch logs result resources compare pause resume cancel delete
+job        list create backup restore show analysis start archive reset-data delete
+run        list show watch logs result resources compare pause resume retry cancel delete
 run human  list respond ack
-model      list add show probe update remove doctor
-runtime    start stop status doctor cleanup restart-sidecars ensure-context-engine update
+model      list add show probe update remove doctor start stop unload
+runtime    start stop status reconnect doctor cleanup restart-sidecars ensure-context-engine upgrade
 node       list show add remove reconcile drain undrain maintenance refresh-token
 operation  show watch
 resource   show usage set
@@ -196,8 +196,8 @@ mn model add --file mn-docs/examples/muse-glimmer-gomokubench-config.json --defa
 ```
 
 The custom choice stays registered until removed and takes priority over the
-hardware-selected Nemotron and Gemma built-ins. Those built-ins remain the
-fallback chain. Adding a different model with `--default` changes the priority
+hardware-selected Nemotron, Bonsai2, and Gemma built-ins. Those built-ins
+remain the fallback chain. Adding a different model with `--default` changes the priority
 without removing the former registration. A provider file used with
 `--default` must contain exactly one model.
 
@@ -219,7 +219,7 @@ mn runtime cleanup --dry-run
 mn runtime cleanup --yes
 mn runtime restart-sidecars
 mn runtime ensure-context-engine
-mn runtime update
+mn runtime upgrade
 ```
 
 `runtime status` includes endpoints, component health, nodes, active jobs, and
