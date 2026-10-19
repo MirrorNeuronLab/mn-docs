@@ -18,6 +18,7 @@ set:
 ```text
 blueprint  list add show update remove run validate doctor cleanup export
 job        list create backup restore show analysis start archive reset-data delete
+schedule   list show set-time cancel
 run        list show watch logs result resources compare pause resume retry cancel delete
 run human  list respond ack
 model      list add show probe update remove doctor start stop unload
@@ -136,6 +137,27 @@ mn run delete <run-id> --yes
 
 `mn run result` resolves the runtime job internally and writes to
 `$MN_HOME/outputs/<run-id>` unless `--output` is supplied.
+
+With paired Core/native SDK versions advertising `exclusive_run_v1`, starting
+work on a busy selected PC accepts a durable queued start automatically and
+prints its acknowledgement. Each PC runs one MN run at a time; its workers and
+models share the CPU, memory and GPU reservation. Pausing retains the reservation.
+The next FIFO start waits for terminal cleanup. Different PCs advance independently.
+
+Inspect or change an accepted start from any directory with the configured
+runtime credentials. `<owner-node>` is the selected PC's Core node name and
+`<future-time>` is an ISO 8601 timestamp with a timezone:
+
+```bash
+mn schedule list --node <owner-node>
+mn schedule show queue_<run-id> --node <owner-node>
+mn schedule set-time queue_<run-id> --at <future-time> --node <owner-node>
+mn run cancel <run-id> --queued-only
+```
+
+Setting a time defers that request; it joins the same FIFO queue when due.
+Queued-only cancellation cannot cancel a run that has already been admitted.
+`mn schedule cancel queue_<run-id>` also cancels only the queued start.
 
 Human collaboration is grouped under the run:
 
