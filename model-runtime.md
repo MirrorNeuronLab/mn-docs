@@ -12,7 +12,7 @@ healthy cluster hardware, in this order:
 | --- | --- | --- |
 | `medium` | Nemotron 3.5 Lightning | 48 GB VRAM or integrated/shared GPU memory |
 | `small` | Bonsai2 27B PTQ1_0 (~5.95 GB weights) | 24 GB VRAM or integrated/shared GPU memory |
-| `nano` | Gemma 4 E2B | 8 GB VRAM or 16 GB unified memory |
+| `nano` | Nemotron 3.5 Bolt E4B Q4_K_M | 8 GB VRAM or 16 GB unified memory |
 
 `default` selects the first feasible tier: medium → small → nano. CPU RAM alone
 does not qualify as accelerator memory. An operator-selected default takes
@@ -48,14 +48,14 @@ Launch preparation should translate blueprint model references into concrete ser
 ```bash
 mn model list
 mn model list --available
-mn model add gemma4:e2b
+mn model add nano
 mn model add --file mn-docs/examples/openai-compatible-model-proxy.json
 mn model add hf.co/acme/chat:Q4_K_M --default
 mn model add --file mn-docs/examples/muse-glimmer-gomokubench-config.json --default
-mn model probe gemma4:e2b
-mn model doctor gemma4:e2b
-mn model update gemma4:e2b
-mn model remove gemma4:e2b --yes
+mn model probe nano
+mn model doctor nano
+mn model update nano
+mn model remove nano --yes
 ```
 
 Use `--json` on every command for machine-readable output. `mn model list`
@@ -73,8 +73,8 @@ values and persists the effective LiteLLM-facing result in
 `$MN_HOME/models/catalog.json`:
 
 ```bash
-mn model probe gemma4:e2b
-mn model probe gemma4:e2b --capabilities json-schema,streaming
+mn model probe nano
+mn model probe nano --capabilities json-schema,streaming
 mn model probe nemotron-3.5-lightning:latest --json
 ```
 
@@ -94,6 +94,52 @@ the selected model restores automatic medium → small → nano selection.
 DMR adds and blueprint validation block incompatible hardware by default. Use
 `--force` only when you accept slow CPU execution or a partial accelerator
 path.
+
+## Nemotron 3.5 Bolt E4B on Docker Model Runner
+
+The `nano` tier uses [MirrorNeuronLab’s Q4_K_M GGUF](https://huggingface.co/MirrorNeuronLab/NVIDIA-Nemotron-3.5-Bolt-E4B-GGUF),
+pulled from `hf.co/MirrorNeuronLab/NVIDIA-Nemotron-3.5-Bolt-E4B-GGUF:Q4_K_M`
+and tagged locally as `nemotron-3.5-bolt-e4b:q4_k_m`. It needs a Gemma 4
+compatible llama.cpp backend. The SDK configures and reads back a 32,768-token
+initial context; the trained maximum is 65,536. Installation caches the artifact
+and leaves generation weights unloaded. If DMR configuration eagerly loads a
+previously cold completion backend, the SDK unloads it before preparation returns;
+a previously resident model stays resident. The embedded NVIDIA template handles chat and thinking;
+structured requests pass `chat_template_kwargs.enable_thinking=false`.
+
+This release accepts text only. It includes no multimodal projector. Existing
+explicit Gemma E2B configurations remain available under their own IDs, but
+Gemma no longer owns `nano`. The packaged default chain now contains text-only
+models; vision workloads must explicitly select a compatible model or configure
+a vision-capable default chain.
+
+From any directory with MirrorNeuron and Docker Model Runner installed:
+
+```bash
+mn model add nano --local
+mn model start nano --local
+mn model unload nano --local
+mn model start nano --local
+mn model unload nano --local
+```
+
+These commands download weights and retain their cache, registry entry and
+configured context. `start` loads inference weights; `unload` releases them.
+`docker model ps` should omit Bolt after unloading. The next start reuses the
+cached artifact. Remove this installation and its gateway route with
+`mn model remove nano --local --yes` if it is no longer needed.
+
+For a repeatable acceptance check, run from the `mn-python-sdk` checkout with
+its Python dependencies and a working local DMR service on port 12434:
+
+```bash
+MN_TEST_BOLT_DMR=1 python -m pytest tests/test_nemotron_bolt.py -q -s
+```
+
+The opt-in test uses temporary SDK state and real Docker commands. It verifies
+32K context read-back, cold load, arithmetic, strict JSON Schema output, SSE
+streaming, unload/cache preservation and reload. It leaves the downloaded artifact cached
+and inference weights unloaded. Other installed models are preserved.
 
 ## Bonsai2 on Docker Model Runner
 
@@ -379,8 +425,8 @@ the runtime monitor adds and removes them as node inventories change.
       "primary": {
         "provider": "docker_model_runner",
         "mode": "openai_compatible",
-        "runtime_model": "gemma4:e2b",
-        "model": "gemma4:e2b",
+        "runtime_model": "nano",
+        "model": "nano",
         "api_base": "auto",
         "backend": "llama.cpp",
         "context_size": 4096,
@@ -450,10 +496,10 @@ recorded as installed with a gateway failure instead of being reported as ready.
 
 ## Hardware Validation
 
-The following table describes the `nano` Gemma4 policy; larger tiers use the
+The following table describes the `nano` Bolt E4B policy; larger tiers use the
 memory minima at the top of this page.
 
-| Hardware profile | `gemma4:e2b` result | Backend | Rule |
+| Hardware profile | `nano` result | Backend | Rule |
 | --- | --- | --- | --- |
 | Apple Silicon, 16GB+ unified memory | Pass | llama.cpp / Metal | Default supported target. |
 | Apple Silicon, 8GB unified memory | Fail | llama.cpp / Metal | Too tight for default policy. |
@@ -474,7 +520,7 @@ first actual use selects an owner and prepares its runner, artifact and gateway
 route. Explicit installation remains available with:
 
 ```bash
-mn model add gemma4:e2b
+mn model add nano
 ```
 
 After submission, Core only checks the concrete service requirements provided by the SDK/API/CLI. It does not resolve aliases, choose model backends, inspect model hardware compatibility, or install Docker Model Runner models.
