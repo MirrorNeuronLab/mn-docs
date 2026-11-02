@@ -5,3 +5,6 @@ This directory is the detailed internal and contributor documentation source for
 The documentation site is a concise presentation layer. When a user-visible command, API, configuration key, blueprint contract, security boundary, or failure behavior changes, update the detailed page here and the matching site page in the same pull request.
 
 For authoring and validation requirements, read [documentation-style.md](documentation-style.md).
+
+The current runtime audit and table of documentation corrections are in
+[changes.md](changes.md), including implementation sources and validation limits.

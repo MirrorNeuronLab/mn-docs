@@ -2,7 +2,7 @@
 
 This page describes the canonical HTTP API used by the Web UI, OtterDesk, and
 HTTP automation. The CLI and Python SDK also use internal gRPC interfaces; the
-gRPC `v2` package name and domain schema labels such as `mn.workflow/v1` are
+gRPC `mirrorneuron.job.v1` package and domain schema labels such as `mn.workflow/v1` are
 independent of the REST version.
 
 ## Reader and scope
@@ -44,8 +44,9 @@ that value implements a historical, incompatible contract and must not be used.
 All other endpoints require `Authorization: Bearer <token>` when
 `MN_API_TOKEN` is configured.
 
-`/api/v2`, historical aliases, `/runtime-runs`, and WebSocket routes are not
-supported and return `404`.
+`/api/v2`, historical aliases, `/runtime-runs`, `/deployments`,
+`/trigger-events`, manual schedule `/dispatches`, and WebSocket routes are not
+supported. Use the current Job/Run and schedule resources.
 
 ## Common conventions
 
@@ -54,14 +55,15 @@ supported and return `404`.
 - `page_size` defaults to `50` and is capped at `200`. Pass the opaque
   `page_token` unchanged to continue. Tokens expire after 24 hours and are
   bound to the route, principal, filters, and stable sort.
-- Synchronous creation returns `201 Created` with `Location`. Accepted Runs and
-  Operations return `202 Accepted` with `Location`. Updates return `200`; a
-  completed deletion returns `204 No Content`.
+- Synchronous creation returns `201 Created` with `Location`. Run creation and
+  background Operations return `202 Accepted` with `Location`. Updates return
+  `200`. Run deletion returns `204`; schedule deletion returns a `200` receipt.
+  Checkpoint retry returns `202` with its accepted selection.
 - Send `Idempotency-Key` on non-idempotent POST requests, especially Run
-  creation, blueprint addition or removal, schedule dispatch, and
+  creation, blueprint addition or removal, schedule creation, and
   administrative operations. Replay records last 24 hours; reusing a key for
   another request returns `409 Conflict`.
-- Persistent jobs, schedules, deployments, model registrations, and model
+- Persistent jobs, schedules, model registrations, and model
   installations return strong `ETag` headers. Their `PATCH` and `DELETE`
   requests require `If-Match`; missing and stale conditions return `428` and
   `412`, respectively.
@@ -75,24 +77,121 @@ supported and return `404`.
 | Area | Canonical resources |
 | --- | --- |
 | Health and system | `/health`, `/runtime/status`, `/runtime/health`, `/runtime/diagnostics`, `/runtime/resources`, `/system/summary`, `/metrics` |
-| Jobs | `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/bundle`, `/jobs/{job_id}/data-resets`, `/jobs/{job_id}/mcp` |
+| Jobs | `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/bundle`, `/jobs/{job_id}/data-resets`, `/jobs/{job_id}/relocations`, `/jobs/{job_id}/mcp` |
 | Runs | `/jobs/{job_id}/runs`, `/blueprints/{blueprint_id}/runs`, `/runs`, `/runs/{run_id}` |
+| Admission and retry | `/jobs/{job_id}/run-admission-checks`, `/runs/{run_id}/retry-plans`, `/runs/{run_id}/retries` |
 | Run detail | `/runs/{run_id}/monitor`, `/workflow-progress`, `/logs`, `/events`, `/resources`, `/human-requests`, `/ui`, `/artifacts`, `/outputs`, `/snapshots`, `/agent-graph`, `/export`, `/observability` |
 | Bundles and blueprints | `/bundles`, `/blueprints`, `/blueprints/{blueprint_id}`, `/additions`, `/removals`, `/validations`, `/runs` |
-| Schedules and events | `/jobs/{job_id}/schedules`, `/schedules`, `/schedules/{schedule_id}`, `/dispatches`, `/trigger-events` |
-| Infrastructure | `/nodes`, `/deployments`, `/models`, `/model-remotes`, `/model-proxies`, `/services`, `/service-checks` |
+| Schedules | `/jobs/{job_id}/schedules`, `/schedules`, `/schedules/{schedule_id}` |
+| Infrastructure | `/nodes`, `/models`, `/model-remotes`, `/model-proxies`, `/services`, `/service-checks` |
 | Operations | `/operations`, `/operations/{operation_id}` |
 
 Durable configured work is a Job. One execution of that definition is a Run.
 Run URLs always use the public `run_id`; `runtime_run_id` is diagnostic metadata
 and is never part of a client URL.
 
+## Run admission and queued starts
+
+`POST /jobs/{job_id}/run-admission-checks` reads saved configuration and owner
+capacity without preparing containers, changing the Job, or reserving resources.
+The body accepts `action` (`start`, `resume`, or `retry`, default `start`),
+optional `run_id`, and `config_overrides`. Resume/retry requires `run_id`.
+Overrides that would change saved configuration return `409`; save them before
+checking. A successful read returns an admission status of `runnable_now`,
+`runnable_later`, `not_runnable`, or `unavailable`, with bounded blockers and
+owner/observation metadata. A later start must recheck capacity.
+
+Run creation accepts:
+
+| Field | Default | Contract |
+| --- | --- | --- |
+| `admission_policy` | `start_now` | `start_now` rejects a busy owner before execution persistence; `enqueue_if_busy` explicitly accepts compatible work into its durable queue. |
+| `inputs` | `{}` | Runtime workflow inputs. |
+| `config_overrides` | `{}` | Catalog Job configuration changes; preparation occurs only when resolved configuration changes. |
+| `run_id` | generated | Explicit public execution identity when supplied. |
+| `replace_existing_run` | `false` | Destructive service replacement; requires a fresh explicit `run_id`. |
+
+For example, the body below opts into automatic dispatch when owner capacity
+becomes available:
+
+```json
+{"inputs": {}, "admission_policy": "enqueue_if_busy"}
+```
+
+An accepted busy start returns `202` with `status: queued` and an `admission`
+receipt identifying the queue, owner, position, and blocker. It has no running
+executor yet. Keep its public run ID and monitor it rather than submitting a
+second request. Reuse the same `Idempotency-Key` after an uncertain response.
+Permanent incompatibility is not accepted as a queue entry.
+
+`GET /runs/{run_id}` and the monitor projection include sanitized `placement`
+with `owner_node`, optional `node_label`, and `reservation.state`:
+`reserved`, `queued`, `unreserved`, or `unavailable`. Reserved amounts include
+mode, CPU cores, RAM/disk MB, GPU count and memory when known. Unknown values
+stay null, and a terminal or paused Run may still hold capacity until cleanup.
+This detail omits device identities, model names, volume paths, and native
+request tokens. List summaries do not read claims.
+
+`PATCH /runs/{run_id}` with
+`{"desired_state":"cancelled","queued_only":true}` cancels only an unstarted
+queued execution. If admission has already advanced, it returns `409`. Use the
+[schedule interface](#schedules) to defer the same queued Run. The reservation
+and cleanup rules are defined in [Resources and Devices](resources-and-devices.md).
+
+## Checkpoint retry
+
+`POST /runs/{run_id}/retry-plans` accepts
+`{"configuration_overrides":{}}` and inspects the failed Run's retained
+checkpoint. It returns eligibility, reasons, preserved/retried steps, and the
+attempt/checkpoint selection when available. Stored history without a Core
+control record is inspectable but ineligible; owner unavailability remains an
+availability error.
+
+`POST /runs/{run_id}/retries` requires `Idempotency-Key` and this body shape:
+
+```json
+{
+  "expected_attempt": 1,
+  "checkpoint_revision": "<64-lowercase-hex-revision-from-plan>",
+  "configuration_overrides": {},
+  "admission_policy": "start_now"
+}
+```
+
+The revision is a placeholder to replace with the exact plan value. Overrides
+are limited to 32 declared integer/string settings; booleans and compound values
+are rejected. A successful submission returns `202`, retains the public Run ID,
+and advances its attempt. `enqueue_if_busy` explicitly queues a compatible
+retry. Preserve the original key, expected attempt, revision, and overrides
+when reconciling a lost response. See [Reliability](reliability.md#manual-checkpoint-retry)
+for integrity and replay limits.
+
+## Schedules
+
+All paths below are beneath `/api/v1`. Requests require the configured API
+authentication. Schedules target an existing durable Job on its owner.
+
+| Method and path | Request / result |
+| --- | --- |
+| `POST /jobs/{job_id}/schedules` | `{schedule: {...}, source: {}}`; idempotent creation with `Idempotency-Key`, returns `201`. |
+| `GET /schedules?owner_node=<node>` | Lists the selected owner's schedules and queued starts. |
+| `GET /schedules/{schedule_id}?owner_node=<node>` | Detail and current ETag. |
+| `PATCH /schedules/{schedule_id}?owner_node=<node>` | Requires `If-Match`; `schedule` contains changes, or `desired_state` is `running`/`paused` for an ordinary schedule. |
+| `DELETE /schedules/{schedule_id}?owner_node=<node>` | Requires `If-Match`; returns the owner's deletion/cancellation receipt with `200`. |
+
+An admission queue entry is `kind: resource_wait`, named `queue_<run-id>`.
+For that projection, PATCH accepts `{"schedule":{"run_at":"<future-ISO-time>"}}`
+to defer the same unstarted Run. DELETE cancels only the queued start; it cannot
+cancel an admitted execution. Refresh and resolve a revision conflict before
+retrying. [Schedules and Events](schedules-and-events.md) owns cron, occurrence
+deduplication, service windows, and queue lifecycle details.
+
 ## Stable Job MCP and real-time responses
 
-For authored source packages, register an `mn.response` extension with
-`enabled: true`; the SDK projects it into the generated descriptor's
-`response_service` field. Legacy runtime descriptors may instead declare
-`mcp_collaboration.enabled`. Enabled stable Jobs expose this Streamable HTTP endpoint:
+Prepared Jobs expose the SDK-owned `mn.mcp.supervision.v1` profile through this
+Job-bound Streamable HTTP endpoint. The prepared declaration includes a staged
+manual/hash, tool schemas, and any declared worker service. Older definitions
+missing that contract require a definition update before supervision:
 
 ```text
 POST /api/v1/jobs/{job_id}/mcp
@@ -100,37 +199,55 @@ POST /api/v1/jobs/{job_id}/mcp
 
 It uses the same bearer-authentication policy as protected REST routes. The URL
 binds the MCP session to one Job; no tool accepts a `job_id`, so a caller cannot
-switch Jobs through tool arguments. Legacy Jobs discover exactly three
-read-only tools; response-enabled Jobs discover those three plus `ask_job`:
+switch Jobs through tool arguments. Discover the current tools and availability
+through `get_capabilities`; the endpoint includes lifecycle effects:
 
 | Tool | Result |
 | --- | --- |
-| `get_job_profile()` | Blueprint identity, mission, capabilities, safe configuration, schedule, and lifecycle state. |
-| `get_latest_run()` | Bounded latest-run status, result projection, structured evidence, warnings, and timestamps. |
+| `get_user_manual()`, `get_capabilities()` | Installed manual/hash, profile, declared schemas, effects, and current readiness. |
+| `get_job_profile()` | Blueprint identity, mission, safe configuration, schedule, and lifecycle state. |
 | `get_job_context(evidence_limit=50)` | Combined profile, schedule, latest-run summary, warnings, and truncation metadata. |
-| `ask_job(question, conversation_id?, request_id?)` | Fast grounded answer about purpose, status, progress, published results, or missing evidence; never starts a Run. Response-enabled Jobs only. |
+| `get_run_status(run_id?)`, `get_run_results(run_id?)` | Actual runtime state or bounded published results; omitted Run selects the latest. |
+| `watch_job_activity(after_event_id?, wait_seconds=20)` | One activity/cursor, waiting at most 25 seconds; does not acknowledge a human notice. |
+| `get_operation_status(operation_id)` | Observed status of an operation belonging to this Job. |
+| `start_run(request_id)` | Explicitly starts from saved validated configuration. |
+| `pause_run(request_id, run_id)`, `resume_run(request_id, run_id)`, `stop_run(request_id, run_id)` | Core-owned lifecycle transitions; stop means cancellation. |
+| Declared domain tools | Exact schemas/effects from the prepared Job and its owner-routed worker service. |
+| `ask_job`, optional `get_job_turn` | Conversational response tools when the Job enables the corresponding response service. |
 
-Context results use `mn.mcp.job_context.v1`. The lifecycle projection is one of
+Standard results use `mn.mcp.tool_result.v1` with Job/blueprint/run identity,
+request ID, status, optional operation ID, data, and sanitized error. Mutating
+tools require a non-empty request ID of at most 128 characters. Reusing it with
+changed arguments conflicts; accepted work is reconciled through
+`get_operation_status`, not assumed complete from acknowledgement. Run IDs are
+checked against the bound Job. Domain effects can require declared live read
+preflight. Archived Jobs remain readable but cannot perform effects.
+
+Context data uses `mn.mcp.job_context.v1`. The lifecycle projection is one of
 `never_run`, `running`, `idle`, `paused`, `scheduled_waiting`, or `archived`.
 The endpoint remains readable without an active target Run, including before
 the first Run and after completion or failure. If a recent Run's workflow or
 result data is temporarily unavailable, the result keeps the stable profile and
 adds a warning instead of failing the complete tool call.
 
-Each response is bounded to 256 KiB and 50 evidence records. Projections omit
+Tool envelopes are bounded to 256 KiB; context includes at most 50 evidence records. Read projections omit
 secrets, credentials, environment values, raw logs, host paths, arbitrary
-files, and unrestricted artifact bodies. The tools cannot start, pause,
-configure, schedule, approve, or otherwise mutate the Job. Archived Jobs remain
-readable; deleted, unknown, and non-enabled Jobs return the same sanitized
-not-found class of error.
+files, and unrestricted artifact bodies. These redaction bounds do not make
+the endpoint read-only; protect the configured API credential as authority for
+advertised lifecycle/domain effects. Deleted, unknown, and non-enabled Jobs
+return sanitized errors.
 
-`ask_job` accepts at most 8,000 question characters, a UUID conversation ID,
-and a 128-character idempotency ID. It returns `mn.mcp.job_answer.v1` with a
-12,000-character answer limit, at most 20 citations, and a 64 KiB total limit.
-The Job-scoped responder uses one retrieval and one completion, persists bounded
-conversation history, and returns a deterministic evidence-only summary with
-warnings if the model, RAG, or responder is unavailable. Conversation calls do
-not create Runs. No REST, SSE, or UI chat API is provided.
+An authored `mn.response` extension enables the generated `response_service`
+and its conversational tools. `ask_job` accepts at most 8,000 question
+characters, a UUID conversation ID, and a 128-character request ID. Answer data
+uses `mn.mcp.job_answer.v1`, bounded to 12,000 answer characters, 20 citations,
+and 64 KiB. Response queries do not create Runs; bounded conversation state
+belongs to Job data. Read the advertised response contract for synchronous or
+operation-based behavior.
+
+Sources: `mn-api/mn_api/job_supervision.py`, `job_mcp.py`, SDK
+`packages/common/src/mn_sdk_common/mcp.py`, and
+`packages/mcp/src/mn_sdk_mcp/supervision.py` / `supervisor.py`.
 
 ## Examples
 
@@ -177,11 +294,12 @@ curl -i -X POST http://localhost:54001/api/v1/jobs/<job-id>/runs \
   -d '{"inputs":{}}'
 ```
 
-The response is a pending Run with `202 Accepted`. Pause, resume, or cancel it
+The response is an accepted Run with `202 Accepted`; it can be pending or,
+with explicit queue admission, queued. Pause, resume, or cancel active work
 through one desired-state update:
 
-Catalog-backed Jobs may also send `config_overrides`. The API rebuilds and
-prepares the Job definition with those overrides before starting the Run;
+Catalog-backed Jobs may also send `config_overrides`. When they change saved
+configuration, the API rebuilds and prepares the Job definition before starting the Run;
 `inputs` remains reserved for runtime workflow input rather than blueprint
 configuration.
 

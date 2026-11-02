@@ -1,6 +1,42 @@
 # MirrorNeuron Runtime Architecture
 
-For runtime maintainers: this explanation covers compilation, owner-local execution, and federation boundaries in the current checkout. Sources are `mn_sdk/blueprints`, Core `runtime/stable_job.ex`, `runtime/workflow_ledger.ex`, `runtime/child_workflow.ex`, and `runner/`. Validate changes with SDK compilation and Core workflow-ledger tests; release maturity is determined by the owning release artifacts.
+For runtime maintainers: this explanation maps compilation, admission,
+owner-local execution, and federation in the current checkout. It assumes
+familiarity with [Core Concepts](core-concepts.md); command syntax and source
+authoring belong in their canonical references. Sources are Core's `lib/`,
+`proto/job.proto`, SDK preparation code, and the tests listed below. These are
+checkout-verified contracts; release maturity and installed compatibility depend
+on the owning artifacts. [Changes](changes.md) records validation and limits.
+
+## Runtime code map
+
+Paths in this table are relative to `MirrorNeuron/lib/mirror_neuron/` unless
+otherwise stated. Bare filenames in a cell share the preceding file's directory.
+
+| Boundary | Owning code | Contract |
+| --- | --- | --- |
+| Startup | `application.ex` | Supervises registries, job/agent supervisors, admission, recovery, cancellation, responses, and native-resource maintenance. |
+| Definition and start | `runtime/stable_job.ex`, `stable_job_update.ex`, `run_start_request.ex` | Durable Job identity, revision/start gates, service single-run rules, and keyed start reconciliation. |
+| Physical capacity | `runtime/node_admission.ex`, `node_admission_state.ex`, `resource_allocation.ex` | Atomic owner-local reservations, durable queue, generation fencing, and verified reclamation. |
+| Physical placement | `scheduler.ex`, `resource_spec.ex` | Resolves admitted workers, devices, ports, and volume requirements on the owner. |
+| Execution lifecycle | `runtime/job_runner.ex`, `job_coordinator.ex`, `agent_worker.ex` | Per-run supervision, worker delivery, status, and durable transition ownership. |
+| Logical workflow | `runtime/workflow_ledger.ex`, `workflow_admission.ex`, `workflow_message.ex` | Dependency admission, attempt context, step boundaries, retries, and completion fencing. |
+| Adaptive work | `runtime/dynamic_workflow.ex`, `child_workflow.ex` | Bounded graph patches and child rounds within the existing run. |
+| Progress and action limits | `runtime/workflow_activity.ex`, `workflow_budget.ex` | Live progress supervision and durable named action allowances. |
+| Messages | `runtime/delivery.ex`, `backpressure.ex`, `live_input.ex` | Leases, ACK/retry/deduplication, queue pressure, and declared live controls. |
+| External execution | `runner/`, `execution/lease_manager.ex`, `sandbox/` | Host/Docker/OpenShell invocation, local executor slots, staging, and owned cleanup. |
+| Durability and recovery | `persistence/`, `runtime/local_recovery.ex`, `recovery_safety.ex`, `run_retry.ex` | Fenced Redis state, safe clean attempts, and explicit checkpoint retry. |
+| Finalization | `runtime/finalization.ex`, `job_cleanup.ex`, `cancellation_reconciler.ex` | Terminal publication, durable cancellation intent, and retryable cleanup. |
+| Peer control | `cluster/federation_client.ex`, `federation_registry.ex`, `federation_channels.ex` | Authenticated owner forwarding and cached projections. Horde supervision remains local to a Core. |
+| Remote interfaces | `MirrorNeuron/proto/job.proto`, `MirrorNeuron/lib/mirror_neuron_grpc/handlers/` | Authoritative `mirrorneuron.job.v1.JobService`; CLI and REST adapt it through the SDK. |
+
+```text
+source package -> SDK validate/compile/prepare -> durable Job on one owner
+  -> keyed start + owner reservation -> queued OR admitted Run
+  -> staged-input readiness -> coordinator + workflow ledger
+  -> delivery admission -> worker -> declared runner -> accepted step boundary
+  -> terminal publication -> verified resource cleanup -> capacity reusable
+```
 
 ## Design goals
 
@@ -111,17 +147,109 @@ Core's internal execution identifiers must not be substituted for public REST ru
 IDs. Run pause/resume/cancel acts on an execution, while archive and data reset
 belong to the durable definition.
 
+Batch Jobs can retain many Runs. A `type: service` Job has at most one attached
+Run; pause/resume preserves it and an ordinary second start returns
+`service_run_exists`. Explicit replacement uses a fresh run ID and permanently
+clears the old run's state/artifacts while retaining Job data and schedules.
+Retry/recovery preserves run identity and advances an independent attempt.
+`MN_JOB_ID`, `MN_RUN_ID`, and `MN_ATTEMPT_ID` carry these separate identities.
+
+Keyed starts persist request identity and the selected run ID before dispatch.
+An identical replay returns the durable receipt without a process PID. If a
+run committed before receipt persistence, reconciliation requires that run's
+manifest to carry the same request identity. Changed payloads or an unrelated
+explicit run ID remain conflicts.
+
 Bounded child workflows run through the workflow ledger inside the parent's
 execution. They admit declared templates, enforce round and step limits, and
 hold the parent boundary until child completion. They are distinct from schedule
 dispatch, which creates separate work. Child completion output travels through
 step-source delivery so downstream steps receive the mapped boundary output.
 
-DockerWorker buffers command output and does not stream workflow beacons. Its
-node-level beacon timeout is ignored; the task deadline remains authoritative.
+DockerWorker and OpenShell buffer command output and do not stream workflow
+beacons. Their node-level beacon timeout is ignored; the task deadline remains authoritative.
 An explicit workflow `control.beacon_timeout_ms` still applies when a separate
 producer supplies beacons. HostLocal node beacon settings are unchanged. See
 `tests/unit/child_workflow_test.exs` and `tests/unit/workflow_ledger_test.exs`.
+
+## Admission and execution readiness
+
+The owner reserves capacity before persisting a new execution. Missing resource
+profiles reserve the PC exclusively; `policies.resource_allocation.mode: shared`
+permits compatible peak budgets to coexist. Manual `start_now` rejects a busy
+owner; explicit `enqueue_if_busy` and scheduled occurrences can enter its durable
+queue. A read-only availability snapshot is never a reservation. See
+[Resources and Devices](resources-and-devices.md) for the canonical accounting,
+backfill, device, and release rules.
+
+After admission, SDK-staged submissions with an input-readiness inventory stay
+`pending` until the owner verifies the replicated files. The coordinator emits
+`submission_storage_waiting`, then `submission_storage_ready` before seeding
+entrypoints. Missing/still-replicating input is a wait; malformed metadata is a
+validation error. Timeout emits `submission_storage_timeout` and fails before
+source dispatch. Legacy submissions without an inventory start immediately.
+Cancellation prevents later readiness timers from dispatching.
+
+Run reservations, executor pool slots, and inference request leases have
+different lifetimes. Admission retains capacity during pause/recovery; local
+executor slots bound expensive invocations; native request leases protect
+in-flight inference. All must be released through their owning cleanup paths.
+
+## Step admission and supervision
+
+Core admits a delivery through the owning ledger before a workflow handler
+runs. A dependency wait defers delivery without executing user code. Generated
+sources and declared collector/stream entry agents can admit multiple upstream
+deliveries into their owning attempt; ordinary workers retain a message-specific
+fence. Redundant triggers from declared parents do not execute another handler.
+
+Routing inside a logical step retains its attempt context. Crossing a step
+boundary clears that context for the destination's admission. Worker
+`MN_WORKFLOW_IDEMPOTENCY_KEY` identifies the target-agent delivery and survives
+replay; `MN_WORKFLOW_STEP_IDEMPOTENCY_KEY` retains the ledger's step key. A
+parent sink notification cannot release a child-workflow target before the
+ledger commits the final parent output. Only the owning step boundary completes
+logical work.
+
+`workflow.execution.supervision: "activity"` opts into live SDK progress rather
+than an implicit batch elapsed deadline. Core requires HostLocal executors with
+enabled, required agent beacons. Increasing progress counters prove work is
+advancing; process/runtime heartbeats and duplicate counters prove only liveness.
+Five minutes without progress fails the step with
+`workflow.step.progress_timeout`. Bounded external waits keep a stable identity
+and allowance of at most one day; repeated reports cannot extend that same wait.
+Pause excludes paused time, persisted progress survives ledger restoration, and
+an explicit step/runner `timeout_seconds` remains a hard limit. Other workflows
+retain their deadline semantics.
+
+Static services whose phases each bind exactly one `mn.block_events/v1`
+executor use successive event callbacks rather than one-shot finite DAG
+admission. Omitted dynamic settings and `dynamic: {enabled: false}` both select
+the static classification. Mixed services, dynamic DAGs, batch jobs, and child
+workflows retain ledger controls. Delivery ACK/retry, event-state fencing, and
+explicit callback limits still apply; pause/resume retains the physical output
+identity. The public `mn.service.workflow.v1` phase projection describes
+startup/service/shutdown; observed serving does not complete ledger steps.
+
+## Workflow action allowances
+
+`policies.workflow_budgets` declares one to 32 named `{limit: integer}`
+allowances, each from zero to 100,000. SDK compilation resolves authored
+configuration references. The authenticated `SetResource` operation
+`workflow_budget` uses schema `mn.workflow_budget/v1` and the closed actions
+`start`, `complete`, and `summary`.
+
+The coordinator registers ownership under the stable Job and actual physical
+workflow run, serializes grants, and persists changes through its fenced
+snapshot barrier before acknowledgement. Identical requests replay the original
+reservation; changed requests, limits, runs, or completions reject. Unknown
+starts stay charged and completion does not refund units. Checkpoint retry
+restores the allowance state. Each allowance journal is bounded to 100,000
+records / 4,000,000 encoded bytes, with 16 KiB metadata objects.
+
+These units bound workflow actions. They do not change CPU/GPU percentages,
+reserve a PC, provide monetary billing, or make an external effect exactly-once.
+Delivery identities and native effect journals still govern dispatch safety.
 
 ## Control plane vs execution plane
 
@@ -205,9 +333,11 @@ operation. The service returns concrete facts for owner-local scheduling and
 worker environment injection.
 
 Model inference follows a separate mandatory gateway boundary: agents call the
-owner's LiteLLM gateway; declared remote models route owner LiteLLM to peer
-LiteLLM and then to that peer's DMR. Agents never call a local or remote DMR
-directly.
+owner's LiteLLM gateway. For admitted runs, managed models, embeddings, and
+fallback remain on the reserved PC; hosted provider routes remain possible.
+The gateway can represent peer routes, but a route does not grant another PC's
+capacity. Agents never call a local or remote DMR directly. See
+[Model Runtime](model-runtime.md#run-admission-and-model-residency).
 
 ## Logical workers vs physical execution leases
 
@@ -299,6 +429,13 @@ The runtime should understand enough to route and observe messages, but it shoul
 
 That also enables multi-language workers: Python and shell code consume the payload contract inside the sandbox, while BEAM only needs the stable envelope.
 
+Declared live-input commands require only their entrypoint's available queue,
+so prompt/supervision controls can arrive while downstream model queues are
+busy. Core verifies the immutable input ID, entrypoint, message type/class, and
+payload schema first. Ordinary external messages still check downstream pressure.
+This exception does not bypass authentication, delivery limits, or lifecycle
+checks.
+
 ## Nomad-Inspired Orchestration Layer
 
 MirrorNeuron has an owner-local orchestration layer above the message graph:
@@ -336,6 +473,29 @@ are not individually bearer-token authenticated; operators should expose the
 artifact port only on trusted loopback, Docker, VPN, or LAN interfaces and use
 firewall rules or bind/publish host settings to keep it inside the intended
 cluster boundary.
+
+OpenShell workers may select `artifact_handoff.version: mn.artifact_handoff/v1`
+for immutable result transfer. This conflicts with `sync_shared_storage: true`;
+there is no silent fallback between modes. Core validates producer identity,
+lease epoch, confined paths, file type, size/hash, and quotas before committing
+a receipt. Transfer retry reuses the recorded command outcome instead of another
+dispatch. Unknown dispatch completion stays `unknown_blocked`. Cleanup follows
+commit and can be retried independently without invalidating committed success.
+Configured-folder exports require explicit `artifact_handoff.export_outputs: true`.
+
+Accepted event publications and enabled isolated exports maintain the portable
+`.mn-published-files.json` inventory (`mn.published_outputs/v1`): public path,
+kind, byte size, and SHA-256, excluding private handoff state. Individual copies
+are atomic; the verified receipt/inventory is the completion barrier, not a
+filesystem transaction across all filenames. SDK-staged shared submissions
+also publish `outputs/runs/<run-id>/.mn_completion.json` with terminal status
+and a durable-file inventory. Submitters wait for replicated evidence before
+copying outputs; Core does not write a submitter-only path on a remote owner.
+Syncthing replication does not make Redis state shared or guarantee immediate
+visibility on another machine.
+
+Sources: `runner/open_shell_artifact_handoff.ex`, `artifacts/shared_storage.ex`,
+`priv/openshell_handoff/`, and `tests/handoff/test_store.py`.
 
 ## Built-in primitives
 
@@ -389,10 +549,20 @@ The current implementation improves the runtime boundary a lot, but a few things
 - active jobs do not migrate to another Core when their owner is unavailable
 - sensor and deferred waiting primitives can still grow richer
 - artifacts are modeled in messages, but the runtime does not provide a full external artifact-store abstraction
-- resource allocation is scheduling metadata and environment hints, not OS-level isolation
+- resource reservations and native request fencing do not provide OS-level isolation
 
 Those are good next steps, but the current runtime is already much closer to the intended design:
 
 - BEAM as the lightweight orchestrator
 - declared runners as bounded worker execution
 - message-driven collaboration across supervised logical workers
+
+## Validation sources
+
+The focused Core suites for resource allocation, admission state, start
+receipts, activity supervision, workflow budgets, resource specs, and event-only
+services are listed in [Changes](changes.md#validation). Related boundaries are
+covered by `workflow_ledger_test.exs`, `workflow_admission_test.exs`,
+`workflow_message_test.exs`, `live_input_test.exs`, and
+`submission_readiness_test.exs`. Source/test inspection does not establish live
+Docker/OpenShell behavior, hardware capacity, or installed-version parity.

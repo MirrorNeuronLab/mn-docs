@@ -1,5 +1,11 @@
 # CLI Reference
 
+For operators and automation authors, this reference covers the current
+checkout's command surface. It assumes an installed CLI and configured runtime
+credentials. Sources are `mn-cli/mn_cli/main.py`, command modules, live `--help`,
+and command tests; [Changes](changes.md#validation) records this audit's checks.
+Installed release compatibility is determined by the CLI/SDK artifacts.
+
 `mn` is the operator interface for MirrorNeuron blueprints, runs, models, and
 runtime services. The CLI uses resource-oriented nouns and a small common verb
 set:
@@ -108,6 +114,12 @@ mn blueprint export <run-id> --format html --output report.html
 ## Jobs and runs
 
 A job is a durable definition. A run is one execution of that definition.
+Batch Jobs can have many Runs; a service Job has at most one attached Run and
+ordinary repeated starts reject with `service_run_exists`.
+
+The following commands work from any directory with runtime access. Reset and
+delete permanently remove the data identified by the command; inspect the Job,
+Runs, and required artifacts before confirming them.
 
 ```bash
 mn job list
@@ -138,11 +150,22 @@ mn run delete <run-id> --yes
 `mn run result` resolves the runtime job internally and writes to
 `$MN_HOME/outputs/<run-id>` unless `--output` is supplied.
 
-With paired Core/native SDK versions advertising `exclusive_run_v1`, starting
-work on a busy selected PC accepts a durable queued start automatically and
-prints its acknowledgement. Each PC runs one MN run at a time; its workers and
-models share the CPU, memory and GPU reservation. Pausing retains the reservation.
-The next FIFO start waits for terminal cleanup. Different PCs advance independently.
+Paired Core/native SDK versions must advertise `resource_admission_v2`.
+Missing resource profiles reserve a whole PC; shared profiles permit compatible
+Runs together within declared peak budgets. Manual starts default to
+`start_now`: resource contention rejects before creating an execution. Opt in
+to queueing explicitly:
+
+```bash
+mn job start <job-id> --queue
+mn blueprint run ./path/to/blueprint --queue
+```
+
+An accepted busy request prints a queued acknowledgement with its Run ID,
+owner PC, and position. It starts automatically when capacity becomes eligible.
+The owner uses bounded backfill and retains claims through pause, automatic
+retry, and recovery; terminal status alone does not release capacity before
+cleanup. See [Resources and Devices](resources-and-devices.md#admission-and-queueing).
 
 Inspect or change an accepted start from any directory with the configured
 runtime credentials. `<owner-node>` is the selected PC's Core node name and
@@ -155,9 +178,30 @@ mn schedule set-time queue_<run-id> --at <future-time> --node <owner-node>
 mn run cancel <run-id> --queued-only
 ```
 
-Setting a time defers that request; it joins the same FIFO queue when due.
+Setting a time defers that same Run; it becomes eligible in the owner queue when due.
 Queued-only cancellation cannot cancel a run that has already been admitted.
 `mn schedule cancel queue_<run-id>` also cancels only the queued start.
+
+Inspect a failed Run's checkpoint before an explicit retry:
+
+```bash
+mn run retry <run-id> --dry-run
+mn run retry <run-id> --queue
+```
+
+Retry preserves the Run ID and advances the attempt. `--set <path>=<value>`
+changes only a declared retry-adjustable setting. Keep the printed idempotency
+key, expected attempt, checkpoint revision, and settings if a response is lost;
+resubmission accepts `--idempotency-key`, `--expected-attempt`, and
+`--checkpoint-revision` together. Do not request a new execution to reconcile an
+uncertain retry. See [Reliability](reliability.md#manual-checkpoint-retry).
+
+Service replacement through `mn job start <job-id> --force --yes` permanently
+clears the attached Run's history and artifacts, cancelling active work first.
+Review that evidence before using it; Job data/configuration remain. To move an
+idle definition to another PC, use `mn job relocate <job-id> --node <node>`;
+see [ownership transfer](cluster.md#moving-an-idle-job) for prerequisites and
+pre-commit abort behavior.
 
 Human collaboration is grouped under the run:
 
@@ -218,8 +262,8 @@ mn model add --file mn-docs/examples/muse-glimmer-gomokubench-config.json --defa
 ```
 
 The custom choice stays registered until removed and takes priority over the
-hardware-selected Nemotron, Bonsai2, and Gemma built-ins. Those built-ins
-remain the fallback chain. Adding a different model with `--default` changes the priority
+configured hardware-selected defaults. The catalog defines the fallback chain.
+Adding a different model with `--default` changes the priority
 without removing the former registration. A provider file used with
 `--default` must contain exactly one model.
 
@@ -294,7 +338,8 @@ Removed commands are not aliases and never execute. They return exit code `2`
 with the exact replacement, including `runtime health`, `job inspect`,
 `job runs`, `run status`, `run monitor`, `node join/expose/leave`,
 `blueprint install/uninstall/monitor/tail/logs/stream`, `resource ports`,
-`service check`, and the old schedule verbs. The `deployment`, `schedule`, and
-`event` root command groups are not registered. To create a delayed or
+`service check`, and the old schedule verbs. The `deployment` and
+`event` root command groups are not registered. The current `schedule` group
+only lists, shows, defers, and cancels saved starts. To create a delayed or
 resource-wait schedule from the CLI, use `mn blueprint run <target> --schedule
 <delay-or-json>` or `--auto-schedule`.

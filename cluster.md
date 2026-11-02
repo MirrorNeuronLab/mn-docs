@@ -125,8 +125,13 @@ If federation connectivity is lost:
 - existing jobs continue on their owner Core;
 - direct API/CLI access to that owner remains functional;
 - peers can return previously cached summary projections, marked stale; and
-- cross-peer mutations, streams, logs, artifacts, and uncached reads return
-  `503 MN_NODE_UNAVAILABLE` and are not queued.
+- ordinary cross-peer mutations, streams, logs, artifacts, and uncached reads
+  return `503 MN_NODE_UNAVAILABLE` and are not queued.
+
+Known remote Job archive and confirmed deletion can persist owner-directed
+tombstones with `archive_pending` / `delete_pending`. They are lifecycle intents,
+not proof that remote cleanup has finished. Reconnection replays those requests;
+Run controls have no offline queue. See [Reliability](reliability.md#partition-and-restart-behavior).
 
 After reconnection, reciprocal status and summary projections refresh. A Core
 that was federation-unlocked remains job-capable after restarting while
@@ -144,6 +149,12 @@ remote model: agent -> owner LiteLLM -> peer LiteLLM -> peer DMR
 An agent must never use a direct Docker Model Runner `:12434` endpoint. Local
 installations win for duplicate model IDs. A remote or alternate model is used
 only through an explicitly declared LiteLLM fallback.
+
+These are gateway routing capabilities. An admitted Run's managed models,
+embeddings, and fallback stay on its reserved owner PC. Another advertised
+model does not extend its reservation. Hosted API providers can still receive
+requests through the gateway. See
+[Model Runtime](model-runtime.md#run-admission-and-model-residency).
 
 ## Shared blobs are optional
 
@@ -173,6 +184,42 @@ mn node undrain <node> --reason "host ready" --mark-eligible
 Use an independent owner-local job on another eligible Core when capacity is
 needed during maintenance.
 
+## Moving an idle Job
+
+`RelocateJob` transfers an idle durable definition and its data; it does not move
+an active Run. Prerequisites are terminal Runs, completed resource cleanup,
+paused schedules, portable storage, and a reachable compatible destination.
+Review the Job's data and keep a backup before changing ownership.
+
+From any directory with the CLI installed and access to the configured Core:
+
+```bash
+mn job relocate <job-id> --node <destination-node>
+mn job show <job-id>
+```
+
+Core freezes source starts/configuration and its responder, verifies a streamed
+inactive destination, commits source ownership, then permits destination
+activation. Old-owner Job controls redirect to the new owner; historical Run
+ownership is resolved separately. History, artifacts, and paused schedules are
+transferred as evidence without replaying old executions. Source data remains
+a recovery copy and source resources retire only after destination activation.
+
+Retry the same transfer after an interruption. Before ownership commit, abort
+can restore source availability:
+
+```bash
+mn job relocate <job-id> --node <destination-node> --abort
+```
+
+After commit, retry completes activation and cleanup; abort cannot restore the
+old ownership. Inspect the resulting Job owner and transfer state before
+starting new work. Unrelated destination Job IDs are never overwritten.
+
+Sources: Core `runtime/job_relocation.ex`, `job_relocation_reconciler.ex`,
+`backup/relocation_restore.ex`, CLI `job_definition_cmds.py`, and the relocation
+tests. Offline unit checks do not establish live two-PC transfer behavior.
+
 ## Troubleshooting
 
 ### Join returns `MN_NODE_UNAVAILABLE`
@@ -191,7 +238,10 @@ drain jobs and rejoin; there is no implicit data migration.
 
 The owner is unreachable. Read the summary as cached evidence only. Connect
 directly to the owner for local controls or restore federation connectivity;
-mutations are intentionally not queued elsewhere.
+ordinary mutations and Run controls are not queued elsewhere.
+
+The pending archive/delete exception is described under
+[Partition behavior](#partition-behavior); it does not queue ordinary Run controls.
 
 ### Remote model route fails
 

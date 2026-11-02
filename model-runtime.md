@@ -43,6 +43,41 @@ Launch preparation should translate blueprint model references into concrete ser
 - endpoint environment such as `MN_MODEL_ENDPOINTS_JSON`
 - prepared-model metadata owned by the SDK/API/CLI layer
 
+## Run admission and model residency
+
+For runs admitted under `resource_admission_v2`, the saved Job owner is also the
+PC reserved for workers, managed generation, embeddings, and model fallback.
+Catalog visibility or a peer gateway route does not authorize using another
+PC's capacity. Hosted API providers remain supported through the managed
+gateway. See [Resources and Devices](resources-and-devices.md) for shared
+budgets, GPU compatibility, and the current single-physical-GPU limit for
+managed-model sharing.
+
+Definition preparation stages inactive worker containers and Compose projects;
+it does not grant a run reservation. Managed engine load/request admission
+checks the owner claim and generation, and cold loads check live memory.
+Inference requests have their own leases, separate from the Run's longer-lived
+reservation and the gateway's bounded request queue.
+
+Managed model residency is retained by physical Run and attempt identity.
+Concurrent Runs retain independent references; pausing keeps them. Completion,
+failure, cancellation, or deletion closes the finishing attempt's references.
+The last reference unloads weights only after active requests drain. Downloaded
+weights, configured model settings, installation ownership, and reusable
+backend caches remain. Untracked/interactive models are not swept automatically.
+
+A terminal marker rejects late requests/preparation for a closed attempt.
+Failed unloads retain retryable ownership records and keep cleanup pending;
+ambiguous ownership cannot free capacity. Checkpoint retries use the same Run ID
+with a new attempt, so delayed cleanup cannot unload a later attempt's model.
+Deploy matching Core, native SDK, gateway callback, and prepared worker SDK
+versions; source changes do not upgrade installed images.
+
+Sources: SDK `model_residency.py`, `model_residency_attempts.py`,
+`node_admission.py`, `run_model_allocation.py`, `litellm_context_admission.py`,
+and Core `runtime/node_admission.ex`. Focused offline checks are recorded in
+[Changes](changes.md#validation); they do not establish live accelerator behavior.
+
 ## Commands
 
 ```bash
@@ -401,13 +436,20 @@ only that registration and its routes; it never deletes the source JSON.
 
 ## Cross-Box Model Placement
 
-Blueprints should name the model they need. They do not need to know whether that model is served locally or by another cluster node.
+Blueprints name logical model requirements. Before Job creation, placement can
+select another compatible PC as the Job owner. Once prepared, the definition
+keeps that owner; an inventory refresh does not migrate it or split a Run's
+managed inference across peers.
 
 For cluster launches, the SDK/API/CLI chooses the target node from the cluster resource summary, then sends `PrepareRuntimeModel` to that node's advertised Core gRPC endpoint. That node's Core only relays the request to its node-local SDK gRPC sidecar. The SDK sidecar on that same host performs Docker Model Runner operations and returns concrete endpoint facts.
 
 This path is intentionally gRPC-only between runtime nodes. Operators should not rely on SSH to install models on another box during normal blueprint launch.
 
-When a Docker Model Runner model is already advertised by a runtime node, launch preparation treats it as ready and passes a neutral `MN_MODEL_ENDPOINTS_JSON` mapping to workers. This mapping is separate from `MN_LLM_API_BASE`, `MN_LLM_MODEL`, `LITELLM_*`, and `OPENAI_*`, so blueprints with multiple LLM configs can resolve each model independently.
+Preparation passes a neutral `MN_MODEL_ENDPOINTS_JSON` mapping to workers.
+This is separate from `MN_LLM_API_BASE`, `MN_LLM_MODEL`, `LITELLM_*`, and
+`OPENAI_*`, so multiple logical model configs can resolve independently.
+An installed artifact or advertised route is not proof of loaded weights or
+an admitted Run; load and request checks still apply.
 
 `mn model add <MODEL>` selects the best compatible runtime node by default.
 Use `--local` to require the submitting machine or `--node <node-name>` to
@@ -440,9 +482,10 @@ the runtime monitor adds and removes them as node inventories change.
 
 At launch, preparation resolves model IDs and injects the owner's managed
 LiteLLM gateway endpoint and credentials. Worker inference uses that gateway;
-it must not call Docker Model Runner directly. A remote model route goes from
-the owner's gateway to the peer gateway and then to the peer's DMR. Direct DMR
-calls in `mn model probe` are diagnostic parity checks, not worker routing.
+it must not call Docker Model Runner directly. The registry can describe a peer
+gateway-to-gateway route, but admitted Run traffic remains constrained by its
+owner reservation. Direct DMR calls in `mn model probe` are diagnostic parity
+checks, not worker routing.
 
 ## Catalog Overrides
 
@@ -516,8 +559,8 @@ memory minima at the top of this page.
 
 `mn blueprint validate` and `mn blueprint run` validate declared model
 requirements before Core submission. Generation-model installation stays lazy:
-first actual use selects an owner and prepares its runner, artifact and gateway
-route. Explicit installation remains available with:
+first actual use prepares the runner, artifact, and gateway route on the saved
+Run owner under its admission checks. Explicit installation remains available with:
 
 ```bash
 mn model add nano

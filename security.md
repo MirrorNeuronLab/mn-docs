@@ -25,7 +25,7 @@ MirrorNeuron can execute worker code, access declared files, pass selected envir
 | Worker → external service | Prompts, files, metadata, requests, and provider credentials. | Explicitly approve data transfer and scope credentials to the worker. |
 | Runtime → Redis | Jobs, events, agent snapshots, leases, bundle state, node state. | Protect Redis as a control-plane data store and use Sentinel appropriately for HA. |
 | Node → node | Cluster membership, scheduling, runtime traffic, shared credentials. | Treat a cluster as one trust domain and protect membership credentials. |
-| Stable Job → supervisory MCP client | Bounded blueprint profile, safe non-secret configuration, schedule, lifecycle, latest-run summary, and structured evidence. | Require the API bearer boundary when configured, validate Job/blueprint identity, and treat returned work context as potentially sensitive. |
+| Stable Job → supervisory MCP client | Bounded context/results and explicit lifecycle or declared domain effects. | Require the configured API bearer boundary, validate Job/blueprint identity, review advertised effects, and protect potentially sensitive context. |
 
 ## Execution safety
 
@@ -37,9 +37,23 @@ HostLocal workers run directly on the machine. They can act with the permissions
 
 OpenShell provides a stronger execution boundary. It does not remove the need to review sandbox policy, uploads, mounted data, network access, environment variables, and exposed services. A sandboxed worker can still leak data or spend money through an allowed external integration.
 
+Its versioned artifact handoff and whole-tree shared-storage sync are mutually
+exclusive modes. Handoff verifies confined paths, identities, hashes/sizes, and
+a committed receipt before accepting output; it is not permission to publish
+every sandbox file. Configured-folder exports require explicit
+`export_outputs: true`. An uncertain dispatch without trustworthy completion
+remains blocked rather than rerunning an external effect to recover files.
+See [Runtime Architecture](runtime-architecture.md#why-artifacts-matter).
+
 ### Docker execution
 
 DockerWorker and DockerCompose use prepared images or service projects. Review bind mounts, container privileges, environment, published ports, and image provenance; container execution is not a blanket guarantee of isolation.
+
+Run admission and shared CPU/RAM/GPU budgets are accounting and fencing for
+cooperating runtime work. They do not prevent arbitrary HostLocal code or an
+unrelated host process from consuming resources. Volume declarations do not
+automatically mount paths, and an automatic port allocation does not publish a
+listener or open a firewall. Review those runner/host settings separately.
 
 ### Cluster execution
 
@@ -71,6 +85,10 @@ Warning: setting a listener host such as `MN_API_HOST=0.0.0.0` exposes it beyond
 - Include only the minimum required environment variables in `pass_env`.
 - Keep credentials out of manifests, payloads, example files, and committed configuration.
 - Treat logs, run stores, backups, and bundle archives as potentially sensitive. They can contain inputs, output artifacts, configuration, event history, or derived data.
+- A pending offline Job deletion can hide cached records before owner cleanup
+  has completed. `delete_pending` is not proof of data erasure; verify the
+  owner's eventual acknowledgement. Cancellation/cleanup tombstones preserve
+  write fences across reconnection. See [Reliability](reliability.md#cancellation-and-cleanup).
 - Treat `payloads/skills`, `payloads/agents`, wheels, model templates, and model
   files as executable or executable-adjacent supply-chain inputs. Review
   package metadata, source, licenses, and hashes before running them.
@@ -79,8 +97,11 @@ Warning: setting a listener host such as `MN_API_HOST=0.0.0.0` exposes it beyond
   compatibility failures rather than bypassing them.
 - Review model-provider and connector endpoints before assuming data remains local.
 - Rotate a credential if it may have appeared in a bundle, run record, terminal transcript, or log.
-- The stable Job MCP is informational, not an artifact or log download surface.
-  Its `mn.mcp.job_context.v1` projection removes secret/environment
+- The stable Job MCP advertises `mn.mcp.supervision.v1`, including explicit
+  start/pause/resume/stop tools and any declared domain effects. It is not a
+  read-only trust boundary. Inspect `get_capabilities`, validate tool arguments
+  and Job/run identity, and use stable request IDs for effects.
+  Its read-only `mn.mcp.job_context.v1` projection removes secret/environment
   values, raw logs, host paths, arbitrary files, and unrestricted artifact
   bodies, and limits responses to 256 KiB and 50 evidence records. This
   projection reduces exposure but does not make mission, schedule, safe

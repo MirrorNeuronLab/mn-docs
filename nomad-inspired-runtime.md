@@ -15,7 +15,8 @@ locally, and expose enough operator control for AI lab maintenance.
 | Node drain and maintenance | Implemented | [Cluster Guide](cluster.md) |
 | Service registry and health checks | Implemented | [Services and Health Checks](services-and-health-checks.md) |
 | Stronger resources and devices | Implemented | [Resources and Devices](resources-and-devices.md) |
-| Deployment and update strategy | Implemented | [Deployments](deployments.md) |
+| Shared run reservations and durable queue | Implemented; matching Core/native SDK required | [Resources and Devices](resources-and-devices.md#admission-and-queueing) |
+| Deployment and update strategy | Internal Core controller; public deployment commands/routes removed | [Deployments](deployments.md) |
 | Periodic, delayed, and event-triggered jobs | Implemented | [Schedules and Events](schedules-and-events.md) |
 
 ## Design Concept
@@ -105,25 +106,13 @@ mn node drain mirror_neuron@<node-host> --reason "driver update" --deadline 30m 
 mn node undrain mirror_neuron@<node-host> --mark-eligible --reason "ready"
 ```
 
-Deploy a long-running service under a stable key:
-
-```bash
-mn deployment deploy /path/to/bundle --key agent-api --strategy rolling --max-parallel 1
-mn deployment show agent-api
-```
-
-Schedule a batch job:
-
-```bash
-mn schedule add /path/to/bundle --cron "0 2 * * *" --timezone America/New_York
-```
-
-Create an event trigger:
-
-```bash
-mn schedule add /path/to/bundle --event file_uploaded --filter '{"path":{"prefix":"/datasets/"}}'
-mn event emit file_uploaded --payload-json '{"path":"/datasets/eval.jsonl"}'
-```
+Current public operations use durable Jobs and explicit Runs. Schedule a prepared
+Job through the Job schedule API, or use `mn blueprint run ./my-blueprint
+--schedule 30m` for delayed launch. Inspect/defer/cancel saved starts through the
+current `schedule` group. See [CLI](cli.md) and
+[Schedules and Events](schedules-and-events.md) for prerequisites, verification,
+and lifecycle effects. Retired deployment and event-emitter CLI examples are
+not runnable public interfaces.
 
 ## Important Code
 
@@ -152,7 +141,7 @@ mn event emit file_uploaded --payload-json '{"path":"/datasets/eval.jsonl"}'
 
 - resources and devices drive scheduling and runtime environment hints, not OS isolation
 - volumes are validated and advertised, but not mounted automatically by core
-- ports are explicit only, with no dynamic port allocator yet
+- ports may be fixed or automatic; shared run profiles require fixed ports
 - service health affects discovery and placement, but does not automatically restart jobs yet
 - deployment rollout behavior is focused on `service` and `system` jobs
-- scheduled child jobs are ordinary jobs, so the normal reliability model still applies
+- scheduled batch occurrences create Runs of the durable Job; service schedules manage its single attached Run under the normal reliability model

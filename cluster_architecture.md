@@ -18,7 +18,11 @@ stores only a cached summary projection containing availability, freshness,
 and last-sync metadata. If the owner is offline, its local work continues and
 direct access to that Core remains functional. Other peers can return cached
 summaries, but mutations, streams, logs, artifacts, and uncached reads fail
-with `503 MN_NODE_UNAVAILABLE`; requests are not queued.
+with `503 MN_NODE_UNAVAILABLE`. Run controls are not queued. Known remote Job
+archive and confirmed deletion have a narrow exception: the receiving Core can
+persist an owner-directed tombstone and report `archive_pending` or
+`delete_pending`. Owner cleanup/data deletion is not complete until the peer
+reconnects and acknowledges it. See [Reliability](reliability.md#partition-and-restart-behavior).
 
 ## 2. Coordination and control plane
 
@@ -45,6 +49,12 @@ when the selected model is installed on that same machine:
 local model:  agent -> owner LiteLLM -> owner DMR
 remote model: agent -> owner LiteLLM -> peer LiteLLM -> peer DMR
 ```
+
+The second path describes gateway route capability. Runs admitted under
+`resource_admission_v2` keep managed model/embedding/fallback work on their
+reserved PC; peer inventory and gateway routing cannot grant another PC's
+capacity. Hosted provider routes remain supported. See
+[Model Runtime](model-runtime.md#run-admission-and-model-residency).
 
 Agents never call Docker Model Runner directly. The private LiteLLM endpoint,
 normally port `4000`, must be reachable between trusted peers for declared
@@ -100,6 +110,12 @@ Scaling means running independent owner-local jobs concurrently on eligible
 Cores. A single job's agents do not fan out across federated nodes. This keeps
 owner-local execution available during partitions and makes ownership and
 recovery deterministic.
+
+An idle Job can explicitly transfer ownership through `RelocateJob`: freeze
+the source, verify an inactive destination, commit source ownership, then
+activate the destination. This does not migrate running workers. The transfer
+retains source recovery data and imported schedules stay paused; see
+[Moving an idle Job](cluster.md#moving-an-idle-job).
 
 See [Reliability Guide](reliability.md), [Cluster Guide](cluster.md), and
 [Model Runtime](model-runtime.md) for operational procedures.

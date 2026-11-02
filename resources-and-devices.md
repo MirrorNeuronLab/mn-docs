@@ -1,8 +1,15 @@
 # Resources And Devices
 
-MirrorNeuron supports a stronger resource model for scheduling AI workers across mixed machines. This model is inspired by Nomad's `resources`, `device`, `network`, and `volume` ideas, but v1 is scheduling, allocation metadata, and runtime environment hints only.
+For blueprint authors and operators, this reference explains how the current
+checkout reserves one run's capacity on its Job owner, queues compatible work,
+and selects devices, ports, and volumes. It covers admission and allocation;
+runner isolation is covered in [Security](security.md). The contracts below are
+verified against Core's `runtime/resource_allocation.ex`, `node_admission.ex`,
+`node_admission_state.ex`, `resource_spec.ex`, and their unit tests. Release
+compatibility requires matching Core and native SDK artifacts.
 
-It does not enforce cgroups, mount host paths, or isolate device access at the OS level.
+Admission enforces runtime reservations. It does not create cgroups, mount host
+paths, or provide an OS security boundary for arbitrary worker code.
 
 ## Design Concept
 
@@ -14,7 +21,105 @@ Each agent can request:
 - host volumes
 - runtime drivers such as `host_local` or `openshell`
 
-The scheduler compares those requests against node inventory and active placements. A successful placement records concrete allocation metadata on the job.
+Owner selection uses node inventory; only the selected owner's atomic Redis
+reservation authorizes execution. The local scheduler then resolves worker
+placements and allocation metadata. A federated availability report or a
+successful read-only admission check cannot grant capacity.
+
+## Run resource budgets
+
+The generated executable manifest accepts `policies.resource_allocation`.
+In a [source package](blueprint-standard.md), author this under `policies` in
+`execution.json`.
+
+| Policy | Admission behavior |
+| --- | --- |
+| Omitted, or `mode: exclusive_node` | Reserves the whole owner PC. Existing whole-PC claims retain this protection until cleanup. |
+| `mode: shared` | Admits compatible runs together within declared peak CPU, RAM, disk, and GPU budgets. Positive `cpu_cores` and `memory_mb` are required. |
+
+This CPU-only policy is a fragment of `execution.json`, not a complete blueprint:
+
+```json
+{
+  "policies": {
+    "resource_allocation": {
+      "mode": "shared",
+      "cpu_cores": 2,
+      "memory_mb": 4096,
+      "disk_mb": 1024
+    }
+  }
+}
+```
+
+The budget must cover the declared workers and peak concurrent model use,
+including weights, contexts/KV caches, and scratch memory. Core rejects an
+undersized shared profile. In a device request, `min_memory_mb` selects compatible
+hardware; `reservation_memory_mb` reserves the run's peak use. For example, a
+shared GPU request can require a 49,152 MiB NVIDIA CUDA device while reserving
+16,384 MiB on it:
+
+```json
+{
+  "vendor": "nvidia",
+  "driver": "cuda",
+  "count": 1,
+  "min_memory_mb": 49152,
+  "sharing": "shared",
+  "reservation_memory_mb": 16384
+}
+```
+
+Place that object in the profile's `devices` array. `sharing: exclusive`
+reserves the selected GPU while leaving other PC capacity available. Core
+selects the smallest compatible GPU first and retains the larger of 512 MiB
+and 10% headroom for shared GPUs. Unified-memory GPU reservations also consume
+host RAM. Shared weights reduce a reservation only with a matching native
+resident-engine attestation; current managed-model sharing requires one
+physical GPU. Multi-GPU managed engines require an exclusive profile.
+
+Shared profiles require fixed integer ports. Ports and overlapping writable host
+volumes stay exclusive across shared runs. Worker device binding and native model
+requests must honor the recorded allocation and reservation generation.
+
+## Admission and queueing
+
+`CheckRunAdmission` is read-only and returns `runnable_now`, `runnable_later`,
+`not_runnable`, or `unavailable`, with measured blockers. Stale telemetry cannot
+authorize execution. Start and explicit checkpoint retry recheck and reserve
+under the owner's start gate before execution persistence.
+
+| Start policy | Result when compatible capacity is busy |
+| --- | --- |
+| `start_now` (manual default) | Rejects admission with `accepted: false`; no failed execution is created just to represent resource contention. |
+| `enqueue_if_busy` | Accepts the same run into a durable owner-local queue with `status: queued` and an `admission` receipt; no executor is running yet. |
+| Scheduled occurrence | Uses the durable queue automatically while retaining occurrence identity and overlap policy. |
+
+An accepted queued run starts automatically when eligible. The receipt identifies
+the queue, owner, friendly PC label when available, position, and blocker.
+Queue order uses bounded backfill: after three bypasses, older work's required
+resource vector is protected while work fitting residual capacity can proceed.
+The combined queued/deferred limit is 1,000 entries per PC. Queue state, run
+identity, staged inputs, configuration/bundle identity, and data generation
+survive admission-service restart.
+
+Queue entries appear as `resource_wait` schedules named `queue_<run-id>`.
+Deferral releases any unstarted claim until the future time; queued cancellation
+cannot cancel an already admitted execution. See [Schedules and Events](schedules-and-events.md)
+for the lifecycle and [CLI](cli.md#jobs-and-runs) / [API](api.md#run-admission-and-queued-starts)
+for the public interfaces.
+
+Pause, automatic retry, and recovery retain a run's claim. Terminal cleanup must
+stop owned commands/containers, drain native inference leases, and release
+run-owned model residency before capacity becomes reusable. Failed cleanup keeps
+the reservation pending for reconciliation. A timeout, missing process, missing
+run record, or offline owner is insufficient proof of release. Installed model
+files, reusable images, reports, and durable Job data remain on disk.
+
+Detailed run reads expose `placement.owner_node`, an optional friendly label,
+and a sanitized `placement.reservation` whose state is `reserved`, `queued`,
+`unreserved`, or `unavailable`. Unknown amounts stay null; paused and terminal
+cleanup claims can still be reserved. List projections do not read claims.
 
 ## Resource Request Shape
 
@@ -136,7 +241,14 @@ Large memory GPU:
 
 ## Ports
 
-Ports are explicit in v1. The scheduler rejects placements that would reserve the same port on the same node.
+Ports may be fixed integers or `"auto"`. The scheduler rejects conflicting
+reservations on one node. An automatic request resolves to an integer in the
+persisted plan and `MN_PORT_<LABEL>`; service templates use the same allocation.
+The default range is `49152..65535`, constrained by `MN_AUTO_PORT_START` and
+`MN_AUTO_PORT_END`. Shared run profiles currently require fixed ports.
+
+An allocation does not publish a container port or open a firewall. Configure
+the runner and listener boundary separately before exposing a service.
 
 ```json
 {
@@ -194,17 +306,27 @@ Worker code should use these hints when selecting devices, ports, and model/cach
 
 ## Inspect Resources
 
+From any directory with the CLI installed and runtime credentials configured:
+
 ```bash
 mn resource show
 ```
 
-The response includes per-node scalar totals, combined cluster totals, device inventory, GPU memory totals, runtime drivers, and host path information when available.
+The response includes per-node capacity, device inventory, runtime drivers, and
+admission information when available. Combined totals do not mean one run can
+pool several PCs. `cpu_load_average_1m`, when present, is measured one-minute
+load, not CPU utilization or a reservation; a missing sample is unknown.
 
-Set coarse local resource limits:
+To change coarse local capacity percentages, save the current limits first,
+then apply and inspect them:
 
 ```bash
 mn resource set --cpu 75 --memory 75 --gpu 100 --disk 75
+mn resource show
 ```
+
+This changes admission limits. Restore the saved percentages with the same
+command to roll back; it does not install OS resource isolation.
 
 ## Validation
 
@@ -226,7 +348,9 @@ mn resource set --cpu 75 --memory 75 --gpu 100 --disk 75
 | Resource shape and env hints | `MirrorNeuron/lib/mirror_neuron/resource_spec.ex` |
 | Scheduler matching and allocation | `MirrorNeuron/lib/mirror_neuron/scheduler.ex` |
 | Node inventory | `MirrorNeuron/lib/mirror_neuron/resource.ex` |
-| Admission and limits | `MirrorNeuron/lib/mirror_neuron/resource_admission.ex` |
+| Run budgets and device accounting | `MirrorNeuron/lib/mirror_neuron/runtime/resource_allocation.ex` |
+| Durable reservation, dispatch, and cleanup | `MirrorNeuron/lib/mirror_neuron/runtime/node_admission.ex`, `node_admission_state.ex` |
+| Coarse resource percentages | `MirrorNeuron/lib/mirror_neuron/resource_admission.ex` |
 | Runtime agent context | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex` |
 | Manifest validation | `MirrorNeuron/lib/mirror_neuron/manifest.ex` |
 | CLI commands | `mn-cli/mn_cli/libs/resource_cmds.py` |
@@ -234,9 +358,20 @@ mn resource set --cpu 75 --memory 75 --gpu 100 --disk 75
 
 ## V1 Limits
 
-- no dynamic port allocation
 - no automatic volume mounting
 - no hard device isolation
 - no global executor lease balancer yet
-- active placement metadata is used to avoid double-booking devices and ports, but host OS enforcement remains the runner's responsibility
+- automatic ports are unavailable to shared run profiles
+- managed-model sharing requires one physical GPU and a covering reservation
+- allocation and request fencing do not constrain unrelated host processes
+
+## Verification
+
+Core's `resource_allocation_test.exs`, `node_admission_state_test.exs`, and
+`resource_spec_test.exs` cover shared packing, backfill, conflicts, legacy claims,
+and port normalization. SDK `test_node_admission.py` and
+`test_run_model_allocation.py` cover native request leases and model bounds.
+Real hardware admission, Docker device binding, and release compatibility still
+require the matching installed-runtime integration checks. See [Changes](changes.md)
+for this audit's exact validation scope.
 

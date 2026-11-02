@@ -8,6 +8,8 @@ This is the canonical internal reference for shared MirrorNeuron configuration. 
 - API parsing/defaults: `mn-api/mn_api/config_schema.py` and `mn-api/mn_api/config.py`.
 - Blueprint catalog resolution: `mn-python-sdk/mn_sdk/blueprint_source.py`.
 - Deployment/runtime publication: `mn-cli/mn_cli/runtime/server.py`, `mn-deploy/install.sh`, and `mn-deploy/docker-compose.yml`.
+- Core defaults and validation: `MirrorNeuron/lib/mirror_neuron/config/schema.ex`,
+  `config.ex`, and `execution/lease_manager.ex`.
 
 Update this page and `mn-doc-site/content/docs/env_variables.mdx` whenever a parser, default, validation rule, or secret classification changes.
 
@@ -15,7 +17,7 @@ Update this page and `mn-doc-site/content/docs/env_variables.mdx` whenever a par
 
 ```bash
 mn runtime status
-mn runtime status
+mn runtime doctor
 ```
 
 Save sanitized output before changing listener, connection, catalog, model, or credential configuration. Do not commit `~/.mn/docker-compose.env`, endpoint files, or secrets.
@@ -35,6 +37,33 @@ Save sanitized output before changing listener, connection, catalog, model, or c
 | `MN_COOKIE` | deployment-specific | Sensitive cluster credential. Change before non-local cluster use. |
 
 The deployed gRPC endpoint is normally published on port `55051`; the Core container can use a distinct internal port. Confirm actual endpoints with `mn runtime status` after custom deployment.
+
+`MN_COOKIE` applies to BEAM distribution where configured. Independent federated
+Cores use authenticated peer credentials and distinct Redis stores; they do not
+share an Erlang cookie as their federation authentication mechanism.
+
+## Execution capacity and readiness
+
+These are Core process settings. Configure them in the owning runtime's
+environment before startup; exporting them only in a client terminal does not
+reconfigure an already-running container. Review/restart through the deployment's
+normal maintenance procedure, then inspect `mn runtime status` and the resulting
+resource/worker state. Preserve previous values for rollback.
+
+| Variable | Default | Behavior |
+| --- | --- | --- |
+| `MN_EXECUTOR_MAX_CONCURRENCY` | `4` | Default owner-local executor pool slot capacity; positive integer. |
+| `MN_EXECUTOR_POOL_CAPACITIES` | unset | Comma-separated positive pool capacities, for example `default=4,gpu=1,io=8`. Overrides named pools. |
+| `MN_AUTO_PORT_START` | `49152` | First automatic allocation port, inclusive. |
+| `MN_AUTO_PORT_END` | `65535` | Last automatic allocation port, inclusive; the range must ascend within `1..65535`. |
+| `MN_SHARED_STORAGE_READY_TIMEOUT_SECONDS` | `1800` | Owner-side staged-input readiness deadline before source dispatch. |
+
+Executor slots bound invocations. Run CPU/RAM/GPU reservations are separately
+declared in `execution.json.policies.resource_allocation`; workflow action units
+use `policies.workflow_budgets`. Neither is configured by these pool settings.
+Automatic allocation does not publish a listener or open a firewall, and shared
+run profiles require fixed ports. See [Resources and Devices](resources-and-devices.md)
+and [Runtime Architecture](runtime-architecture.md#workflow-action-allowances).
 
 ## FastAPI gateway and Web UI
 
@@ -108,12 +137,12 @@ and is not replicated by Syncthing.
 
 There is no automatic submission retention. Inputs, intermediate artifacts, and
 outputs remain synchronized until the existing job or run deletion workflow
-removes them. See [Cluster Guide](cluster.md#syncthing-storage-and-cache-rollout)
-for the upgrade and legacy-cache cleanup procedure.
+removes them. See [Cluster Guide](cluster.md#shared-blobs-are-optional)
+for the replication and node-local cache boundary.
 
 ## Contributor verification
 
-After changing shared configuration, run `mn runtime status` and `mn runtime status`. Also run `mn blueprint list` for catalog changes, `mn model doctor <model-id>` for model changes, and API health checks for API configuration changes.
+After changing shared configuration, run `mn runtime status` and `mn runtime doctor`. Also run `mn blueprint list` for catalog changes, `mn model doctor <model-id>` for model changes, and API health checks for API configuration changes.
 
 Configuration changes require parser/schema tests, secret-redaction review where applicable, this reference, the docs-site reference, and a documentation-site type check.
 

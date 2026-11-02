@@ -17,6 +17,7 @@ Every user-visible behavior has one canonical detailed page in this directory:
 | REST API shape | [API Reference](api.md) | `mn-api` routes and running FastAPI OpenAPI schema. |
 | Environment defaults | [Environment Variables](env_variables.md) | CLI, API, SDK, and Core configuration definitions. |
 | Blueprint and manifest contracts | [Blueprint Standard](blueprint-standard.md), [Job Bundle Format](bundle.md) | Schemas, SDK validators, and checked-in blueprints. |
+| Execution authority and capacity | [Runtime Architecture](runtime-architecture.md), [Resources and Devices](resources-and-devices.md) | Core admission, workflow, runner, and native SDK contracts. |
 | Reliability and recovery | [Reliability Guide](reliability.md) | Core persistence, lease, scheduler, and recovery tests. |
 | Bounded working context and compression | [Context Intelligent System](context-memory.md) | Membrane working-memory contract and Python SDK context-session tests. |
 | Security boundaries | [Security Model](security.md) | Runner, network, Redis, secret, and policy behavior. |
@@ -56,9 +57,10 @@ Do not duplicate large command tables, API shapes, or environment-variable lists
 1. [Installation](installation.md)
 2. [Services and Health Checks](services-and-health-checks.md)
 3. [Monitor Guide](monitor.md)
-4. [Reliability Guide](reliability.md)
-5. [Redis High Availability](redis-ha.md)
-6. [Troubleshooting](troubleshooting.md)
+4. [Resources and Devices](resources-and-devices.md)
+5. [Reliability Guide](reliability.md)
+6. [Redis High Availability](redis-ha.md)
+7. [Troubleshooting](troubleshooting.md)
 
 ### Contributor
 
@@ -80,12 +82,14 @@ Do not duplicate large command tables, API shapes, or environment-variable lists
 | Cluster, deployment, schedules, and HA | [cluster.md](cluster.md), [deployments.md](deployments.md), [schedules-and-events.md](schedules-and-events.md), [redis-ha.md](redis-ha.md) |
 | Architecture, context, reliability, and security | [runtime-architecture.md](runtime-architecture.md), [cluster_architecture.md](cluster_architecture.md), [context-memory.md](context-memory.md), [reliability.md](reliability.md), [security.md](security.md) |
 | Internal quality and contributor process | [testing.md](testing.md), [contributing.md](contributing.md), [documentation-style.md](documentation-style.md) |
+| Runtime audit and documentation change table | [changes.md](changes.md) |
 
 ## Runtime alignment record
 
-See [September 2026 alignment](runtime-alignment-2026-09.md) for the current
-job/run, source-package, dependency, model-routing, and execution-boundary
-corrections, with validation evidence and unexercised integrations.
+See [Changes](changes.md) for the November 2026 code snapshot, documentation
+corrections, owning evidence, validation results, and remaining integration/site
+checks. [September 2026 alignment](runtime-alignment-2026-09.md) retains the
+earlier migration and validation history.
 
 ## Source-doc update rule
 

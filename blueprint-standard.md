@@ -82,6 +82,27 @@ A logical workflow uses either `needs` on its steps or an explicit `edges` list.
 
 `StepSpec` modules define contracts and collaboration. Agent handlers own work, and blueprint payloads own domain policy. The SDK imports StepSpec modules only during requested compilation, in subprocesses with a ten-second deadline. Missing dependencies fail compilation; they never generate substitute nodes.
 
+### Runtime policies and supervision
+
+Author physical run budgets in `execution.json.policies.resource_allocation`.
+Omitting the profile preserves whole-PC exclusivity; shared profiles must cover
+peak concurrent workers and managed models. See
+[Resources and Devices](resources-and-devices.md#run-resource-budgets) for the
+canonical schema fragment and constraints.
+
+Named action allowances use `execution.json.policies.workflow_budgets`. The SDK
+resolves configuration references into bounded integer limits before submission;
+workers cannot choose a new limit. These action units are separate from physical
+capacity. See [Workflow action allowances](runtime-architecture.md#workflow-action-allowances).
+
+The workflow document can explicitly select
+`execution.supervision: "activity"`. This requires live HostLocal workers with
+required SDK beacons; progress, explicit time budgets, and finite external waits
+retain distinct meanings. Other workflows retain their declared/frozen defaults.
+See [Step admission and supervision](runtime-architecture.md#step-admission-and-supervision).
+Deploy compatible Core/SDK components and reprepare idle definitions when changing
+these contracts; existing Runs and retained retry checkpoints are not rewritten.
+
 ## Extensions
 
 Each extension document declares its own canonical `$schema`. Manifest extension registrations name the document and state whether support is required.
