@@ -332,21 +332,23 @@ Provider routes are loaded by MirrorNeuron's managed LiteLLM gateway.
 
 ### Adaptive output budgets
 
-The managed LiteLLM gateway prepares a bounded output-token limit before each
-generation request reaches a model. Initial requests default to 1024 tokens;
-an explicitly marked, harness-managed continuation defaults to 2048. A valid
-caller limit is never increased. The forwarded limit is the smallest known
-positive cap from the caller, phase, model metadata, hardware safety policy,
-remaining job budget, and reliably estimated remaining context.
+The serving node grants explicit text and JSON output limits within the model,
+job, operator and available context limits. It counts the full input, including
+tools and response schemas, then subtracts a context reserve from the serving
+window. If the owner cannot grow its allocation, it grants the space available
+beside the input. For example, a 32,768-token window with 5,661 input tokens
+and a 256-token reserve can grant a 12,000-token request. Calls without an
+explicit output limit default to 1024 tokens initially and 2048 on continuation.
 
-Configure the node-local policy with:
+The 4096-token fallback applies when capacity is unknown and no hardware
+ceiling is configured. Set `MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_HARDWARE_SAFE_MAX_TOKENS`
+only when an explicit node ceiling is needed. Other node-local defaults are
 
 ```bash
 MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_ENABLED=true
 MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_INITIAL_TOKENS=1024
 MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_CONTINUATION_TOKENS=2048
 MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_CONTEXT_RESERVE_TOKENS=256
-MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_HARDWARE_SAFE_MAX_TOKENS=4096
 MN_LITELLM_ADAPTIVE_OUTPUT_BUDGET_FAIL_OPEN=true
 ```
 
@@ -369,8 +371,9 @@ Continuation is an explicit request protocol, not an automatic proxy retry:
 }
 ```
 
-Set `mn_adaptive_budget_enabled` to `false` to preserve the request limit.
-Internal controls are stripped before upstream forwarding. Response headers
+Public aliases forward the caller and job allowances to the serving owner.
+Only the gateway operator can disable budget enforcement. Internal controls
+are stripped before model dispatch. Response headers
 `x-mn-output-budget-phase`, `x-mn-output-budget-applied`, and
 `x-mn-output-budget-reason` expose the decision without recording prompts or
 response content.
