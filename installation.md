@@ -104,8 +104,8 @@ Blueprint validation identifies declared model requirements. Install and diagnos
 
 ```bash
 mn model list
-mn model add gemma4:e2b
-mn model doctor gemma4:e2b
+mn model add nano
+mn model doctor nano
 ```
 
 `mn model add` can fail when no compatible runtime node is available. Do not use `--force` as a routine fix; first choose a model and blueprint profile that match the available hardware.

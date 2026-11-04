@@ -142,11 +142,10 @@ previously cold completion backend, the SDK unloads it before preparation return
 a previously resident model stays resident. The embedded NVIDIA template handles chat and thinking;
 structured requests pass `chat_template_kwargs.enable_thinking=false`.
 
-This release accepts text only. It includes no multimodal projector. Existing
-explicit Gemma E2B configurations remain available under their own IDs, but
-Gemma no longer owns `nano`. The packaged default chain now contains text-only
-models; vision workloads must explicitly select a compatible model or configure
-a vision-capable default chain.
+This release accepts text only. It includes no multimodal projector. The packaged
+default chain contains text-only models; vision workloads must explicitly select
+a compatible multimodal model such as `nemotron3` or configure a vision-capable
+default chain.
 
 From any directory with MirrorNeuron and Docker Model Runner installed:
 

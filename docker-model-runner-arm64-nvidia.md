@@ -170,7 +170,7 @@ artifacts. Verify the resulting runtime with:
 ```bash
 docker model status
 mn model list
-mn model doctor gemma4:e2b
+mn model doctor nano
 ```
 
 ## Troubleshooting
