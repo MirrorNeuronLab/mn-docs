@@ -1,13 +1,16 @@
 # MirrorNeuron Testing Guide
 
-This workspace is intentionally multi-component. Tests should stay with the component they verify, while `mn-system-tests/test_all.py` provides cross-component orchestration.
+This workspace is intentionally multi-component. Tests stay with the component they verify, while the installed `mn_test` command provides cross-component orchestration.
 
 ## Reader and outcome
 
 - **Reader:** contributor selecting validation for a change.
 - **Outcome:** run the smallest relevant check, then expand validation when a shared contract changes.
 - **Page type:** contributor reference.
-- **Source of truth:** component test suites and `mn-system-tests/test_all.py --help`.
+- **Scope:** local component checks, injected contracts, and selection of service-backed suites; production and two-box certification require their own environments.
+- **Status:** current source-workspace workflow. `test_all.py` remains a deprecated compatibility entry point.
+- **Sources of truth:** `mn-system-tests/src/mn_system_tests/{cli,catalog,runner,config,reports}.py`, component test suites, and `mn_test --help`.
+- **Validation:** inspect `--help` and `--list`, check selection with `--dry-run`, then run the smallest owning suite. A skipped or blocked capability is not a passing test.
 
 ## Test Layout
 
@@ -25,124 +28,74 @@ Current component mapping:
 - `MirrorNeuron/tests/e2e`: runtime and stream/live execution e2e tests.
 - `MirrorNeuron/tests/regression`: script-style regression repros.
 - `mn-api/tests`, `mn-cli/tests`, `mn-python-sdk/tests`, `mn-web-ui/src/test`: component unit tests today. Split these into `unit/`, `integration/`, `regression/`, and `e2e/` as each package grows.
-- `mn-system-tests/contracts`: fast injected API/CLI/SDK contract tests that do not need Redis, Elixir, Docker, or gRPC.
-- `mn-system-tests/integration` and `mn-system-tests/e2e`: live cross-component tests. These are opt-in because they need running services.
+- `mn-system-tests/tests/integration/contracts`: injected API/CLI/SDK contract tests that do not need running Core or Redis services; Python package and local blueprint prerequisites still apply.
+- `mn-system-tests/tests/integration/live` and `mn-system-tests/tests/e2e`: service-backed cross-component tests, selected through a runner that provisions its own local services.
+- `mn-system-tests/tests/integration/installer`: installer contracts.
+- `mn-system-tests/tests/system/benchmarks`: deterministic benchmark and interface performance checks.
 - `otterdesk-blueprints/tests` and `mn-skills/*/tests`: blueprint catalog and skill package tests.
 
 ## Common Commands
 
-Fast local signal:
+Run these commands from `mn-system-tests/`. Use Python 3.12 or newer and an environment containing the runner and selected component dependencies. For a new environment:
 
 ```bash
-.venv/bin/python mn-system-tests/test_all.py --fast
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -e .
+.venv/bin/mn_test --help
+.venv/bin/mn_test --list
 ```
 
-Injected cross-component contracts:
+This creates a local virtual environment and installs Python packages. In `MN_ENV=dev`, normal runs refresh the selected local Python projects and their local dependency closure editably. Use `--skip-python-refresh` to retain an already prepared environment. `--list` and `--dry-run` do not refresh packages. Native dependencies such as Docker, Elixir, Node, and browser binaries remain component prerequisites.
+
+Inspect selection before execution:
 
 ```bash
-.venv/bin/python mn-system-tests/test_all.py --contracts
+.venv/bin/mn_test --suite contracts --dry-run
 ```
 
-Component unit tests, including Node and core when dependencies are present:
+Choose the smallest relevant check; each row is a separate command from the same directory:
+
+| Validation | Command |
+| --- | --- |
+| Injected API/CLI/SDK contracts | `.venv/bin/mn_test --suite contracts` |
+| Component unit suites | `.venv/bin/mn_test --level unit` |
+| One component's unit suite | `.venv/bin/mn_test --component mn-api --level unit` |
+| Local blueprint catalog validation | `.venv/bin/mn_test --suite blueprints.local` |
+| Installer and deterministic benchmark contracts | `.venv/bin/mn_test --suite installer --suite benchmarks` |
+| Interface performance measurements | `.venv/bin/mn_test --suite performance` |
+| Components with dirty Git working trees | `.venv/bin/mn_test --changed` |
+| Core runtime end-to-end checks | `.venv/bin/mn_test --suite MirrorNeuron.e2e` |
+| Browser end-to-end checks | `.venv/bin/mn_test --suite mn-web-ui.e2e` |
+| Python dependency consistency (`pip check`) | `.venv/bin/mn_test --suite security.dependencies` |
+
+With no selection filters, the runner selects the full catalog. Local services and demo blueprints can run; gated two-box, GPU, host-secret, and destructive suites remain skipped unless explicitly enabled. This is broader than an offline unit run:
 
 ```bash
-.venv/bin/python mn-system-tests/test_all.py --unit
+.venv/bin/mn_test
 ```
 
-Blueprint quick checks without external APIs:
+For direct pytest execution against an already prepared environment, without runner service provisioning:
 
 ```bash
-.venv/bin/python mn-system-tests/test_all.py --blueprints
+.venv/bin/python -m pytest tests/integration/contracts tests/integration/installer tests/system/benchmarks -m 'not performance' -q
 ```
 
-Key interface performance benchmark:
+Each runner execution creates `results/runs/<run-id>/` with `report.html`, `report.txt`, `results.json`, `junit.xml`, suite logs, and artifacts. `results/runs/latest.json` points to the latest run. `--results-dir <results-root>` replaces the base directory; the runner still adds a fresh run ID. It supplies `MN_SYSTEM_TEST_RESULTS_DIR` to child tests. The performance suite writes `performance.txt` and `performance.json` inside that run directory.
 
-```bash
-.venv/bin/python mn-system-tests/test_all.py --performance
-```
-
-This records `mn-system-tests/results/performance.txt` and
-`mn-system-tests/results/performance.json` with hardware, software, package,
-git, latency, and throughput metadata.
-
-Changed workspace checks:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --changed
-```
-
-Core runtime e2e, including stream/live backpressure:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --runtime-e2e
-```
-
-Security checks in reporting mode:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --security --skip-core --skip-node --skip-blueprints
-```
-
-Strict security mode fails on dependency-audit or secret-scan findings:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --security --strict-security --skip-core --skip-node --skip-blueprints
-```
-
-Live integration/e2e against running services:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --integration --live
-.venv/bin/python mn-system-tests/test_all.py --e2e --live
-```
-
-Full default non-live suite:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py
-```
-
-Offline pytest gate:
-
-```bash
-cd mn-system-tests
-../.venv/bin/python -m pytest contracts benchmarks installer -q
-```
-
-`test_all.py` records every runner-driven suite under
-`mn-system-tests/results/`: `system-tests.txt`, `system-tests.json`,
-`pytest-*.json`, and raw per-step logs in `results/logs/`. Use
-`--results-dir PATH` or `MN_SYSTEM_TEST_RESULTS_DIR` to redirect artifacts in CI.
+Inspect the report for failed, blocked, timed-out, or skipped suites and cleanup diagnostics. The runner stops its owned local services at teardown; retain the run directory for diagnosis and remove only that run's artifacts when no longer needed. A `pip check` result covers dependency consistency, not a vulnerability or secret audit. See the owning [runner usage guide](../mn-system-tests/USAGE.md) for the complete catalog, gates, and remote options.
 
 ## Manual Live E2E
 
-Use isolated ports and namespaces so tests do not collide with a developer instance:
+For a local cross-component smoke run, prefer the runner's owned Core/API/Redis services. From `mn-system-tests/`, inspect prerequisites, then execute:
 
 ```bash
-cd MirrorNeuron
-MN_GRPC_PORT=55200 \
-MN_REDIS_NAMESPACE=mirror_neuron_manual_e2e \
-mix run --no-halt
+.venv/bin/mn_test --suite mn-system-tests.integration --suite mn-system-tests.e2e --dry-run
+.venv/bin/mn_test --suite mn-system-tests.integration --suite mn-system-tests.e2e
 ```
 
-In another terminal:
+These suites require their catalog-listed native tools and Python packages. They can start listeners, build local runtime artifacts, and execute trusted test payloads. Their service logs and cleanup diagnostics stay in the run directory.
 
-```bash
-cd mn-api
-MN_API_PORT=4001 \
-MN_GRPC_TARGET=localhost:55200 \
-mn-api
-```
-
-Return to the workspace root, then run:
-
-```bash
-cd ..
-MN_GRPC_TARGET=localhost:55200 \
-MN_API_BASE_URL=http://localhost:4001/api/v1 \
-RUN_MN_SYSTEM_TESTS=1 \
-.venv/bin/python -m pytest mn-system-tests/integration mn-system-tests/e2e
-```
+When invoking live pytest tests directly, the caller owns service startup and cleanup. Use a disposable Core/API/Redis setup with separate ports, writable storage roots, and a unique Redis namespace. Set `MN_GRPC_TARGET`, `MN_API_BASE_URL`, and `RUN_MN_SYSTEM_TESTS=1` for that setup. Do not point mutating tests at a developer or production runtime.
 
 ## Redis HA Tests
 
@@ -154,6 +107,8 @@ Local Docker test:
 cd MirrorNeuron
 bash scripts/test_redis_sentinel_ha.sh
 ```
+
+Warning: the two-box test stops a Redis primary to exercise failover. Use only the script's disposable test topology, with the networking and cleanup prerequisites in [Redis HA](redis-ha.md).
 
 Two-box Docker test:
 
@@ -175,20 +130,13 @@ two_box_post_failover_write_read_ok
 
 The two-box test starts Redis and Sentinel on both machines, writes MirrorNeuron state, kills the initial Redis primary, waits for Sentinel failover, then writes and reads again through the promoted replica. If the remote box cannot route to the local Redis test port, the script automatically uses the remote Redis as the initial primary and tests failover back to the local replica.
 
-Run the same path through the workspace test runner:
+Run the local smoke through the workspace runner from `mn-system-tests/`:
 
 ```bash
-.venv/bin/python mn-system-tests/test_all.py --redis-ha \
-  --redis-ha-remote-host <remote-host> \
-  --redis-ha-local-ip <local-host> \
-  --redis-ha-remote-ip <remote-host>
+.venv/bin/mn_test --suite redis-ha.local
 ```
 
-Expected output:
-
-```text
-All selected test suites passed.
-```
+The remote suite is `redis-ha.two-box` and requires `--two-node`. Before enabling it, follow the [Redis HA prerequisites and cleanup procedure](redis-ha.md). Set `--remote-ssh-command` and `--remote-mn-set-folder` together when selecting a non-default remote workspace. Both direct scripts and the runner exercise failover by stopping a test primary; use only the disposable test topology. Success requires the suite to pass and cleanup diagnostics to be clear.
 
 ## Nomad-Inspired Runtime Feature Tests
 
@@ -258,8 +206,8 @@ Useful test isolation vars:
 - `MN_PERF_WARMUP`: warmup iterations per performance probe; defaults to `5`.
 - `RUN_MN_PERF_LIVE`: set to `1` to add live API, gRPC, LLM, or Web UI interface probes.
 
-Live tests are opt-in. If `RUN_MN_SYSTEM_TESTS=1` is not set, `mn-system-tests` marks `live` tests skipped.
+Direct pytest marks `live` tests skipped when `RUN_MN_SYSTEM_TESTS=1` is absent. The `mn_test` runner supplies that variable to its owned local service suites. Remote suites require `--two-node`; GPU, host-secret, and destructive capabilities require their corresponding `--enable` options. A dry run with remote gates enabled can perform read-only SSH prerequisite checks.
 
 ## Test-selection rule
 
-For a cross-component regression, prefer `mn-system-tests/contracts` with injected clients or openers before adding a live test. Add a live integration or end-to-end check only when the behavior depends on a running service, Docker, Redis, network topology, or an external capability that an injected test cannot represent.
+For a cross-component regression, prefer `mn-system-tests/tests/integration/contracts` with injected clients or openers before adding a live test. Add a live integration or end-to-end check only when the behavior depends on a running service, Docker, Redis, network topology, or an external capability that an injected test cannot represent.

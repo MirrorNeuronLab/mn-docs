@@ -18,14 +18,10 @@ From the workspace root:
 ```bash
 python3.12 -m venv .venv
 . .venv/bin/activate
-.venv/bin/python -m pip install -r mn-system-tests/requirements.txt
+.venv/bin/python -m pip install -e mn-system-tests
 ```
 
-Expected result:
-
-```text
-Successfully installed ...
-```
+This creates a workspace virtual environment and installs `mn_test`. Use `MN_ENV=dev` for runner-managed editable refreshes of the selected local Python components, or install the component dependencies explicitly. Native dependencies remain component-owned; inspect selection with `mn_test --dry-run` before running a broad suite.
 
 Install Elixir dependencies:
 
@@ -64,50 +60,20 @@ Warning: do not remove a Redis container to make this command work. It can conta
 
 ## Test Commands
 
-Fast Python and blueprint checks:
+With the workspace environment above active, start from the workspace root. Inspect the catalog and run the smallest injected contract suite:
 
 ```bash
-.venv/bin/python mn-system-tests/test_all.py --fast
+.venv/bin/mn_test --mn-set-folder . --list
+.venv/bin/mn_test --mn-set-folder . --suite contracts
 ```
 
-Unit and component tests:
+For a focused component change, select its unit suites:
 
 ```bash
-.venv/bin/python mn-system-tests/test_all.py --unit
+.venv/bin/mn_test --mn-set-folder . --component mn-api --level unit
 ```
 
-Blueprint quick generation:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --blueprints
-```
-
-Core runtime e2e:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --runtime-e2e
-```
-
-Redis Sentinel HA smoke tests:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --redis-ha
-```
-
-Two-box Redis Sentinel HA smoke test:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --redis-ha \
-  --redis-ha-remote-host <remote-host> \
-  --redis-ha-local-ip <local-host> \
-  --redis-ha-remote-ip <remote-host>
-```
-
-Expected success marker:
-
-```text
-All selected test suites passed.
-```
+Replace `mn-api` with the owning component from `--list`. The canonical [Testing Guide](testing.md#common-commands) covers blueprint validation, Core and browser end-to-end checks, Redis HA, reports, capability gates, and cleanup. The runner records each invocation under `mn-system-tests/results/runs/<run-id>/`; review failures, skips, blockers, and cleanup diagnostics before treating it as successful validation.
 
 ## Before Opening A Pull Request
 
