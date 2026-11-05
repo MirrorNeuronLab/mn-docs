@@ -1,5 +1,9 @@
 # Membrane Context Intelligent System
 
+## Current contract requirement
+
+Membrane supports current package imports and its current v2 wire contract. Optimizer memory helpers are imported from `mn_context_engine_sdk.memory`; retired context RPCs and optimizer forwarding modules are unavailable.
+
 - **Reader:** blueprint authors, runtime integrators, and operators
 - **Outcome:** design and operate model turns whose context remains bounded over
   long-running jobs
@@ -27,7 +31,7 @@ This page is for blueprint authors and runtime operators. It explains how to
 keep long-running jobs useful when their accumulated evidence is larger than
 any model context window. The behavior described here is implemented by
 Membrane's `mn.context.working.v1` contract and the Python SDK
-`ContextSession`; legacy context APIs remain available.
+`ContextSession`. Only the current v2 Membrane service is supported.
 
 ## The bounded-context model
 

@@ -1,5 +1,9 @@
 # MirrorNeuron REST API
 
+## Current contract requirement
+
+Run-file reads require current owner bindings. Enabled remote owners must publish their current HTTP API advertisement; missing advertisements return an explicit unavailable response. Shared configuration/activity helpers use SDK imports.
+
 This page describes the canonical HTTP API used by the Web UI, OtterDesk, and
 HTTP automation. The CLI and Python SDK also use internal gRPC interfaces; the
 gRPC `mirrorneuron.job.v1` package and domain schema labels such as `mn.workflow/v1` are

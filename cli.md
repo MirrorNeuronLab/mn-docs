@@ -1,5 +1,9 @@
 # CLI Reference
 
+## Current contract requirement
+
+The CLI uses the current SDK contract. Old SDK constructor detection, forwarding import paths, private model-helper aliases and pre-registry resource adoption are removed.
+
 For operators and automation authors, this reference covers the current
 checkout's command surface. It assumes an installed CLI and configured runtime
 credentials. Sources are `mn-cli/mn_cli/main.py`, command modules, live `--help`,

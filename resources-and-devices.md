@@ -1,5 +1,9 @@
 # Resources And Devices
 
+## Current contract requirement
+
+Resource admission uses explicit current reservation maps. Older admission snapshots and imported ownerless reservations are unsupported. A Job reuses its allocation for its workers and model calls.
+
 For blueprint authors and operators, this reference explains how the current
 checkout reserves one run's capacity on its Job owner, queues compatible work,
 and selects devices, ports, and volumes. It covers admission and allocation;

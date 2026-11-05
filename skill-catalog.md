@@ -1,5 +1,9 @@
 # Skill Catalog
 
+## Current contract requirement
+
+Skill identities use the current hyphenated distribution-derived name. Dotted aliases and generated legacy-name metadata are removed. Code search traces use Tree-sitter; the old regex trace backend is unsupported.
+
 This is the internal inventory of reusable Python skill packages in `mn-skills/`. It is intentionally a package catalog, not a substitute for each skill's README, `SKILL.md`, tests, dependency metadata, or security review.
 
 ## Source and maintenance

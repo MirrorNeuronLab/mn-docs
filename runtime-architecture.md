@@ -1,5 +1,9 @@
 # MirrorNeuron Runtime Architecture
 
+## Current contract requirement
+
+Core, SDK, CLI, API and worker packages must use the current contracts together. Admission schema 3 rejects older saved state. Resource cleanup uses native ownership records; ownerless compatibility reservations and metadata-based cleanup replay are removed.
+
 For runtime maintainers: this explanation maps compilation, admission,
 owner-local execution, and federation in the current checkout. It assumes
 familiarity with [Core Concepts](core-concepts.md); command syntax and source
@@ -475,8 +479,8 @@ firewall rules or bind/publish host settings to keep it inside the intended
 cluster boundary.
 
 OpenShell workers may select `artifact_handoff.version: mn.artifact_handoff/v1`
-for immutable result transfer. This conflicts with `sync_shared_storage: true`;
-there is no silent fallback between modes. Core validates producer identity,
+for immutable result transfer. The retired `sync_shared_storage` option is
+unsupported. Core validates producer identity,
 lease epoch, confined paths, file type, size/hash, and quotas before committing
 a receipt. Transfer retry reuses the recorded command outcome instead of another
 dispatch. Unknown dispatch completion stays `unknown_blocked`. Cleanup follows

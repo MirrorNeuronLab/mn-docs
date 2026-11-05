@@ -1,5 +1,9 @@
 # Install MirrorNeuron Locally
 
+## Current contract requirement
+
+The current installer uses independently pinned components and `v2:` release fingerprints. It does not infer historical unified component tags or migrate old runtime state. Historical release snapshots remain immutable.
+
 This is the canonical installation procedure for maintainers, contributors, and operators. It documents the deployment installer, local workspace mode, validation signals, state locations, and safe removal behavior.
 
 ## Reader and outcome

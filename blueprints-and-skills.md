@@ -1,5 +1,9 @@
 # Blueprints And Skills
 
+## Current contract requirement
+
+Portable skills use their current hyphenated names. Browser code uses `WebBrowserConfig`, `BrowserSession` and `extract_readable_content`. Workers use current artifact handoff and early browser dependency phases; whole-tree sandbox mirroring is unsupported.
+
 Blueprints and skills are the main extension points for MirrorNeuron.
 
 - A **blueprint** packages a runnable workflow bundle.
