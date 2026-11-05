@@ -17,44 +17,44 @@ Priority reader outcomes:
 
 Before a substantial new page or rewrite, record:
 
-| Field | Required detail |
-| --- | --- |
-| Reader | Evaluator, developer, blueprint author, operator, integrator, contributor, or maintainer. |
-| Outcome | One observable reader result. |
-| Page type | Tutorial, how-to, reference, explanation, troubleshooting, migration, or decision record. |
-| Scope and exclusions | Exact behavior covered and nearby topics intentionally excluded. |
-| Maturity | Experimental, preview, stable, deprecated, or removed; cite a release/compatibility source. |
-| Sources of truth | Code, tests, schemas, CLI/API definitions, release artifacts, or reproducible runtime evidence. |
-| Validation | Documentation checks and the smallest relevant product command/test. |
+| Field                | Required detail                                                                                 |
+| -------------------- | ----------------------------------------------------------------------------------------------- |
+| Reader               | Evaluator, developer, blueprint author, operator, integrator, contributor, or maintainer.       |
+| Outcome              | One observable reader result.                                                                   |
+| Page type            | Tutorial, how-to, reference, explanation, troubleshooting, migration, or decision record.       |
+| Scope and exclusions | Exact behavior covered and nearby topics intentionally excluded.                                |
+| Maturity             | Experimental, preview, stable, deprecated, or removed; cite a release/compatibility source.     |
+| Sources of truth     | Code, tests, schemas, CLI/API definitions, release artifacts, or reproducible runtime evidence. |
+| Validation           | Documentation checks and the smallest relevant product command/test.                            |
 
 Do not claim maturity, support, compatibility, performance, privacy, or reliability without an implementation or release source that defines the boundary.
 
 ## Page types
 
-| Type | Reader question | Required structure |
-| --- | --- | --- |
-| Tutorial | “Can you guide me through a complete first experience?” | Prerequisites, ordered steps, verification, explanation, cleanup, next steps. |
-| How-to | “How do I complete this task?” | Assumptions, numbered procedure, verification, rollback, symptom-led help. |
-| Reference | “What exactly is this command, field, or API?” | Scope, syntax/fields, defaults, constraints, side effects, errors, small examples. |
-| Explanation | “Why does this work this way?” | Problem, mental model, boundaries, guarantees, non-guarantees, failures, tradeoffs. |
-| Troubleshooting | “Why did this fail?” | Exact symptom, likely causes, read-only diagnostics, resolution, verification, escalation evidence. |
-| Migration | “How do I move from an old contract?” | Impact, backup/preflight, steps, verification, rollback, changed behavior. |
+| Type            | Reader question                                         | Required structure                                                                                  |
+| --------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Tutorial        | “Can you guide me through a complete first experience?” | Prerequisites, ordered steps, verification, explanation, cleanup, next steps.                       |
+| How-to          | “How do I complete this task?”                          | Assumptions, numbered procedure, verification, rollback, symptom-led help.                          |
+| Reference       | “What exactly is this command, field, or API?”          | Scope, syntax/fields, defaults, constraints, side effects, errors, small examples.                  |
+| Explanation     | “Why does this work this way?”                          | Problem, mental model, boundaries, guarantees, non-guarantees, failures, tradeoffs.                 |
+| Troubleshooting | “Why did this fail?”                                    | Exact symptom, likely causes, read-only diagnostics, resolution, verification, escalation evidence. |
+| Migration       | “How do I move from an old contract?”                   | Impact, backup/preflight, steps, verification, rollback, changed behavior.                          |
 
 Do not combine a deep architecture essay, a command reference, and a tutorial on one page. Keep one canonical explanation, then link to it from task pages.
 
 ## Canonical-content policy
 
-| Information | Canonical detailed page |
-| --- | --- |
-| Project fit and non-guarantees | `why-mirrorneuron.md` |
-| Shared vocabulary | `core-concepts.md` |
-| CLI syntax and flags | `cli.md`, generated from/checked against `mn --help` |
-| REST API shapes | `api.md`, checked against `mn-api` routes and OpenAPI schema |
-| Configuration keys | `env_variables.md`, checked against configuration schemas |
-| Manifest and bundle fields | `blueprint-standard.md` and `bundle.md` |
-| Architecture and tradeoffs | `runtime-architecture.md`, `cluster_architecture.md`, `reliability.md` |
-| Security boundaries | `security.md` |
-| Operational recovery | `troubleshooting.md`, `redis-ha.md`, cluster/deployment guides |
+| Information                    | Canonical detailed page                                                |
+| ------------------------------ | ---------------------------------------------------------------------- |
+| Project fit and non-guarantees | `why-mirrorneuron.md`                                                  |
+| Shared vocabulary              | `core-concepts.md`                                                     |
+| CLI syntax and flags           | `cli.md`, generated from/checked against `mn --help`                   |
+| REST API shapes                | `api.md`, checked against `mn-api` routes and OpenAPI schema           |
+| Configuration keys             | `env_variables.md`, checked against configuration schemas              |
+| Manifest and bundle fields     | `blueprint-standard.md` and `bundle.md`                                |
+| Architecture and tradeoffs     | `runtime-architecture.md`, `cluster_architecture.md`, `reliability.md` |
+| Security boundaries            | `security.md`                                                          |
+| Operational recovery           | `troubleshooting.md`, `redis-ha.md`, cluster/deployment guides         |
 
 Do not copy a large table or procedure into another page. Keep a short context-specific summary and link to the canonical page.
 

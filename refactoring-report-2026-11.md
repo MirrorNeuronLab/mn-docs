@@ -8,16 +8,16 @@ This is a contributor decision and validation record for the November 4, 2026 wo
 
 The workspace contains eleven independent repositories. The audit prioritized cohesive extractions with testable boundaries. The complete plan was approved before implementation; no feature or external contract redesign was included.
 
-| Priority | Owning files and audit finding | Implemented improvement and benefit | Complexity and regression risk | Compatibility boundary |
-| --- | --- | --- | --- | --- |
-| 1 | API, CLI, SDK, UI, and Core tests did not independently characterize every extraction boundary. | Recorded structural baselines and added characterization tests for progress storage, CLI exports and launch configuration, hardware validation, staging, UI status projection, and Core summaries/topology. | Low implementation complexity; essential coverage for later steps. | Capture existing behavior before moving it; retain original expectations. |
-| 2 | API `blueprint_launch.py` mixed launch orchestration with progress persistence and projections; `launch_progress.py` imported back into launch code. | Extracted `launch_progress_store.py` and made both consumers depend on it. | Low–medium: JSONL ordering, terminal events, and legacy imports matter. | Preserve record format, path resolution, validation errors, status precedence, and old imports. |
-| 3 | CLI `libs/run_cmds` depended on wildcard imports and a transitive namespace. | Replaced wildcard imports in 15 consumer modules and the facade with explicit dependencies; removed the corresponding broad Ruff exemptions. | Medium: existing patch hooks and exported objects must survive. | Preserve all 476 facade export names, command callbacks, and existing patch points used by callers/tests. |
-| 4 | CLI `runtime/server.py` mixed service lifecycle with endpoint, environment, command, and watchdog-script construction. | Extracted `runtime/launch_config.py`; moved watchdog script generation into the existing `runtime/watchdog.py`. | Medium: platform quoting, IPv6, Redis URLs, and bind/advertise behavior. | Keep startup order, process ownership, defaults, and old helper imports. |
-| 5 | SDK validation, model placement, and submission preparation mixed transformations with provider/orchestration calls; model placement imported back into validation orchestration. | Extracted hardware validation, model placement, and payload staging. Consolidated validation report formatting into `validation_issues.py`. Injected the hardware detector into the internal validator. | Medium: lazy probes, fallback behavior, source exclusions, and mutation/order. | Preserve public signatures, lazy detection, caller-supplied validators, report shape, and preparation order. |
-| 6 | UI API schemas shared a file with transport state; `JobDetails.tsx` contained reusable status and summary transformations. | Extracted `api/schemas.ts` and reused `utils/jobDetailsView.ts` for pure view helpers. | Low–medium: Zod defaults/coercion and status precedence. | Keep API exports, request paths, ETag/idempotency/stream behavior, polling, effects, and rendering. |
-| 7 | Core Redis persistence and the job coordinator also owned large projection/traversal helpers. | Added `Persistence.JobSummary` and `Runtime.JobTopology`; retained small delegates in the original owners. | Medium: persisted fields, mixed-key precedence, traversal ordering, and system-job expansion. | Keep Redis keys, serialization, fencing, transactions, leases, and GenServer transitions. |
-| 8 | Contributor docs pointed to deprecated runner flags and obsolete test/report paths. | Updated ownership guidance and the testing, contributing, and benchmark pages against the current runner. | Low: command selection and working directories require verification. | Documentation reflects existing behavior; no runner or public product change. |
+| Priority | Owning files and audit finding                                                                                                                                                    | Implemented improvement and benefit                                                                                                                                                                         | Complexity and regression risk                                                                | Compatibility boundary                                                                                       |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 1        | API, CLI, SDK, UI, and Core tests did not independently characterize every extraction boundary.                                                                                   | Recorded structural baselines and added characterization tests for progress storage, CLI exports and launch configuration, hardware validation, staging, UI status projection, and Core summaries/topology. | Low implementation complexity; essential coverage for later steps.                            | Capture existing behavior before moving it; retain original expectations.                                    |
+| 2        | API `blueprint_launch.py` mixed launch orchestration with progress persistence and projections; `launch_progress.py` imported back into launch code.                              | Extracted `launch_progress_store.py` and made both consumers depend on it.                                                                                                                                  | Low–medium: JSONL ordering, terminal events, and legacy imports matter.                       | Preserve record format, path resolution, validation errors, status precedence, and old imports.              |
+| 3        | CLI `libs/run_cmds` depended on wildcard imports and a transitive namespace.                                                                                                      | Replaced wildcard imports in 15 consumer modules and the facade with explicit dependencies; removed the corresponding broad Ruff exemptions.                                                                | Medium: existing patch hooks and exported objects must survive.                               | Preserve all 476 facade export names, command callbacks, and existing patch points used by callers/tests.    |
+| 4        | CLI `runtime/server.py` mixed service lifecycle with endpoint, environment, command, and watchdog-script construction.                                                            | Extracted `runtime/launch_config.py`; moved watchdog script generation into the existing `runtime/watchdog.py`.                                                                                             | Medium: platform quoting, IPv6, Redis URLs, and bind/advertise behavior.                      | Keep startup order, process ownership, defaults, and old helper imports.                                     |
+| 5        | SDK validation, model placement, and submission preparation mixed transformations with provider/orchestration calls; model placement imported back into validation orchestration. | Extracted hardware validation, model placement, and payload staging. Consolidated validation report formatting into `validation_issues.py`. Injected the hardware detector into the internal validator.     | Medium: lazy probes, fallback behavior, source exclusions, and mutation/order.                | Preserve public signatures, lazy detection, caller-supplied validators, report shape, and preparation order. |
+| 6        | UI API schemas shared a file with transport state; `JobDetails.tsx` contained reusable status and summary transformations.                                                        | Extracted `api/schemas.ts` and reused `utils/jobDetailsView.ts` for pure view helpers.                                                                                                                      | Low–medium: Zod defaults/coercion and status precedence.                                      | Keep API exports, request paths, ETag/idempotency/stream behavior, polling, effects, and rendering.          |
+| 7        | Core Redis persistence and the job coordinator also owned large projection/traversal helpers.                                                                                     | Added `Persistence.JobSummary` and `Runtime.JobTopology`; retained small delegates in the original owners.                                                                                                  | Medium: persisted fields, mixed-key precedence, traversal ordering, and system-job expansion. | Keep Redis keys, serialization, fencing, transactions, leases, and GenServer transitions.                    |
+| 8        | Contributor docs pointed to deprecated runner flags and obsolete test/report paths.                                                                                               | Updated ownership guidance and the testing, contributing, and benchmark pages against the current runner.                                                                                                   | Low: command selection and working directories require verification.                          | Documentation reflects existing behavior; no runner or public product change.                                |
 
 ## Architecture after the change
 
@@ -33,16 +33,16 @@ Old Python entry points re-export moved functions or delegate through the origin
 
 The large orchestration files remain intentionally recognizable. Representative line counts, including imports and compatibility delegates:
 
-| File | Before | After |
-| --- | ---: | ---: |
-| API `blueprint_launch.py` | 1,808 | 1,627 |
-| CLI `runtime/server.py` | 7,900 | 7,579 |
-| SDK `blueprint_validation.py` | 2,510 | 1,964 |
-| SDK `submission_preparation.py` | 2,396 | 2,207 |
-| UI `api/index.ts` | 927 | 458 |
-| UI `pages/JobDetails.tsx` | 765 | 667 |
-| Core `persistence/redis_store.ex` | 5,029 | 4,860 |
-| Core `runtime/job_coordinator.ex` | 4,127 | 3,995 |
+| File                              | Before | After |
+| --------------------------------- | -----: | ----: |
+| API `blueprint_launch.py`         |  1,808 | 1,627 |
+| CLI `runtime/server.py`           |  7,900 | 7,579 |
+| SDK `blueprint_validation.py`     |  2,510 | 1,964 |
+| SDK `submission_preparation.py`   |  2,396 | 2,207 |
+| UI `api/index.ts`                 |    927 |   458 |
+| UI `pages/JobDetails.tsx`         |    765 |   667 |
+| Core `persistence/redis_store.ex` |  5,029 | 4,860 |
+| Core `runtime/job_coordinator.ex` |  4,127 | 3,995 |
 
 These are cohesion improvements, not performance measurements. Extracted functions retain their original algorithms. Configuration definitions stay with their existing loaders. Algorithm-specific constants and the watchdog program remain code-owned rather than becoming a new configuration format.
 
@@ -50,17 +50,17 @@ These are cohesion improvements, not performance measurements. Extracted functio
 
 Baselines were captured before implementation and compared with the final source tree under the same Python environment.
 
-| Boundary | Result |
-| --- | --- |
-| FastAPI OpenAPI | Identical schema: 93 paths and 110 HTTP operations, including request/response schemas and defaults. |
-| HTTP route registration | Identical route structure and methods. |
-| CLI command tree | Identical 76 leaf commands, group ordering, arguments/options, defaults, environment bindings, parameter types, help, and visibility flags. |
-| Public Python declarations | All 3,142 captured declarations retain their names, arguments, annotations, decorators, and class bases. Seventeen moved declarations resolve through their original module imports. |
-| Compatibility facades | Identical exported-name sets for `mn_sdk`, `mn_sdk.blueprint`, `mn_cli.libs.run_cmds`, `mn_cli.server_cmds`, and the API blueprint/job route facades; no callable exports removed. |
-| Wire and blueprint contracts | All 26 captured protobuf/JSON-schema files have unchanged SHA-256 hashes. |
-| Mechanical Python moves | 82 moved function ASTs are identical; CLI command-module function/class bodies are unchanged. The detector injection is validated separately by behavior tests. |
-| UI definitions | 78 extracted schema/type declarations and 11 shared view functions compare identically after normalizing syntax formatting and export modifiers. |
-| Distribution packaging | API, CLI, and SDK wheels build without isolation/network dependency installation. All new modules are packaged, and eleven affected module/facade imports succeed from extracted wheel contents. |
+| Boundary                     | Result                                                                                                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| FastAPI OpenAPI              | Identical schema: 93 paths and 110 HTTP operations, including request/response schemas and defaults.                                                                                             |
+| HTTP route registration      | Identical route structure and methods.                                                                                                                                                           |
+| CLI command tree             | Identical 76 leaf commands, group ordering, arguments/options, defaults, environment bindings, parameter types, help, and visibility flags.                                                      |
+| Public Python declarations   | All 3,142 captured declarations retain their names, arguments, annotations, decorators, and class bases. Seventeen moved declarations resolve through their original module imports.             |
+| Compatibility facades        | Identical exported-name sets for `mn_sdk`, `mn_sdk.blueprint`, `mn_cli.libs.run_cmds`, `mn_cli.server_cmds`, and the API blueprint/job route facades; no callable exports removed.               |
+| Wire and blueprint contracts | All 26 captured protobuf/JSON-schema files have unchanged SHA-256 hashes.                                                                                                                        |
+| Mechanical Python moves      | 82 moved function ASTs are identical; CLI command-module function/class bodies are unchanged. The detector injection is validated separately by behavior tests.                                  |
+| UI definitions               | 78 extracted schema/type declarations and 11 shared view functions compare identically after normalizing syntax formatting and export modifiers.                                                 |
+| Distribution packaging       | API, CLI, and SDK wheels build without isolation/network dependency installation. All new modules are packaged, and eleven affected module/facade imports succeed from extracted wheel contents. |
 
 Characterization coverage checks progress JSONL version/order, malformed records, terminal precedence and phase summaries; facade object identity and export sets; endpoint/URL/environment formatting; lazy hardware probes and provider fallbacks; source traversal/exclusions and payload ordering; status/error display; and Core persisted keys, mixed atom/string fields, lease/scheduler summaries, topology expansion, and cycle traversal.
 
@@ -70,24 +70,24 @@ Structural equivalence does not prove every live integration. The runtime and br
 
 Python tests used the prepared Python 3.12.14 workspace environment. Redis-backed Core tests used a disposable Redis 8 container bound to loopback, an isolated namespace, and temporary storage. The container was stopped and removed after validation. Tests that require localhost sockets were rerun with that capability after sandbox permission failures; no production behavior was changed for those failures.
 
-| Check | Result |
-| --- | --- |
-| API full suite | 664 passed. Final coverage, including branches: 88.08%, above the unchanged 85% gate. Three localhost tests passed on the capability-enabled rerun. |
-| CLI full suite | 1,103 passed, 1 skipped. |
-| SDK full suite | 4,303 passed, 16 skipped, combining the full run with successful reruns of three localhost-dependent tests. |
-| API/CLI/SDK Ruff | All three repositories pass. |
-| UI Vitest | 182 passed across 31 files. |
-| UI ESLint, TypeScript, production build | Pass. The existing large-chunk build warning remains. |
-| UI normal Playwright suite | 3 passed. |
-| UI optional real-API Playwright suite | 3 passed, 3 failed; identical failures on untouched UI/API/SDK revisions. |
-| Core unit and API suites | 908 passed, 22 skipped. Initial harness overrides of shared-storage/cache paths interfered with six fixtures; correcting only the temporary harness yielded the passing full run. |
-| Core persistence/recovery end-to-end tests | 76 passed. |
-| Core runtime/workflow/blueprint end-to-end tests | 64 passed, 1 failed; the same isolated failure reproduces on the original Core revision. |
-| Core formatting and shell syntax | `mix format --check-formatted` passes; all 15 Core shell scripts pass `bash -n`. One existing schema declaration received formatting only. |
-| Core strict compilation | Fails on the same 12 warnings, in the same owning functions, before and after refactoring. No warnings arise from the new projection modules. |
-| Cross-component contracts | 273 passed, 19 failed before and after; failure IDs are identical. |
-| Documentation commands | Current runner help/catalog inspected; all eight documented representative suite selections pass prerequisite dry-run with Docker access. Fixture benchmark report generation succeeds with the documented module path. |
-| Documentation and diff checks | Five Markdown pages parse; 40 local links/anchors resolve; all eleven repository diffs pass `git diff --check`. |
+| Check                                            | Result                                                                                                                                                                                                                  |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API full suite                                   | 664 passed. Final coverage, including branches: 88.08%, above the unchanged 85% gate. Three localhost tests passed on the capability-enabled rerun.                                                                     |
+| CLI full suite                                   | 1,103 passed, 1 skipped.                                                                                                                                                                                                |
+| SDK full suite                                   | 4,303 passed, 16 skipped, combining the full run with successful reruns of three localhost-dependent tests.                                                                                                             |
+| API/CLI/SDK Ruff                                 | All three repositories pass.                                                                                                                                                                                            |
+| UI Vitest                                        | 182 passed across 31 files.                                                                                                                                                                                             |
+| UI ESLint, TypeScript, production build          | Pass. The existing large-chunk build warning remains.                                                                                                                                                                   |
+| UI normal Playwright suite                       | 3 passed.                                                                                                                                                                                                               |
+| UI optional real-API Playwright suite            | 3 passed, 3 failed; identical failures on untouched UI/API/SDK revisions.                                                                                                                                               |
+| Core unit and API suites                         | 908 passed, 22 skipped. Initial harness overrides of shared-storage/cache paths interfered with six fixtures; correcting only the temporary harness yielded the passing full run.                                       |
+| Core persistence/recovery end-to-end tests       | 76 passed.                                                                                                                                                                                                              |
+| Core runtime/workflow/blueprint end-to-end tests | 64 passed, 1 failed; the same isolated failure reproduces on the original Core revision.                                                                                                                                |
+| Core formatting and shell syntax                 | `mix format --check-formatted` passes; all 15 Core shell scripts pass `bash -n`. One existing schema declaration received formatting only.                                                                              |
+| Core strict compilation                          | Fails on the same 12 warnings, in the same owning functions, before and after refactoring. No warnings arise from the new projection modules.                                                                           |
+| Cross-component contracts                        | 273 passed, 19 failed before and after; failure IDs are identical.                                                                                                                                                      |
+| Documentation commands                           | Current runner help/catalog inspected; all eight documented representative suite selections pass prerequisite dry-run with Docker access. Fixture benchmark report generation succeeds with the documented module path. |
+| Documentation and diff checks                    | Five Markdown pages parse; 40 local links/anchors resolve; all eleven repository diffs pass `git diff --check`.                                                                                                         |
 
 Counts describe individual suites and should not be summed with focused extraction checks, which overlap them. No golden fixture, lock file, test expectation, generated binding, or package metadata was changed to conceal a failure.
 

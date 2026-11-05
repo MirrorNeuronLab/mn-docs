@@ -7,17 +7,17 @@ locally, and expose enough operator control for AI lab maintenance.
 
 ## Feature Status
 
-| Feature | Status | Start here |
-| --- | --- | --- |
-| Owner-local reconciliation and restart | Implemented | [Reliability Guide](reliability.md) and [Federation Guide](cluster.md) |
-| Full job type behavior | Implemented | [Reliability Guide](reliability.md) |
-| Restart policy and legacy reschedule-schema compatibility | Implemented | [Reliability Guide](reliability.md) |
-| Node drain and maintenance | Implemented | [Cluster Guide](cluster.md) |
-| Service registry and health checks | Implemented | [Services and Health Checks](services-and-health-checks.md) |
-| Stronger resources and devices | Implemented | [Resources and Devices](resources-and-devices.md) |
-| Shared run reservations and durable queue | Implemented; matching Core/native SDK required | [Resources and Devices](resources-and-devices.md#admission-and-queueing) |
-| Deployment and update strategy | Internal Core controller; public deployment commands/routes removed | [Deployments](deployments.md) |
-| Periodic, delayed, and event-triggered jobs | Implemented | [Schedules and Events](schedules-and-events.md) |
+| Feature                                                   | Status                                                              | Start here                                                               |
+| --------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Owner-local reconciliation and restart                    | Implemented                                                         | [Reliability Guide](reliability.md) and [Federation Guide](cluster.md)   |
+| Full job type behavior                                    | Implemented                                                         | [Reliability Guide](reliability.md)                                      |
+| Restart policy and legacy reschedule-schema compatibility | Implemented                                                         | [Reliability Guide](reliability.md)                                      |
+| Node drain and maintenance                                | Implemented                                                         | [Cluster Guide](cluster.md)                                              |
+| Service registry and health checks                        | Implemented                                                         | [Services and Health Checks](services-and-health-checks.md)              |
+| Stronger resources and devices                            | Implemented                                                         | [Resources and Devices](resources-and-devices.md)                        |
+| Shared run reservations and durable queue                 | Implemented; matching Core/native SDK required                      | [Resources and Devices](resources-and-devices.md#admission-and-queueing) |
+| Deployment and update strategy                            | Internal Core controller; public deployment commands/routes removed | [Deployments](deployments.md)                                            |
+| Periodic, delayed, and event-triggered jobs               | Implemented                                                         | [Schedules and Events](schedules-and-events.md)                          |
 
 ## Design Concept
 
@@ -116,26 +116,26 @@ not runnable public interfaces.
 
 ## Important Code
 
-| Area | Important files |
-| --- | --- |
-| Manifest fields and validation | `MirrorNeuron/lib/mirror_neuron/manifest.ex` |
-| Placement scheduler | `MirrorNeuron/lib/mirror_neuron/scheduler.ex` |
-| Resource spec and allocation env | `MirrorNeuron/lib/mirror_neuron/resource_spec.ex` |
-| Node inventory and resource API | `MirrorNeuron/lib/mirror_neuron/resource.ex` |
-| Job coordinator lifecycle | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex` |
-| Restart and legacy policy normalization | `MirrorNeuron/lib/mirror_neuron/runtime/lifecycle_policy.ex` |
-| Owner-local reconciliation | `MirrorNeuron/lib/mirror_neuron/cluster/reconciler.ex` |
-| Federation monitoring | `MirrorNeuron/lib/mirror_neuron/cluster/federation_monitor.ex` |
-| Drain and maintenance | `MirrorNeuron/lib/mirror_neuron/cluster/node_drainer.ex` |
-| Service declarations | `MirrorNeuron/lib/mirror_neuron/service_spec.ex` |
-| Service checks and registry | `MirrorNeuron/lib/mirror_neuron/service_check.ex`, `MirrorNeuron/lib/mirror_neuron/service_registry.ex`, `MirrorNeuron/lib/mirror_neuron/service_monitor.ex`, `MirrorNeuron/lib/mirror_neuron/service_preflight.ex` |
-| Deployments | `MirrorNeuron/lib/mirror_neuron/runtime/deployment_policy.ex`, `MirrorNeuron/lib/mirror_neuron/runtime/deployment_controller.ex` |
-| Schedules and triggers | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_policy.ex`, `MirrorNeuron/lib/mirror_neuron/runtime/schedule_dispatcher.ex` |
-| Durable Redis state | `MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex` |
-| gRPC server surfaces | `MirrorNeuron/lib/mirror_neuron_grpc/server.ex` |
-| CLI commands | `mn-cli/mn_cli/main.py`, `mn-cli/mn_cli/libs/*.py` |
-| Python SDK | `mn-python-sdk/mn_sdk/client.py`, `mn-python-sdk/mn_sdk/bundle.py`, `mn-python-sdk/mn_sdk/decorators.py` |
-| Blueprint validation | `mn-python-sdk/mn_sdk/blueprint_validation.py` |
+| Area                                    | Important files                                                                                                                                                                                                     |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Manifest fields and validation          | `MirrorNeuron/lib/mirror_neuron/manifest.ex`                                                                                                                                                                        |
+| Placement scheduler                     | `MirrorNeuron/lib/mirror_neuron/scheduler.ex`                                                                                                                                                                       |
+| Resource spec and allocation env        | `MirrorNeuron/lib/mirror_neuron/resource_spec.ex`                                                                                                                                                                   |
+| Node inventory and resource API         | `MirrorNeuron/lib/mirror_neuron/resource.ex`                                                                                                                                                                        |
+| Job coordinator lifecycle               | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex`                                                                                                                                                         |
+| Restart and legacy policy normalization | `MirrorNeuron/lib/mirror_neuron/runtime/lifecycle_policy.ex`                                                                                                                                                        |
+| Owner-local reconciliation              | `MirrorNeuron/lib/mirror_neuron/cluster/reconciler.ex`                                                                                                                                                              |
+| Federation monitoring                   | `MirrorNeuron/lib/mirror_neuron/cluster/federation_monitor.ex`                                                                                                                                                      |
+| Drain and maintenance                   | `MirrorNeuron/lib/mirror_neuron/cluster/node_drainer.ex`                                                                                                                                                            |
+| Service declarations                    | `MirrorNeuron/lib/mirror_neuron/service_spec.ex`                                                                                                                                                                    |
+| Service checks and registry             | `MirrorNeuron/lib/mirror_neuron/service_check.ex`, `MirrorNeuron/lib/mirror_neuron/service_registry.ex`, `MirrorNeuron/lib/mirror_neuron/service_monitor.ex`, `MirrorNeuron/lib/mirror_neuron/service_preflight.ex` |
+| Deployments                             | `MirrorNeuron/lib/mirror_neuron/runtime/deployment_policy.ex`, `MirrorNeuron/lib/mirror_neuron/runtime/deployment_controller.ex`                                                                                    |
+| Schedules and triggers                  | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_policy.ex`, `MirrorNeuron/lib/mirror_neuron/runtime/schedule_dispatcher.ex`                                                                                        |
+| Durable Redis state                     | `MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex`                                                                                                                                                         |
+| gRPC server surfaces                    | `MirrorNeuron/lib/mirror_neuron_grpc/server.ex`                                                                                                                                                                     |
+| CLI commands                            | `mn-cli/mn_cli/main.py`, `mn-cli/mn_cli/libs/*.py`                                                                                                                                                                  |
+| Python SDK                              | `mn-python-sdk/mn_sdk/client.py`, `mn-python-sdk/mn_sdk/bundle.py`, `mn-python-sdk/mn_sdk/decorators.py`                                                                                                            |
+| Blueprint validation                    | `mn-python-sdk/mn_sdk/blueprint_validation.py`                                                                                                                                                                      |
 
 ## What Is Still Intentionally V1
 

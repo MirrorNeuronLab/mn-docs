@@ -19,23 +19,23 @@ start must acquire an owner reservation before executing; see
 
 ## Canonical terms
 
-| Term | Definition | Primary evidence |
-| --- | --- | --- |
-| **workflow** | A declared graph or program of work executed by the runtime. | Manifest schema and runtime scheduling code. |
-| **blueprint** | A reusable packaged workflow, normally containing a manifest, configuration, payloads, README, and supporting assets. | `otterdesk-blueprints/<blueprint_id>/`. |
-| **bundle** | The validated package submitted to the runtime. | `bundle.md`, SDK bundle helpers, CLI validation. |
-| **job** | A durable configured definition with persistent data and one owner Core. Batch Jobs can have multiple Runs; a service Job has at most one attached Run. | Core `runtime/stable_job.ex`; `mn job` and `/jobs`. |
-| **run** | One execution of a durable job, identified by a public run ID. | `mn run` commands and `/runs` API routes. |
-| **attempt** | A retry/recovery incarnation of the same Run, with its own identity and lease fence. | Core `runtime/run_retry.ex`, `job_runner.ex`. |
-| **reservation** | An owner-local fenced claim on PC capacity. It may reserve the whole PC or a declared shared peak budget, and survives pause until verified release. | Core `runtime/node_admission.ex`, `resource_allocation.ex`. |
-| **queued start** | An accepted, durable Run request awaiting owner capacity; it has an identity but no running executor. | Core `runtime/node_admission_state.ex`; `resource_wait` schedule projection. |
-| **workflow step** | A logical unit admitted and completed by its owning ledger boundary; several physical workers can implement it. | Core `runtime/workflow_ledger.ex`, `workflow_admission.ex`. |
-| **agent** | An executable workflow participant with a declared role and runtime contract. | Manifest nodes and runtime agent modules. |
-| **runtime node** | A machine or runtime member eligible to execute work. | `mn node` commands and cluster runtime code. |
-| **event** | A recorded runtime occurrence such as progress, failure, retry, or completion. | Job events and run-store JSONL streams. |
-| **artifact** | A file or output associated with a run. | Run-store contract and artifact API routes. |
-| **control plane** | The runtime responsibilities for state, scheduling, inspection, and control. | Runtime architecture and Core modules. |
-| **execution plane** | Worker processes and runners that execute workflow work. | Runner configuration, OpenShell integration, and worker modules. |
+| Term                | Definition                                                                                                                                              | Primary evidence                                                             |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **workflow**        | A declared graph or program of work executed by the runtime.                                                                                            | Manifest schema and runtime scheduling code.                                 |
+| **blueprint**       | A reusable packaged workflow, normally containing a manifest, configuration, payloads, README, and supporting assets.                                   | `otterdesk-blueprints/<blueprint_id>/`.                                      |
+| **bundle**          | The validated package submitted to the runtime.                                                                                                         | `bundle.md`, SDK bundle helpers, CLI validation.                             |
+| **job**             | A durable configured definition with persistent data and one owner Core. Batch Jobs can have multiple Runs; a service Job has at most one attached Run. | Core `runtime/stable_job.ex`; `mn job` and `/jobs`.                          |
+| **run**             | One execution of a durable job, identified by a public run ID.                                                                                          | `mn run` commands and `/runs` API routes.                                    |
+| **attempt**         | A retry/recovery incarnation of the same Run, with its own identity and lease fence.                                                                    | Core `runtime/run_retry.ex`, `job_runner.ex`.                                |
+| **reservation**     | An owner-local fenced claim on PC capacity. It may reserve the whole PC or a declared shared peak budget, and survives pause until verified release.    | Core `runtime/node_admission.ex`, `resource_allocation.ex`.                  |
+| **queued start**    | An accepted, durable Run request awaiting owner capacity; it has an identity but no running executor.                                                   | Core `runtime/node_admission_state.ex`; `resource_wait` schedule projection. |
+| **workflow step**   | A logical unit admitted and completed by its owning ledger boundary; several physical workers can implement it.                                         | Core `runtime/workflow_ledger.ex`, `workflow_admission.ex`.                  |
+| **agent**           | An executable workflow participant with a declared role and runtime contract.                                                                           | Manifest nodes and runtime agent modules.                                    |
+| **runtime node**    | A machine or runtime member eligible to execute work.                                                                                                   | `mn node` commands and cluster runtime code.                                 |
+| **event**           | A recorded runtime occurrence such as progress, failure, retry, or completion.                                                                          | Job events and run-store JSONL streams.                                      |
+| **artifact**        | A file or output associated with a run.                                                                                                                 | Run-store contract and artifact API routes.                                  |
+| **control plane**   | The runtime responsibilities for state, scheduling, inspection, and control.                                                                            | Runtime architecture and Core modules.                                       |
+| **execution plane** | Worker processes and runners that execute workflow work.                                                                                                | Runner configuration, OpenShell integration, and worker modules.             |
 
 ## Runner and trust boundaries
 

@@ -55,32 +55,32 @@ For `service` and `system` jobs, deployments can update running agents. For `bat
 
 Supported strategies:
 
-| Strategy | Behavior |
-| --- | --- |
-| `rolling` | Replace changed agents in batches capped by `max_parallel`. |
-| `canary` | Replace a canary batch and pause until promotion unless `auto_promote` is true. |
+| Strategy     | Behavior                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------ |
+| `rolling`    | Replace changed agents in batches capped by `max_parallel`.                                |
+| `canary`     | Replace a canary batch and pause until promotion unless `auto_promote` is true.            |
 | `blue-green` | Start a target version alongside the old version, then promote and retire the old primary. |
 
 Health checks:
 
-| Value | Meaning |
-| --- | --- |
-| `checks` | Agent ready plus passing service checks when declared. |
-| `agent_states` | Agent readiness only. |
+| Value          | Meaning                                                |
+| -------------- | ------------------------------------------------------ |
+| `checks`       | Agent ready plus passing service checks when declared. |
+| `agent_states` | Agent readiness only.                                  |
 
 Defaults:
 
-| Field | Default |
-| --- | --- |
-| `strategy` | `rolling` |
-| `max_parallel` | `1` |
-| `canary` | `0` |
-| `min_healthy_ms` | `10000` |
-| `healthy_deadline_ms` | `300000` |
-| `progress_deadline_ms` | `600000` |
-| `health_check` | `checks` |
-| `auto_promote` | `false` |
-| `auto_revert` | `false` |
+| Field                  | Default   |
+| ---------------------- | --------- |
+| `strategy`             | `rolling` |
+| `max_parallel`         | `1`       |
+| `canary`               | `0`       |
+| `min_healthy_ms`       | `10000`   |
+| `healthy_deadline_ms`  | `300000`  |
+| `progress_deadline_ms` | `600000`  |
+| `health_check`         | `checks`  |
+| `auto_promote`         | `false`   |
+| `auto_revert`          | `false`   |
 
 ## CLI Usage
 
@@ -114,16 +114,16 @@ Normal service discovery returns primary passing instances. Canary and candidate
 
 ## Important Code
 
-| Area | Files |
-| --- | --- |
-| Policy normalization and validation | `MirrorNeuron/lib/mirror_neuron/runtime/deployment_policy.ex` |
-| Controller and version records | `MirrorNeuron/lib/mirror_neuron/runtime/deployment_controller.ex` |
-| Agent replacement messages | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex` |
-| Service role metadata | `MirrorNeuron/lib/mirror_neuron/service_registry.ex` |
-| Redis deployment storage | `MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex` |
-| Current gRPC boundary | `MirrorNeuron/proto/job.proto` (no deployment operations) |
-| Public CLI boundary | `mn-cli/mn_cli/main.py` (no deployment group) |
-| Public REST boundary | `mn-api/mn_api/app.py`, route modules, and OpenAPI (no deployment routes) |
+| Area                                | Files                                                                     |
+| ----------------------------------- | ------------------------------------------------------------------------- |
+| Policy normalization and validation | `MirrorNeuron/lib/mirror_neuron/runtime/deployment_policy.ex`             |
+| Controller and version records      | `MirrorNeuron/lib/mirror_neuron/runtime/deployment_controller.ex`         |
+| Agent replacement messages          | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex`               |
+| Service role metadata               | `MirrorNeuron/lib/mirror_neuron/service_registry.ex`                      |
+| Redis deployment storage            | `MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex`               |
+| Current gRPC boundary               | `MirrorNeuron/proto/job.proto` (no deployment operations)                 |
+| Public CLI boundary                 | `mn-cli/mn_cli/main.py` (no deployment group)                             |
+| Public REST boundary                | `mn-api/mn_api/app.py`, route modules, and OpenAPI (no deployment routes) |
 
 ## V1 Limits
 
@@ -131,4 +131,3 @@ Normal service discovery returns primary passing instances. Canary and candidate
 - `batch` and `sysbatch` keep version history and explicit reruns
 - deployment does not replace reliability policy; failed agents still follow restart/reschedule rules
 - fully automatic rollback depends on health signals available from agent readiness and service checks
-

@@ -54,12 +54,12 @@ bounded.
 
 ## Ownership
 
-| Component | Responsibility |
-| --- | --- |
-| Workflow/Core | Run identity, cancellation, deadlines, and splitting work after `needs_partition` |
+| Component                   | Responsibility                                                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Workflow/Core               | Run identity, cancellation, deadlines, and splitting work after `needs_partition`                                               |
 | Python SDK `ContextSession` | Immutable artifact journal, complete-request token counting, budgets, exact-source verification, dispatch and response receipts |
-| Membrane `WorkingMemory` | Run-scoped indexed recall, ACLs, supersession, obligations, deterministic bounded selection |
-| LiteLLM/model gateway | Provider tokenizer, final context admission, and model execution |
+| Membrane `WorkingMemory`    | Run-scoped indexed recall, ACLs, supersession, obligations, deterministic bounded selection                                     |
+| LiteLLM/model gateway       | Provider tokenizer, final context admission, and model execution                                                                |
 
 Context selection does not call tools, redesign a workflow, or generate new
 evidence. It selects and verifies existing records. A dynamic planner may use
@@ -147,15 +147,15 @@ and its writeback is completed idempotently.
 
 ## Failure behavior
 
-| Condition | Result |
-| --- | --- |
-| Required input is too large | `needs_partition`; split the decision |
-| Context storage, call, or deadline budget is reached | Explicit budget failure or workflow-defined incomplete result |
-| Source hash or range does not match | Fail without using the evidence |
-| Revision or idempotency identity is stale/conflicting | Reject the write |
-| Prior model dispatch has no durable response | `AmbiguousInvocation`; use an explicit retry identity |
-| Optional model selector fails | Deterministic selection continues |
-| Membrane or the provider is unavailable | Dependency failure; do not fabricate a result |
+| Condition                                             | Result                                                        |
+| ----------------------------------------------------- | ------------------------------------------------------------- |
+| Required input is too large                           | `needs_partition`; split the decision                         |
+| Context storage, call, or deadline budget is reached  | Explicit budget failure or workflow-defined incomplete result |
+| Source hash or range does not match                   | Fail without using the evidence                               |
+| Revision or idempotency identity is stale/conflicting | Reject the write                                              |
+| Prior model dispatch has no durable response          | `AmbiguousInvocation`; use an explicit retry identity         |
+| Optional model selector fails                         | Deterministic selection continues                             |
+| Membrane or the provider is unavailable               | Dependency failure; do not fabricate a result                 |
 
 ## Security and privacy
 
@@ -170,12 +170,12 @@ prompt inputs.
 
 ## Components
 
-| Folder | Purpose | Main validation |
-| --- | --- | --- |
-| [`Membrane/mn-context-engine`](../Membrane/mn-context-engine) | Rust gRPC context engine. | `cargo test` |
-| [`Membrane/mn-context-engine-python-sdk`](../Membrane/mn-context-engine-python-sdk/README.md) | Python SDK shell and utilities for the Rust engine. | `.venv/bin/python -m pytest -q` |
-| [`Membrane/mn-context-auto-optimizer`](../Membrane/mn-context-auto-optimizer/README.md) | Deterministic graph/NLP context compression and optional model tooling. | `.venv/bin/python -m pytest -q` |
-| [`Membrane/mn-context-auto-optimizer-benchmark`](../Membrane/mn-context-auto-optimizer-benchmark/README.md) | Benchmark and telemetry package for context compression models. | `.venv/bin/python -m pytest -q` |
+| Folder                                                                                                      | Purpose                                                                 | Main validation                 |
+| ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- | ------------------------------- |
+| [`Membrane/mn-context-engine`](../Membrane/mn-context-engine)                                               | Rust gRPC context engine.                                               | `cargo test`                    |
+| [`Membrane/mn-context-engine-python-sdk`](../Membrane/mn-context-engine-python-sdk/README.md)               | Python SDK shell and utilities for the Rust engine.                     | `.venv/bin/python -m pytest -q` |
+| [`Membrane/mn-context-auto-optimizer`](../Membrane/mn-context-auto-optimizer/README.md)                     | Deterministic graph/NLP context compression and optional model tooling. | `.venv/bin/python -m pytest -q` |
+| [`Membrane/mn-context-auto-optimizer-benchmark`](../Membrane/mn-context-auto-optimizer-benchmark/README.md) | Benchmark and telemetry package for context compression models.         | `.venv/bin/python -m pytest -q` |
 
 ## Python SDK
 
@@ -225,11 +225,11 @@ cat packet.json | mn-context-packer compress \
 
 Supported compression modes:
 
-| Mode | Use |
-| --- | --- |
-| `graph_nlp` | Deterministic graph and NLP compression with no model dependency. |
-| `llm_only` | Model-only compression; requires `--model-dir` or `MN_CONTEXT_MODEL_DIR`. |
-| `hybrid` | Graph-first deterministic compression with optional evidence-only rewrite. |
+| Mode        | Use                                                                        |
+| ----------- | -------------------------------------------------------------------------- |
+| `graph_nlp` | Deterministic graph and NLP compression with no model dependency.          |
+| `llm_only`  | Model-only compression; requires `--model-dir` or `MN_CONTEXT_MODEL_DIR`.  |
+| `hybrid`    | Graph-first deterministic compression with optional evidence-only rewrite. |
 
 ## Benchmarks
 

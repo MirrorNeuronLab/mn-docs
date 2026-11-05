@@ -39,23 +39,23 @@ legal_assistant/
   "config": "config/default.json",
   "dependencies": "dependencies.json",
   "extensions": {
-    "mn.llm": {"file": "extensions/llm.json", "required": true},
-    "mn.product": {"file": "extensions/product.json", "required": false}
+    "mn.llm": { "file": "extensions/llm.json", "required": true },
+    "mn.product": { "file": "extensions/product.json", "required": false }
   }
 }
 ```
 
 All references are ordinary package-relative POSIX paths. Documents have fixed responsibilities, not arbitrary include or override semantics.
 
-| Document | Responsibility |
-| --- | --- |
-| `manifest.json` | Identity, release version, description, legal references, and role references |
-| `workflow.json` | Logical steps, dependencies, dynamic workflows, and workflow policies |
-| `execution.json` | Execution mode, agents, workers, runners, resources, placement, services, schedules, and execution policies |
-| `contracts.json` | Inputs, validation, adapters, live inputs, outputs, artifacts, events, status, and privacy |
-| `dependencies.json` | Skill and agent package names, versions, and sources |
-| `config/default.json` | Operator-tunable defaults |
-| `extensions/*.json` | Platform features and domain descriptors |
+| Document              | Responsibility                                                                                              |
+| --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `manifest.json`       | Identity, release version, description, legal references, and role references                               |
+| `workflow.json`       | Logical steps, dependencies, dynamic workflows, and workflow policies                                       |
+| `execution.json`      | Execution mode, agents, workers, runners, resources, placement, services, schedules, and execution policies |
+| `contracts.json`      | Inputs, validation, adapters, live inputs, outputs, artifacts, events, status, and privacy                  |
+| `dependencies.json`   | Skill and agent package names, versions, and sources                                                        |
+| `config/default.json` | Operator-tunable defaults                                                                                   |
+| `extensions/*.json`   | Platform features and domain descriptors                                                                    |
 
 The SDK ships Draft 2020-12 schemas for each role and known extension. Canonical schema identifiers resolve against the SDK's local registry without fetching schemas from the network. Unknown core fields, duplicate JSON properties, invalid release versions, missing documents, and unsupported schema identifiers are errors.
 
@@ -107,19 +107,19 @@ these contracts; existing Runs and retained retry checkpoints are not rewritten.
 
 Each extension document declares its own canonical `$schema`. Manifest extension registrations name the document and state whether support is required.
 
-| Registration | Feature |
-| --- | --- |
-| `mn.llm` | Logical models, provider settings, actor assignments, structured output |
-| `mn.rag` | Grounding, retrieval, embeddings, and knowledge settings |
-| `mn.context` | Context/memory policy and cluster capabilities |
-| `mn.response` | Definition-scoped response services, including bounded job agents |
-| `mn.storage` | Persistent job data resources |
-| `mn.airgap` | Air-gap behavior and offline dependency policy |
-| `mn.ui` | Configuration review, dashboards, and launch presentation |
-| `mn.product` | Product information and discovery descriptors |
-| `mn.testing` | Quick-test descriptors |
-| `mn.agentic` | Bounded research and tool-use policy |
-| `mn.domain` | Blueprint-owned domain descriptors |
+| Registration  | Feature                                                                 |
+| ------------- | ----------------------------------------------------------------------- |
+| `mn.llm`      | Logical models, provider settings, actor assignments, structured output |
+| `mn.rag`      | Grounding, retrieval, embeddings, and knowledge settings                |
+| `mn.context`  | Context/memory policy and cluster capabilities                          |
+| `mn.response` | Definition-scoped response services, including bounded job agents       |
+| `mn.storage`  | Persistent job data resources                                           |
+| `mn.airgap`   | Air-gap behavior and offline dependency policy                          |
+| `mn.ui`       | Configuration review, dashboards, and launch presentation               |
+| `mn.product`  | Product information and discovery descriptors                           |
+| `mn.testing`  | Quick-test descriptors                                                  |
+| `mn.agentic`  | Bounded research and tool-use policy                                    |
+| `mn.domain`   | Blueprint-owned domain descriptors                                      |
 
 Known runtime features are handled by the SDK. An unknown required extension fails compilation. Unknown optional descriptive extensions remain in the snapshot and exported package without being executed. Adding a runtime feature requires a handler and a schema; adding fields to the core document is not an extension mechanism.
 

@@ -15,53 +15,53 @@ The `manifest.json` is a JSON document that defines the execution graph.
 
 ### Top-level Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `manifest_version` | String | **Required.** The version of the manifest format (e.g., `"1.0"`). |
-| `graph_id` | String | **Required.** A unique workflow id. |
-| `job_name` | String | Optional. A human-readable name for the job. Defaults to `graph_id` if missing. |
-| `type` | String | Optional. Set to `"service"` for workflows intended to run until manually stopped. Omit for default batch workflows. `system` and `sysbatch` are selected through scheduler policy. |
-| `response_service` | Object | Optional. Exactly `{"enabled": true}` enables one definition-scoped real-time Job responder. It is not a DAG node or Run service and accepts no command, handler, port, prompt, or endpoint fields. |
+| Field                     | Type    | Description                                                                                                                                                                                                                      |
+| ------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `manifest_version`        | String  | **Required.** The version of the manifest format (e.g., `"1.0"`).                                                                                                                                                                |
+| `graph_id`                | String  | **Required.** A unique workflow id.                                                                                                                                                                                              |
+| `job_name`                | String  | Optional. A human-readable name for the job. Defaults to `graph_id` if missing.                                                                                                                                                  |
+| `type`                    | String  | Optional. Set to `"service"` for workflows intended to run until manually stopped. Omit for default batch workflows. `system` and `sysbatch` are selected through scheduler policy.                                              |
+| `response_service`        | Object  | Optional. Exactly `{"enabled": true}` enables one definition-scoped real-time Job responder. It is not a DAG node or Run service and accepts no command, handler, port, prompt, or endpoint fields.                              |
 | `required_context_engine` | Boolean | Optional. Set to `true` when the workflow requires the Context Engine. The runtime checks `CONTEXT_ENGINE_ADDR` or port `50052` and rejects the run before scheduling agents if the service is unavailable. Defaults to `false`. |
-| `services` | Array | Optional. Services registered by the job. See [Services and Health Checks](services-and-health-checks.md). |
-| `required_services` | Array | Optional. Services that must be healthy before job start. |
-| `deployment` | Object | Optional. Stable deployment key and metadata. See [Deployments](deployments.md). |
-| `schedule` | Object | Optional. Periodic or delayed schedule declaration. See [Schedules and Events](schedules-and-events.md). |
-| `triggers` | Array | Optional. Event-trigger schedule declarations. |
-| `parameterized` | Object | Optional. Dispatch payload and metadata declaration for scheduled or event-triggered runs. |
-| `metadata` | Object | Optional. Custom metadata tags for the job. |
-| `entrypoints` | Array | **Required.** A list of `node_id` strings where initial inputs will be injected to start the graph. |
-| `initial_inputs` | Object | Optional. A map where the keys are `node_id`s (from `entrypoints`) and values are arrays of message payloads to seed the job. |
-| `nodes` | Array | **Required.** The list of agent nodes that make up the workflow. |
-| `edges` | Array | **Required.** The list of message-routing edges between nodes. |
-| `policies` | Object | Optional. Job-level policies like `recovery_mode`. |
+| `services`                | Array   | Optional. Services registered by the job. See [Services and Health Checks](services-and-health-checks.md).                                                                                                                       |
+| `required_services`       | Array   | Optional. Services that must be healthy before job start.                                                                                                                                                                        |
+| `deployment`              | Object  | Optional. Stable deployment key and metadata. See [Deployments](deployments.md).                                                                                                                                                 |
+| `schedule`                | Object  | Optional. Periodic or delayed schedule declaration. See [Schedules and Events](schedules-and-events.md).                                                                                                                         |
+| `triggers`                | Array   | Optional. Event-trigger schedule declarations.                                                                                                                                                                                   |
+| `parameterized`           | Object  | Optional. Dispatch payload and metadata declaration for scheduled or event-triggered runs.                                                                                                                                       |
+| `metadata`                | Object  | Optional. Custom metadata tags for the job.                                                                                                                                                                                      |
+| `entrypoints`             | Array   | **Required.** A list of `node_id` strings where initial inputs will be injected to start the graph.                                                                                                                              |
+| `initial_inputs`          | Object  | Optional. A map where the keys are `node_id`s (from `entrypoints`) and values are arrays of message payloads to seed the job.                                                                                                    |
+| `nodes`                   | Array   | **Required.** The list of agent nodes that make up the workflow.                                                                                                                                                                 |
+| `edges`                   | Array   | **Required.** The list of message-routing edges between nodes.                                                                                                                                                                   |
+| `policies`                | Object  | Optional. Job-level policies like `recovery_mode`.                                                                                                                                                                               |
 
 ### Nodes (Agents)
 
 Each item in the `nodes` array defines an agent that will be supervised by the BEAM runtime.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `node_id` | String | **Required.** Unique identifier for this node within the graph. |
-| `agent_type` | String | **Required.** The core runtime primitive. Typically `"router"`, `"executor"`, `"aggregator"`, or `"sensor"`. |
-| `type` | String | Optional. The behavioral template (e.g., `"map"`, `"reduce"`, `"stream"`, `"batch"`). Defaults to `"generic"`. |
-| `role` | String | Optional. A human-readable tag describing the agent's domain role (e.g., `"researcher"`, `"root_coordinator"`). |
-| `config` | Object | Optional. Configuration specific to the `agent_type` and `type` (e.g., `emit_type`, `pool`, `uploads`). |
-| `resources` | Object | Optional. CPU, memory, disk, GPU, device, port, volume, and runtime-driver requirements. |
-| `services` | Array | Optional. Services registered by this specific agent. |
-| `requires_services` | Array | Optional. Node-scoped service requirements used during placement. |
-| `policies` | Object | Optional. Per-agent restart overrides and legacy policy fields. |
+| Field               | Type   | Description                                                                                                     |
+| ------------------- | ------ | --------------------------------------------------------------------------------------------------------------- |
+| `node_id`           | String | **Required.** Unique identifier for this node within the graph.                                                 |
+| `agent_type`        | String | **Required.** The core runtime primitive. Typically `"router"`, `"executor"`, `"aggregator"`, or `"sensor"`.    |
+| `type`              | String | Optional. The behavioral template (e.g., `"map"`, `"reduce"`, `"stream"`, `"batch"`). Defaults to `"generic"`.  |
+| `role`              | String | Optional. A human-readable tag describing the agent's domain role (e.g., `"researcher"`, `"root_coordinator"`). |
+| `config`            | Object | Optional. Configuration specific to the `agent_type` and `type` (e.g., `emit_type`, `pool`, `uploads`).         |
+| `resources`         | Object | Optional. CPU, memory, disk, GPU, device, port, volume, and runtime-driver requirements.                        |
+| `services`          | Array  | Optional. Services registered by this specific agent.                                                           |
+| `requires_services` | Array  | Optional. Node-scoped service requirements used during placement.                                               |
+| `policies`          | Object | Optional. Per-agent restart overrides and legacy policy fields.                                                 |
 
 ### Job Types
 
 MirrorNeuron supports four Nomad-inspired job types:
 
-| Type | How to declare | Behavior |
-| --- | --- | --- |
-| `service` | top-level `"type": "service"` or scheduler policy | Long-running and restarted locally by policy until stopped. |
-| `batch` | default top-level type | Runs to completion and retries within policy limits. |
-| `system` | `policies.scheduler.job_type: "system"` | Runs owner-local long-running system work. It does not expand across federated peers. |
-| `sysbatch` | `policies.scheduler.job_type: "sysbatch"` | Runs owner-local one-off system work. It does not expand across federated peers. |
+| Type       | How to declare                                    | Behavior                                                                              |
+| ---------- | ------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `service`  | top-level `"type": "service"` or scheduler policy | Long-running and restarted locally by policy until stopped.                           |
+| `batch`    | default top-level type                            | Runs to completion and retries within policy limits.                                  |
+| `system`   | `policies.scheduler.job_type: "system"`           | Runs owner-local long-running system work. It does not expand across federated peers. |
+| `sysbatch` | `policies.scheduler.job_type: "sysbatch"`         | Runs owner-local one-off system work. It does not expand across federated peers.      |
 
 Example:
 
@@ -215,10 +215,10 @@ See [Schedules and Events](schedules-and-events.md).
 
 Edges dictate how messages flow between agents after a step completes.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `from_node` | String | **Required.** The `node_id` of the sending agent. |
-| `to_node` | String | **Required.** The `node_id` of the receiving agent. |
+| Field          | Type   | Description                                                                                   |
+| -------------- | ------ | --------------------------------------------------------------------------------------------- |
+| `from_node`    | String | **Required.** The `node_id` of the sending agent.                                             |
+| `to_node`      | String | **Required.** The `node_id` of the receiving agent.                                           |
 | `message_type` | String | **Required.** The event or message type that triggers this edge (e.g., `"research_request"`). |
 
 ---
@@ -371,10 +371,7 @@ Here is a simple example of a complete `manifest.json` for a Map-Reduce style wo
   "required_context_engine": false,
   "entrypoints": ["dispatcher"],
   "initial_inputs": {
-    "dispatcher": [
-      {"file": "doc1.txt"},
-      {"file": "doc2.txt"}
-    ]
+    "dispatcher": [{ "file": "doc1.txt" }, { "file": "doc2.txt" }]
   },
   "nodes": [
     {

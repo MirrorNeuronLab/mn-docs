@@ -164,14 +164,14 @@ Use the [CLI retry interface](cli.md#jobs-and-runs) or
 
 Restart policy can be declared at job and agent scope. Common fields are:
 
-| Field | Meaning |
-| --- | --- |
-| `attempts` | Restarts allowed inside the sliding interval. |
-| `interval_ms` | Sliding window used to count attempts. |
-| `delay_ms` | Base delay before another attempt. |
-| `delay_function` | `constant`, `exponential`, or `fibonacci`. |
-| `max_delay_ms` | Maximum calculated delay. |
-| `mode` | `fail` or `delay` after attempts are exhausted. |
+| Field            | Meaning                                         |
+| ---------------- | ----------------------------------------------- |
+| `attempts`       | Restarts allowed inside the sliding interval.   |
+| `interval_ms`    | Sliding window used to count attempts.          |
+| `delay_ms`       | Base delay before another attempt.              |
+| `delay_function` | `constant`, `exponential`, or `fibonacci`.      |
+| `max_delay_ms`   | Maximum calculated delay.                       |
+| `mode`           | `fail` or `delay` after attempts are exhausted. |
 
 Restart attempts are counted when recovery begins. A new process is created
 from the manifest; eligible durable deliveries may be replayed, but arbitrary
@@ -195,10 +195,10 @@ When a peer link fails:
 Known remote Job archive and confirmed Job deletion are explicit exceptions.
 The receiving Core can durably store an owner-directed tombstone:
 
-| Pending status | Meaning |
-| --- | --- |
-| `archive_pending` | The cached Job reflects archive intent; the owner has not applied it yet. |
-| `delete_pending` | Normal cached lists hide the definition/runs; owner cleanup and data deletion remain pending. |
+| Pending status    | Meaning                                                                                       |
+| ----------------- | --------------------------------------------------------------------------------------------- |
+| `archive_pending` | The cached Job reflects archive intent; the owner has not applied it yet.                     |
+| `delete_pending`  | Normal cached lists hide the definition/runs; owner cleanup and data deletion remain pending. |
 
 Reconnection replays these lifecycle requests. A reachable owner response clears
 the tombstone, including a rejected request; it does not become an unlimited

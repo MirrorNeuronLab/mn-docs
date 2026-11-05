@@ -229,10 +229,10 @@ bash scripts/test_redis_sentinel_two_box_ha.sh \
 
 Options:
 
-| Option | Default | Description |
-| --- | --- | --- |
-| `--remote-network` | `auto` | `auto`, `host`, or `bridge`. On Linux Docker, `auto` chooses host networking for the remote side. |
-| `--initial-primary` | `auto` | `auto`, `local`, or `remote`. `auto` falls back to remote-primary when the remote cannot reach the local Redis port. |
+| Option              | Default | Description                                                                                                          |
+| ------------------- | ------- | -------------------------------------------------------------------------------------------------------------------- |
+| `--remote-network`  | `auto`  | `auto`, `host`, or `bridge`. On Linux Docker, `auto` chooses host networking for the remote side.                    |
+| `--initial-primary` | `auto`  | `auto`, `local`, or `remote`. `auto` falls back to remote-primary when the remote cannot reach the local Redis port. |
 
 From the workspace root, the workspace wrapper runs the same smoke:
 

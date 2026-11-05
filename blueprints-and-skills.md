@@ -113,14 +113,14 @@ This `workflow.json` selects two Python handlers:
     {
       "id": "intake",
       "needs": [],
-      "run": {"handler": "vc_assistant.steps.intake"}
+      "run": { "handler": "vc_assistant.steps.intake" }
     },
     {
       "id": "research",
       "needs": ["intake"],
       "run": {
         "handler": "vc_assistant.steps.research",
-        "with": {"operation": "company_identity"}
+        "with": { "operation": "company_identity" }
       }
     }
   ]

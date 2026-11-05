@@ -45,26 +45,26 @@ Read [Runtime Architecture](runtime-architecture.md), [Reliability Guide](reliab
 
 ## Locate the owning code
 
-| Change | Start with |
-| --- | --- |
-| Runtime configuration and startup validation | `MirrorNeuron/lib/mirror_neuron/config/` |
-| Scheduling, leases, and recovery | `MirrorNeuron/lib/mirror_neuron/scheduler.ex`, `execution/`, and cluster modules |
-| Job lifecycle and durable state | `MirrorNeuron/lib/mirror_neuron/runtime/` and persistence modules |
-| Agent behavior and built-ins | `MirrorNeuron/lib/mirror_neuron/agent*` and `builtins/` |
-| HostLocal, Docker, or OpenShell execution | `MirrorNeuron/lib/mirror_neuron/runner/` and `sandbox/` |
-| gRPC contract handling | `MirrorNeuron/lib/mirror_neuron_grpc/` |
+| Change                                       | Start with                                                                       |
+| -------------------------------------------- | -------------------------------------------------------------------------------- |
+| Runtime configuration and startup validation | `MirrorNeuron/lib/mirror_neuron/config/`                                         |
+| Scheduling, leases, and recovery             | `MirrorNeuron/lib/mirror_neuron/scheduler.ex`, `execution/`, and cluster modules |
+| Job lifecycle and durable state              | `MirrorNeuron/lib/mirror_neuron/runtime/` and persistence modules                |
+| Agent behavior and built-ins                 | `MirrorNeuron/lib/mirror_neuron/agent*` and `builtins/`                          |
+| HostLocal, Docker, or OpenShell execution    | `MirrorNeuron/lib/mirror_neuron/runner/` and `sandbox/`                          |
+| gRPC contract handling                       | `MirrorNeuron/lib/mirror_neuron_grpc/`                                           |
 
 Do not add domain-specific business logic to Core when it belongs in a blueprint payload, skill, or agent template.
 
 ## Required documentation updates
 
-| Core change | Documentation to update |
-| --- | --- |
+| Core change                                                           | Documentation to update                                                                        |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | Lifecycle, scheduler, lease, retry, recovery, or persistence behavior | `runtime-architecture.md`, `reliability.md`, and troubleshooting if the failure is observable. |
-| New/changed environment variable | `env_variables.md`, configuration tests, and the docs-site configuration reference. |
-| gRPC/API-visible behavior | `api.md`, SDK/CLI references, and relevant route/client tests. |
-| Runner, file, secret, network, or sandbox behavior | `security.md`, runner guidance, and the affected blueprint documentation. |
-| User-visible behavior | the detailed page in `mn-docs` and the concise matching page in `mn-doc-site/content/docs`. |
+| New/changed environment variable                                      | `env_variables.md`, configuration tests, and the docs-site configuration reference.            |
+| gRPC/API-visible behavior                                             | `api.md`, SDK/CLI references, and relevant route/client tests.                                 |
+| Runner, file, secret, network, or sandbox behavior                    | `security.md`, runner guidance, and the affected blueprint documentation.                      |
+| User-visible behavior                                                 | the detailed page in `mn-docs` and the concise matching page in `mn-doc-site/content/docs`.    |
 
 ## Related pages
 

@@ -32,10 +32,10 @@ The generated executable manifest accepts `policies.resource_allocation`.
 In a [source package](blueprint-standard.md), author this under `policies` in
 `execution.json`.
 
-| Policy | Admission behavior |
-| --- | --- |
-| Omitted, or `mode: exclusive_node` | Reserves the whole owner PC. Existing whole-PC claims retain this protection until cleanup. |
-| `mode: shared` | Admits compatible runs together within declared peak CPU, RAM, disk, and GPU budgets. Positive `cpu_cores` and `memory_mb` are required. |
+| Policy                             | Admission behavior                                                                                                                       |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Omitted, or `mode: exclusive_node` | Reserves the whole owner PC. Existing whole-PC claims retain this protection until cleanup.                                              |
+| `mode: shared`                     | Admits compatible runs together within declared peak CPU, RAM, disk, and GPU budgets. Positive `cpu_cores` and `memory_mb` are required. |
 
 This CPU-only policy is a fragment of `execution.json`, not a complete blueprint:
 
@@ -89,11 +89,11 @@ requests must honor the recorded allocation and reservation generation.
 authorize execution. Start and explicit checkpoint retry recheck and reserve
 under the owner's start gate before execution persistence.
 
-| Start policy | Result when compatible capacity is busy |
-| --- | --- |
-| `start_now` (manual default) | Rejects admission with `accepted: false`; no failed execution is created just to represent resource contention. |
-| `enqueue_if_busy` | Accepts the same run into a durable owner-local queue with `status: queued` and an `admission` receipt; no executor is running yet. |
-| Scheduled occurrence | Uses the durable queue automatically while retaining occurrence identity and overlap policy. |
+| Start policy                 | Result when compatible capacity is busy                                                                                             |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `start_now` (manual default) | Rejects admission with `accepted: false`; no failed execution is created just to represent resource contention.                     |
+| `enqueue_if_busy`            | Accepts the same run into a durable owner-local queue with `status: queued` and an `admission` receipt; no executor is running yet. |
+| Scheduled occurrence         | Uses the durable queue automatically while retaining occurrence identity and overlap policy.                                        |
 
 An accepted queued run starts automatically when eligible. The receipt identifies
 the queue, owner, friendly PC label when available, position, and blocker.
@@ -178,15 +178,15 @@ Existing manifests remain valid. Legacy `gpu_count` is treated as a generic GPU 
 
 ## Device Requests
 
-| Field | Meaning |
-| --- | --- |
-| `kind` or `type` | Usually `gpu`; either may be used. |
-| `count` | Number of matching devices. Defaults to 1. |
-| `vendor` | Vendor filter such as `nvidia`, `apple`, or `amd`. |
-| `driver` | Driver/runtime capability such as `cuda`, `metal`, or `rocm`. |
-| `min_memory_mb` | Minimum memory on one device. |
-| `capabilities` | Required capability labels. |
-| `ids` | Optional exact device IDs. |
+| Field            | Meaning                                                       |
+| ---------------- | ------------------------------------------------------------- |
+| `kind` or `type` | Usually `gpu`; either may be used.                            |
+| `count`          | Number of matching devices. Defaults to 1.                    |
+| `vendor`         | Vendor filter such as `nvidia`, `apple`, or `amd`.            |
+| `driver`         | Driver/runtime capability such as `cuda`, `metal`, or `rocm`. |
+| `min_memory_mb`  | Minimum memory on one device.                                 |
+| `capabilities`   | Required capability labels.                                   |
+| `ids`            | Optional exact device IDs.                                    |
 
 Examples:
 
@@ -292,15 +292,15 @@ Supported modes are `ro` and `rw`. Supported type is `host`.
 
 When an agent starts, allocation metadata is passed into its runtime context and safe environment hints:
 
-| Env var | Meaning |
-| --- | --- |
-| `MN_ALLOCATION_JSON` | Full JSON allocation. |
+| Env var                   | Meaning                              |
+| ------------------------- | ------------------------------------ |
+| `MN_ALLOCATION_JSON`      | Full JSON allocation.                |
 | `MN_ALLOCATED_DEVICE_IDS` | Comma-separated selected device IDs. |
-| `CUDA_VISIBLE_DEVICES` | Selected CUDA device indices. |
-| `MN_GPU_DRIVER` | Selected GPU drivers. |
-| `MN_PORT_<LABEL>` | Reserved explicit port by label. |
-| `MN_VOLUME_<NAME>` | Allocated host volume source. |
-| `MN_VOLUME_<NAME>_TARGET` | Requested target path. |
+| `CUDA_VISIBLE_DEVICES`    | Selected CUDA device indices.        |
+| `MN_GPU_DRIVER`           | Selected GPU drivers.                |
+| `MN_PORT_<LABEL>`         | Reserved explicit port by label.     |
+| `MN_VOLUME_<NAME>`        | Allocated host volume source.        |
+| `MN_VOLUME_<NAME>_TARGET` | Requested target path.               |
 
 Worker code should use these hints when selecting devices, ports, and model/cache paths.
 
@@ -343,18 +343,18 @@ command to roll back; it does not install OS resource isolation.
 
 ## Important Code
 
-| Area | Files |
-| --- | --- |
-| Resource shape and env hints | `MirrorNeuron/lib/mirror_neuron/resource_spec.ex` |
-| Scheduler matching and allocation | `MirrorNeuron/lib/mirror_neuron/scheduler.ex` |
-| Node inventory | `MirrorNeuron/lib/mirror_neuron/resource.ex` |
-| Run budgets and device accounting | `MirrorNeuron/lib/mirror_neuron/runtime/resource_allocation.ex` |
+| Area                                       | Files                                                                                 |
+| ------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Resource shape and env hints               | `MirrorNeuron/lib/mirror_neuron/resource_spec.ex`                                     |
+| Scheduler matching and allocation          | `MirrorNeuron/lib/mirror_neuron/scheduler.ex`                                         |
+| Node inventory                             | `MirrorNeuron/lib/mirror_neuron/resource.ex`                                          |
+| Run budgets and device accounting          | `MirrorNeuron/lib/mirror_neuron/runtime/resource_allocation.ex`                       |
 | Durable reservation, dispatch, and cleanup | `MirrorNeuron/lib/mirror_neuron/runtime/node_admission.ex`, `node_admission_state.ex` |
-| Coarse resource percentages | `MirrorNeuron/lib/mirror_neuron/resource_admission.ex` |
-| Runtime agent context | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex` |
-| Manifest validation | `MirrorNeuron/lib/mirror_neuron/manifest.ex` |
-| CLI commands | `mn-cli/mn_cli/libs/resource_cmds.py` |
-| SDK validation helpers | `mn-python-sdk/mn_sdk/blueprint_validation.py` |
+| Coarse resource percentages                | `MirrorNeuron/lib/mirror_neuron/resource_admission.ex`                                |
+| Runtime agent context                      | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex`                           |
+| Manifest validation                        | `MirrorNeuron/lib/mirror_neuron/manifest.ex`                                          |
+| CLI commands                               | `mn-cli/mn_cli/libs/resource_cmds.py`                                                 |
+| SDK validation helpers                     | `mn-python-sdk/mn_sdk/blueprint_validation.py`                                        |
 
 ## V1 Limits
 
@@ -374,4 +374,3 @@ and port normalization. SDK `test_node_admission.py` and
 Real hardware admission, Docker device binding, and release compatibility still
 require the matching installed-runtime integration checks. See [Changes](changes.md)
 for this audit's exact validation scope.
-

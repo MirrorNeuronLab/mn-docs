@@ -21,6 +21,7 @@ set:
 ## Command tree
 
 <!-- BEGIN GENERATED MN COMMAND TREE -->
+
 ```text
 blueprint  list add show update remove run validate doctor cleanup export
 job        list create backup restore show relocate analysis start archive reset-data delete
@@ -34,6 +35,7 @@ operation  show watch
 resource   show usage set
 service    list show
 ```
+
 <!-- END GENERATED MN COMMAND TREE -->
 
 Every leaf command accepts `--json`. `--debug` is the single root diagnostic

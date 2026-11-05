@@ -7,13 +7,13 @@ This contributor reference covers fixture evaluation and interface measurements 
 
 ## Metrics
 
-| Metric | What it measures |
-| --- | --- |
-| Workflow Completion Rate | Whether a full multi-step workflow finishes the intended task. |
-| Fault Recovery Rate | Whether the workflow resumes after worker, tool, loop, or approval failures. |
-| Tool Execution Accuracy | Whether agents choose expected tools, parameters, and side-effect boundaries. |
-| Cost per Successful Workflow | Estimated runtime cost for successful workflow execution. |
-| Human Intervention Rate | How often a person is needed at review or repair checkpoints. |
+| Metric                       | What it measures                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| Workflow Completion Rate     | Whether a full multi-step workflow finishes the intended task.                |
+| Fault Recovery Rate          | Whether the workflow resumes after worker, tool, loop, or approval failures.  |
+| Tool Execution Accuracy      | Whether agents choose expected tools, parameters, and side-effect boundaries. |
+| Cost per Successful Workflow | Estimated runtime cost for successful workflow execution.                     |
+| Human Intervention Rate      | How often a person is needed at review or repair checkpoints.                 |
 
 ## Run Tests
 

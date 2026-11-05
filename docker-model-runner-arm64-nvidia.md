@@ -242,5 +242,4 @@ process, then run `sudo apt-get update`.
 - [NVIDIA Container Runtime for Docker on DGX Spark](https://docs.nvidia.com/dgx/dgx-spark/nvidia-container-runtime-for-docker.html)
 - [Install NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 
-Last reviewed against the linked Docker and NVIDIA documentation: September
-2026.
+Last reviewed against the linked Docker and NVIDIA documentation: September 2026.

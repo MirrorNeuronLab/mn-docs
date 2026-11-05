@@ -21,10 +21,10 @@ summary projections of remote jobs.
 
 Permit these endpoints only between trusted LAN or VPN peers:
 
-| Port | Purpose |
-| --- | --- |
-| `55051` | Core gRPC federation control and forwarded owner requests. |
-| `4000` | Private LiteLLM gateway-to-gateway model routing. |
+| Port            | Purpose                                                    |
+| --------------- | ---------------------------------------------------------- |
+| `55051`         | Core gRPC federation control and forwarded owner requests. |
+| `4000`          | Private LiteLLM gateway-to-gateway model routing.          |
 | Syncthing ports | Optional blob transport when `cluster.storage` is enabled. |
 
 Redis, Redis Sentinel, EPMD, and BEAM distribution ports do not need to be

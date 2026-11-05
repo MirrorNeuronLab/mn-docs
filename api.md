@@ -74,17 +74,17 @@ supported. Use the current Job/Run and schedule resources.
 
 ## Resource overview
 
-| Area | Canonical resources |
-| --- | --- |
-| Health and system | `/health`, `/runtime/status`, `/runtime/health`, `/runtime/diagnostics`, `/runtime/resources`, `/system/summary`, `/metrics` |
-| Jobs | `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/bundle`, `/jobs/{job_id}/data-resets`, `/jobs/{job_id}/relocations`, `/jobs/{job_id}/mcp` |
-| Runs | `/jobs/{job_id}/runs`, `/blueprints/{blueprint_id}/runs`, `/runs`, `/runs/{run_id}` |
-| Admission and retry | `/jobs/{job_id}/run-admission-checks`, `/runs/{run_id}/retry-plans`, `/runs/{run_id}/retries` |
-| Run detail | `/runs/{run_id}/monitor`, `/workflow-progress`, `/logs`, `/events`, `/resources`, `/human-requests`, `/ui`, `/artifacts`, `/outputs`, `/snapshots`, `/agent-graph`, `/export`, `/observability` |
-| Bundles and blueprints | `/bundles`, `/blueprints`, `/blueprints/{blueprint_id}`, `/additions`, `/removals`, `/validations`, `/runs` |
-| Schedules | `/jobs/{job_id}/schedules`, `/schedules`, `/schedules/{schedule_id}` |
-| Infrastructure | `/nodes`, `/models`, `/model-remotes`, `/model-proxies`, `/services`, `/service-checks` |
-| Operations | `/operations`, `/operations/{operation_id}` |
+| Area                   | Canonical resources                                                                                                                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Health and system      | `/health`, `/runtime/status`, `/runtime/health`, `/runtime/diagnostics`, `/runtime/resources`, `/system/summary`, `/metrics`                                                                    |
+| Jobs                   | `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/bundle`, `/jobs/{job_id}/data-resets`, `/jobs/{job_id}/relocations`, `/jobs/{job_id}/mcp`                                                            |
+| Runs                   | `/jobs/{job_id}/runs`, `/blueprints/{blueprint_id}/runs`, `/runs`, `/runs/{run_id}`                                                                                                             |
+| Admission and retry    | `/jobs/{job_id}/run-admission-checks`, `/runs/{run_id}/retry-plans`, `/runs/{run_id}/retries`                                                                                                   |
+| Run detail             | `/runs/{run_id}/monitor`, `/workflow-progress`, `/logs`, `/events`, `/resources`, `/human-requests`, `/ui`, `/artifacts`, `/outputs`, `/snapshots`, `/agent-graph`, `/export`, `/observability` |
+| Bundles and blueprints | `/bundles`, `/blueprints`, `/blueprints/{blueprint_id}`, `/additions`, `/removals`, `/validations`, `/runs`                                                                                     |
+| Schedules              | `/jobs/{job_id}/schedules`, `/schedules`, `/schedules/{schedule_id}`                                                                                                                            |
+| Infrastructure         | `/nodes`, `/models`, `/model-remotes`, `/model-proxies`, `/services`, `/service-checks`                                                                                                         |
+| Operations             | `/operations`, `/operations/{operation_id}`                                                                                                                                                     |
 
 Durable configured work is a Job. One execution of that definition is a Run.
 Run URLs always use the public `run_id`; `runtime_run_id` is diagnostic metadata
@@ -103,19 +103,19 @@ owner/observation metadata. A later start must recheck capacity.
 
 Run creation accepts:
 
-| Field | Default | Contract |
-| --- | --- | --- |
-| `admission_policy` | `start_now` | `start_now` rejects a busy owner before execution persistence; `enqueue_if_busy` explicitly accepts compatible work into its durable queue. |
-| `inputs` | `{}` | Runtime workflow inputs. |
-| `config_overrides` | `{}` | Catalog Job configuration changes; preparation occurs only when resolved configuration changes. |
-| `run_id` | generated | Explicit public execution identity when supplied. |
-| `replace_existing_run` | `false` | Destructive service replacement; requires a fresh explicit `run_id`. |
+| Field                  | Default     | Contract                                                                                                                                    |
+| ---------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admission_policy`     | `start_now` | `start_now` rejects a busy owner before execution persistence; `enqueue_if_busy` explicitly accepts compatible work into its durable queue. |
+| `inputs`               | `{}`        | Runtime workflow inputs.                                                                                                                    |
+| `config_overrides`     | `{}`        | Catalog Job configuration changes; preparation occurs only when resolved configuration changes.                                             |
+| `run_id`               | generated   | Explicit public execution identity when supplied.                                                                                           |
+| `replace_existing_run` | `false`     | Destructive service replacement; requires a fresh explicit `run_id`.                                                                        |
 
 For example, the body below opts into automatic dispatch when owner capacity
 becomes available:
 
 ```json
-{"inputs": {}, "admission_policy": "enqueue_if_busy"}
+{ "inputs": {}, "admission_policy": "enqueue_if_busy" }
 ```
 
 An accepted busy start returns `202` with `status: queued` and an `admission`
@@ -171,13 +171,13 @@ for integrity and replay limits.
 All paths below are beneath `/api/v1`. Requests require the configured API
 authentication. Schedules target an existing durable Job on its owner.
 
-| Method and path | Request / result |
-| --- | --- |
-| `POST /jobs/{job_id}/schedules` | `{schedule: {...}, source: {}}`; idempotent creation with `Idempotency-Key`, returns `201`. |
-| `GET /schedules?owner_node=<node>` | Lists the selected owner's schedules and queued starts. |
-| `GET /schedules/{schedule_id}?owner_node=<node>` | Detail and current ETag. |
-| `PATCH /schedules/{schedule_id}?owner_node=<node>` | Requires `If-Match`; `schedule` contains changes, or `desired_state` is `running`/`paused` for an ordinary schedule. |
-| `DELETE /schedules/{schedule_id}?owner_node=<node>` | Requires `If-Match`; returns the owner's deletion/cancellation receipt with `200`. |
+| Method and path                                     | Request / result                                                                                                     |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `POST /jobs/{job_id}/schedules`                     | `{schedule: {...}, source: {}}`; idempotent creation with `Idempotency-Key`, returns `201`.                          |
+| `GET /schedules?owner_node=<node>`                  | Lists the selected owner's schedules and queued starts.                                                              |
+| `GET /schedules/{schedule_id}?owner_node=<node>`    | Detail and current ETag.                                                                                             |
+| `PATCH /schedules/{schedule_id}?owner_node=<node>`  | Requires `If-Match`; `schedule` contains changes, or `desired_state` is `running`/`paused` for an ordinary schedule. |
+| `DELETE /schedules/{schedule_id}?owner_node=<node>` | Requires `If-Match`; returns the owner's deletion/cancellation receipt with `200`.                                   |
 
 An admission queue entry is `kind: resource_wait`, named `queue_<run-id>`.
 For that projection, PATCH accepts `{"schedule":{"run_at":"<future-ISO-time>"}}`
@@ -202,18 +202,18 @@ binds the MCP session to one Job; no tool accepts a `job_id`, so a caller cannot
 switch Jobs through tool arguments. Discover the current tools and availability
 through `get_capabilities`; the endpoint includes lifecycle effects:
 
-| Tool | Result |
-| --- | --- |
-| `get_user_manual()`, `get_capabilities()` | Installed manual/hash, profile, declared schemas, effects, and current readiness. |
-| `get_job_profile()` | Blueprint identity, mission, safe configuration, schedule, and lifecycle state. |
-| `get_job_context(evidence_limit=50)` | Combined profile, schedule, latest-run summary, warnings, and truncation metadata. |
-| `get_run_status(run_id?)`, `get_run_results(run_id?)` | Actual runtime state or bounded published results; omitted Run selects the latest. |
-| `watch_job_activity(after_event_id?, wait_seconds=20)` | One activity/cursor, waiting at most 25 seconds; does not acknowledge a human notice. |
-| `get_operation_status(operation_id)` | Observed status of an operation belonging to this Job. |
-| `start_run(request_id)` | Explicitly starts from saved validated configuration. |
-| `pause_run(request_id, run_id)`, `resume_run(request_id, run_id)`, `stop_run(request_id, run_id)` | Core-owned lifecycle transitions; stop means cancellation. |
-| Declared domain tools | Exact schemas/effects from the prepared Job and its owner-routed worker service. |
-| `ask_job`, optional `get_job_turn` | Conversational response tools when the Job enables the corresponding response service. |
+| Tool                                                                                              | Result                                                                                 |
+| ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `get_user_manual()`, `get_capabilities()`                                                         | Installed manual/hash, profile, declared schemas, effects, and current readiness.      |
+| `get_job_profile()`                                                                               | Blueprint identity, mission, safe configuration, schedule, and lifecycle state.        |
+| `get_job_context(evidence_limit=50)`                                                              | Combined profile, schedule, latest-run summary, warnings, and truncation metadata.     |
+| `get_run_status(run_id?)`, `get_run_results(run_id?)`                                             | Actual runtime state or bounded published results; omitted Run selects the latest.     |
+| `watch_job_activity(after_event_id?, wait_seconds=20)`                                            | One activity/cursor, waiting at most 25 seconds; does not acknowledge a human notice.  |
+| `get_operation_status(operation_id)`                                                              | Observed status of an operation belonging to this Job.                                 |
+| `start_run(request_id)`                                                                           | Explicitly starts from saved validated configuration.                                  |
+| `pause_run(request_id, run_id)`, `resume_run(request_id, run_id)`, `stop_run(request_id, run_id)` | Core-owned lifecycle transitions; stop means cancellation.                             |
+| Declared domain tools                                                                             | Exact schemas/effects from the prepared Job and its owner-routed worker service.       |
+| `ask_job`, optional `get_job_turn`                                                                | Conversational response tools when the Job enables the corresponding response service. |
 
 Standard results use `mn.mcp.tool_result.v1` with Job/blueprint/run identity,
 request ID, status, optional operation ID, data, and sanitized error. Mutating
@@ -411,12 +411,12 @@ curl -i -X POST http://localhost:54001/api/v1/blueprints/<blueprint-id>/removals
 
 The request fields are:
 
-| Field | Default | Effect |
-| --- | --- | --- |
-| `keep_resources` | `false` | Preserve blueprint-owned runtime resources instead of cleaning them up. |
-| `keep_models` | `false` | Explicitly retain model images after releasing this blueprint's ownership. |
-| `remove_models` | `false` | Remove model images that become orphaned; cannot be combined with `keep_models`. |
-| `dry_run` | `false` | Plan the archive, resource cleanup, and model changes without applying them. |
+| Field            | Default | Effect                                                                           |
+| ---------------- | ------- | -------------------------------------------------------------------------------- |
+| `keep_resources` | `false` | Preserve blueprint-owned runtime resources instead of cleaning them up.          |
+| `keep_models`    | `false` | Explicitly retain model images after releasing this blueprint's ownership.       |
+| `remove_models`  | `false` | Remove model images that become orphaned; cannot be combined with `keep_models`. |
+| `dry_run`        | `false` | Plan the archive, resource cleanup, and model changes without applying them.     |
 
 Removal is also asynchronous. Poll its Operation or follow the Operation SSE
 stream, then verify that the blueprint projection reports `added: false` and

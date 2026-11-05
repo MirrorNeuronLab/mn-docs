@@ -12,12 +12,12 @@ host service, or runs inside OpenShell.
 
 A blueprint launch can touch several different filesystems and networks:
 
-| Place | What Runs There | What It Can See |
-| --- | --- | --- |
-| Native OS | OtterDesk, `mn-api`, `mn`, validation before launch | Native files such as `~/docs`, native localhost ports |
+| Place                 | What Runs There                                                              | What It Can See                                                                         |
+| --------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Native OS             | OtterDesk, `mn-api`, `mn`, validation before launch                          | Native files such as `~/docs`, native localhost ports                                   |
 | Core Docker container | MirrorNeuron core, core-side validation, HostLocal workers in local installs | Submitted bundle under `/tmp/bundle_*`, payloads under `payloads/`, container localhost |
-| HostLocal workspace | A copied payload directory for one agent | Only files copied from the submitted payload `upload_path` |
-| OpenShell sandbox | Sandboxed worker command | Only uploaded sandbox files and explicitly allowed network/filesystem resources |
+| HostLocal workspace   | A copied payload directory for one agent                                     | Only files copied from the submitted payload `upload_path`                              |
+| OpenShell sandbox     | Sandboxed worker command                                                     | Only uploaded sandbox files and explicitly allowed network/filesystem resources         |
 
 The mistake to avoid: never assume a path or port that worked in native
 validation will work in the runtime worker.
@@ -154,14 +154,14 @@ manifest:
     "command": ["python3.12", "example_web_ui.py"]
   },
   "resources": {
-    "ports": [{"label": "web_ui", "port": 61000, "protocol": "http"}]
+    "ports": [{ "label": "web_ui", "port": 61000, "protocol": "http" }]
   },
   "services": [
     {
       "name": "example-web-ui",
       "port": 61000,
       "tags": ["web_ui", "blueprint", "example", "json-render"],
-      "checks": [{"name": "http-ready", "type": "http", "path": "/healthz"}]
+      "checks": [{ "name": "http-ready", "type": "http", "path": "/healthz" }]
     }
   ]
 }
@@ -175,11 +175,11 @@ or reserve a global dashboard port range from `config.web_ui`.
 
 `localhost` always means "this process's own network namespace."
 
-| From | `localhost` Means | Use For Host Services |
-| --- | --- | --- |
-| Native OS | The macOS/Linux/WSL host | `localhost` |
-| Core Docker container | The core container | `host.docker.internal` on Docker Desktop, or a reachable host IP |
-| OpenShell sandbox | The sandbox | Usually a service DNS name, gateway address, or explicit host mapping |
+| From                  | `localhost` Means        | Use For Host Services                                                 |
+| --------------------- | ------------------------ | --------------------------------------------------------------------- |
+| Native OS             | The macOS/Linux/WSL host | `localhost`                                                           |
+| Core Docker container | The core container       | `host.docker.internal` on Docker Desktop, or a reachable host IP      |
+| OpenShell sandbox     | The sandbox              | Usually a service DNS name, gateway address, or explicit host mapping |
 
 Examples:
 

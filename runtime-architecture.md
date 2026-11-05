@@ -13,22 +13,22 @@ on the owning artifacts. [Changes](changes.md) records validation and limits.
 Paths in this table are relative to `MirrorNeuron/lib/mirror_neuron/` unless
 otherwise stated. Bare filenames in a cell share the preceding file's directory.
 
-| Boundary | Owning code | Contract |
-| --- | --- | --- |
-| Startup | `application.ex` | Supervises registries, job/agent supervisors, admission, recovery, cancellation, responses, and native-resource maintenance. |
-| Definition and start | `runtime/stable_job.ex`, `stable_job_update.ex`, `run_start_request.ex` | Durable Job identity, revision/start gates, service single-run rules, and keyed start reconciliation. |
-| Physical capacity | `runtime/node_admission.ex`, `node_admission_state.ex`, `resource_allocation.ex` | Atomic owner-local reservations, durable queue, generation fencing, and verified reclamation. |
-| Physical placement | `scheduler.ex`, `resource_spec.ex` | Resolves admitted workers, devices, ports, and volume requirements on the owner. |
-| Execution lifecycle | `runtime/job_runner.ex`, `job_coordinator.ex`, `agent_worker.ex` | Per-run supervision, worker delivery, status, and durable transition ownership. |
-| Logical workflow | `runtime/workflow_ledger.ex`, `workflow_admission.ex`, `workflow_message.ex` | Dependency admission, attempt context, step boundaries, retries, and completion fencing. |
-| Adaptive work | `runtime/dynamic_workflow.ex`, `child_workflow.ex` | Bounded graph patches and child rounds within the existing run. |
-| Progress and action limits | `runtime/workflow_activity.ex`, `workflow_budget.ex` | Live progress supervision and durable named action allowances. |
-| Messages | `runtime/delivery.ex`, `backpressure.ex`, `live_input.ex` | Leases, ACK/retry/deduplication, queue pressure, and declared live controls. |
-| External execution | `runner/`, `execution/lease_manager.ex`, `sandbox/` | Host/Docker/OpenShell invocation, local executor slots, staging, and owned cleanup. |
-| Durability and recovery | `persistence/`, `runtime/local_recovery.ex`, `recovery_safety.ex`, `run_retry.ex` | Fenced Redis state, safe clean attempts, and explicit checkpoint retry. |
-| Finalization | `runtime/finalization.ex`, `job_cleanup.ex`, `cancellation_reconciler.ex` | Terminal publication, durable cancellation intent, and retryable cleanup. |
-| Peer control | `cluster/federation_client.ex`, `federation_registry.ex`, `federation_channels.ex` | Authenticated owner forwarding and cached projections. Horde supervision remains local to a Core. |
-| Remote interfaces | `MirrorNeuron/proto/job.proto`, `MirrorNeuron/lib/mirror_neuron_grpc/handlers/` | Authoritative `mirrorneuron.job.v1.JobService`; CLI and REST adapt it through the SDK. |
+| Boundary                   | Owning code                                                                        | Contract                                                                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Startup                    | `application.ex`                                                                   | Supervises registries, job/agent supervisors, admission, recovery, cancellation, responses, and native-resource maintenance. |
+| Definition and start       | `runtime/stable_job.ex`, `stable_job_update.ex`, `run_start_request.ex`            | Durable Job identity, revision/start gates, service single-run rules, and keyed start reconciliation.                        |
+| Physical capacity          | `runtime/node_admission.ex`, `node_admission_state.ex`, `resource_allocation.ex`   | Atomic owner-local reservations, durable queue, generation fencing, and verified reclamation.                                |
+| Physical placement         | `scheduler.ex`, `resource_spec.ex`                                                 | Resolves admitted workers, devices, ports, and volume requirements on the owner.                                             |
+| Execution lifecycle        | `runtime/job_runner.ex`, `job_coordinator.ex`, `agent_worker.ex`                   | Per-run supervision, worker delivery, status, and durable transition ownership.                                              |
+| Logical workflow           | `runtime/workflow_ledger.ex`, `workflow_admission.ex`, `workflow_message.ex`       | Dependency admission, attempt context, step boundaries, retries, and completion fencing.                                     |
+| Adaptive work              | `runtime/dynamic_workflow.ex`, `child_workflow.ex`                                 | Bounded graph patches and child rounds within the existing run.                                                              |
+| Progress and action limits | `runtime/workflow_activity.ex`, `workflow_budget.ex`                               | Live progress supervision and durable named action allowances.                                                               |
+| Messages                   | `runtime/delivery.ex`, `backpressure.ex`, `live_input.ex`                          | Leases, ACK/retry/deduplication, queue pressure, and declared live controls.                                                 |
+| External execution         | `runner/`, `execution/lease_manager.ex`, `sandbox/`                                | Host/Docker/OpenShell invocation, local executor slots, staging, and owned cleanup.                                          |
+| Durability and recovery    | `persistence/`, `runtime/local_recovery.ex`, `recovery_safety.ex`, `run_retry.ex`  | Fenced Redis state, safe clean attempts, and explicit checkpoint retry.                                                      |
+| Finalization               | `runtime/finalization.ex`, `job_cleanup.ex`, `cancellation_reconciler.ex`          | Terminal publication, durable cancellation intent, and retryable cleanup.                                                    |
+| Peer control               | `cluster/federation_client.ex`, `federation_registry.ex`, `federation_channels.ex` | Authenticated owner forwarding and cached projections. Horde supervision remains local to a Core.                            |
+| Remote interfaces          | `MirrorNeuron/proto/job.proto`, `MirrorNeuron/lib/mirror_neuron_grpc/handlers/`    | Authoritative `mirrorneuron.job.v1.JobService`; CLI and REST adapt it through the SDK.                                       |
 
 ```text
 source package -> SDK validate/compile/prepare -> durable Job on one owner

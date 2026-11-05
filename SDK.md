@@ -36,8 +36,18 @@ Blueprint authors select runtime capabilities in `dependencies.json`:
 {
   "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/dependencies.schema.json",
   "packages": [
-    {"type": "pip", "source": "gar", "name": "mn-python-sdk-mcp", "version": ">=1.3,<2.0"},
-    {"type": "pip", "source": "gar", "name": "mn-python-sdk-rag", "version": ">=1.3.58.dev0,<2"}
+    {
+      "type": "pip",
+      "source": "gar",
+      "name": "mn-python-sdk-mcp",
+      "version": ">=1.3,<2.0"
+    },
+    {
+      "type": "pip",
+      "source": "gar",
+      "name": "mn-python-sdk-rag",
+      "version": ">=1.3.58.dev0,<2"
+    }
   ]
 }
 ```
@@ -111,12 +121,12 @@ print(client.list_runs())
 
 Important environment variables:
 
-| Variable | Default | Description |
-| --- | --- | --- |
-| `MN_GRPC_TARGET` | `localhost:55051` | Runtime gRPC endpoint for the local deployed runtime. |
-| `MN_GRPC_TIMEOUT_SECONDS` | `10` | Per-RPC timeout. |
-| `MN_GRPC_AUTH_TOKEN` | unset | Optional bearer token metadata. |
-| `MN_SDK_LOG_PATH` | `$MN_HOME/logs/sdk.log` | SDK log path. |
+| Variable                  | Default                 | Description                                           |
+| ------------------------- | ----------------------- | ----------------------------------------------------- |
+| `MN_GRPC_TARGET`          | `localhost:55051`       | Runtime gRPC endpoint for the local deployed runtime. |
+| `MN_GRPC_TIMEOUT_SECONDS` | `10`                    | Per-RPC timeout.                                      |
+| `MN_GRPC_AUTH_TOKEN`      | unset                   | Optional bearer token metadata.                       |
+| `MN_SDK_LOG_PATH`         | `$MN_HOME/logs/sdk.log` | SDK log path.                                         |
 
 ## Python-Defined Workflows
 
@@ -218,23 +228,23 @@ If you need durable long-running behavior, set the workflow type to `service` an
 
 `@agent.defn(...)` supports these commonly used fields:
 
-| Field | Purpose |
-| --- | --- |
-| `name` | Node id in the generated bundle. |
-| `type` | Behavioral template such as `map`, `reduce`, `stream`, or `batch`. |
-| `runner` | Runner choice such as `host_local` or OpenShell-backed execution. |
-| `retries` | Retry policy. |
-| `pool` | Executor pool name. |
-| `backpressure` | Node-level queue and pressure policy. |
-| `env` | Explicit worker environment values. |
-| `pass_env` | Environment variables copied from the host into the worker. |
-| `uploads` | Payload files to stage for execution. |
-| `policy` | Runner policy file, usually OpenShell network policy. |
-| `timeout_seconds` | Worker command timeout. |
-| `resources` | CPU, memory, disk, GPU/device, port, volume, and runtime-driver requirements. |
-| `services` | Agent-scoped service declarations. |
-| `requires_services` | Node-scoped service requirements used by the scheduler. |
-| `raw_config` | Escape hatch for manifest fields not represented by the SDK. |
+| Field               | Purpose                                                                       |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `name`              | Node id in the generated bundle.                                              |
+| `type`              | Behavioral template such as `map`, `reduce`, `stream`, or `batch`.            |
+| `runner`            | Runner choice such as `host_local` or OpenShell-backed execution.             |
+| `retries`           | Retry policy.                                                                 |
+| `pool`              | Executor pool name.                                                           |
+| `backpressure`      | Node-level queue and pressure policy.                                         |
+| `env`               | Explicit worker environment values.                                           |
+| `pass_env`          | Environment variables copied from the host into the worker.                   |
+| `uploads`           | Payload files to stage for execution.                                         |
+| `policy`            | Runner policy file, usually OpenShell network policy.                         |
+| `timeout_seconds`   | Worker command timeout.                                                       |
+| `resources`         | CPU, memory, disk, GPU/device, port, volume, and runtime-driver requirements. |
+| `services`          | Agent-scoped service declarations.                                            |
+| `requires_services` | Node-scoped service requirements used by the scheduler.                       |
+| `raw_config`        | Escape hatch for manifest fields not represented by the SDK.                  |
 
 Keep `pass_env` narrow. See [Security Model](security.md).
 
@@ -242,21 +252,21 @@ Keep `pass_env` narrow. See [Security Model](security.md).
 
 `@workflow.defn(...)` supports:
 
-| Field | Purpose |
-| --- | --- |
-| `name` | `graph_id` / workflow name. |
-| `type` | Set to `"service"` for long-running jobs; omit for default batch jobs. |
-| `stream_mode` | Enables stream-oriented behavior when supported by nodes. |
-| `recovery_mode` | Recovery policy such as `local_restart`. |
-| `deployment` | Deployment key and metadata pass-through. |
-| `schedule` | Periodic or delayed schedule declaration pass-through. |
-| `triggers` | Event trigger declarations pass-through. |
-| `services` | Job-scoped services provided by the workflow. |
-| `required_services` | Required service preflight declarations. |
-| `policies` | Restart, reschedule, scheduler, and update policy maps. |
-| `backpressure` | Job-level pressure policy. |
-| `includes` | Files or directories copied into the generated payload. |
-| `excludes` | Package paths to omit. |
+| Field               | Purpose                                                                |
+| ------------------- | ---------------------------------------------------------------------- |
+| `name`              | `graph_id` / workflow name.                                            |
+| `type`              | Set to `"service"` for long-running jobs; omit for default batch jobs. |
+| `stream_mode`       | Enables stream-oriented behavior when supported by nodes.              |
+| `recovery_mode`     | Recovery policy such as `local_restart`.                               |
+| `deployment`        | Deployment key and metadata pass-through.                              |
+| `schedule`          | Periodic or delayed schedule declaration pass-through.                 |
+| `triggers`          | Event trigger declarations pass-through.                               |
+| `services`          | Job-scoped services provided by the workflow.                          |
+| `required_services` | Required service preflight declarations.                               |
+| `policies`          | Restart, reschedule, scheduler, and update policy maps.                |
+| `backpressure`      | Job-level pressure policy.                                             |
+| `includes`          | Files or directories copied into the generated payload.                |
+| `excludes`          | Package paths to omit.                                                 |
 
 The SDK passes these orchestration maps through unchanged so the runtime remains the source of truth for validation and behavior.
 

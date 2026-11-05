@@ -8,11 +8,11 @@ is used by blueprints that declare `provider: "docker_model_runner"` in
 Without an operator override, MirrorNeuron selects its built-in default from
 healthy cluster hardware, in this order:
 
-| Tier | Model | Accelerator memory minimum |
-| --- | --- | --- |
-| `medium` | Nemotron 3.5 Lightning | 48 GB VRAM or integrated/shared GPU memory |
-| `small` | Bonsai2 27B PTQ1_0 (~5.95 GB weights) | 24 GB VRAM or integrated/shared GPU memory |
-| `nano` | Nemotron 3.5 Bolt E4B Q4_K_M | 8 GB VRAM or 16 GB unified memory |
+| Tier     | Model                                 | Accelerator memory minimum                 |
+| -------- | ------------------------------------- | ------------------------------------------ |
+| `medium` | Nemotron 3.5 Lightning                | 48 GB VRAM or integrated/shared GPU memory |
+| `small`  | Bonsai2 27B PTQ1_0 (~5.95 GB weights) | 24 GB VRAM or integrated/shared GPU memory |
+| `nano`   | Nemotron 3.5 Bolt E4B Q4_K_M          | 8 GB VRAM or 16 GB unified memory          |
 
 `default` selects the first feasible tier: medium → small → nano. CPU RAM alone
 does not qualify as accelerator memory. An operator-selected default takes
@@ -544,18 +544,18 @@ recorded as installed with a gateway failure instead of being reported as ready.
 The following table describes the `nano` Bolt E4B policy; larger tiers use the
 memory minima at the top of this page.
 
-| Hardware profile | `nano` result | Backend | Rule |
-| --- | --- | --- | --- |
-| Apple Silicon, 16GB+ unified memory | Pass | llama.cpp / Metal | Default supported target. |
-| Apple Silicon, 8GB unified memory | Fail | llama.cpp / Metal | Too tight for default policy. |
-| NVIDIA CUDA, Linux or WSL2, 8GB+ VRAM | Pass | llama.cpp / CUDA | vLLM is only for vLLM-capable catalog models. |
-| NVIDIA CUDA, Linux ARM64, 8GB+ VRAM | Pass | llama.cpp / CUDA | vLLM is not supported. |
-| NVIDIA CUDA, 6GB VRAM | Fail | llama.cpp / partial GPU possible | Requires `--force` or a smaller model. |
-| AMD ROCm/Vulkan, Docker Engine Linux, 8GB+ VRAM | Pass with warning | llama.cpp | Verify acceleration with `mn model doctor`. |
-| CPU-only, 32GB+ RAM | Force only | llama.cpp / CPU | Slow CPU execution requires `--force`. |
-| Intel Mac or Windows without supported GPU | Fail | CPU fallback only | Use a smaller model or `--force`. |
-| Windows ARM64 with Adreno 6xx+ and 16GB+ unified memory | Pass with warning | llama.cpp / OpenCL | Acceleration support is partial. |
-| Raspberry Pi / low-memory ARM CPU | Fail | CPU | Not default-compatible. |
+| Hardware profile                                        | `nano` result     | Backend                          | Rule                                          |
+| ------------------------------------------------------- | ----------------- | -------------------------------- | --------------------------------------------- |
+| Apple Silicon, 16GB+ unified memory                     | Pass              | llama.cpp / Metal                | Default supported target.                     |
+| Apple Silicon, 8GB unified memory                       | Fail              | llama.cpp / Metal                | Too tight for default policy.                 |
+| NVIDIA CUDA, Linux or WSL2, 8GB+ VRAM                   | Pass              | llama.cpp / CUDA                 | vLLM is only for vLLM-capable catalog models. |
+| NVIDIA CUDA, Linux ARM64, 8GB+ VRAM                     | Pass              | llama.cpp / CUDA                 | vLLM is not supported.                        |
+| NVIDIA CUDA, 6GB VRAM                                   | Fail              | llama.cpp / partial GPU possible | Requires `--force` or a smaller model.        |
+| AMD ROCm/Vulkan, Docker Engine Linux, 8GB+ VRAM         | Pass with warning | llama.cpp                        | Verify acceleration with `mn model doctor`.   |
+| CPU-only, 32GB+ RAM                                     | Force only        | llama.cpp / CPU                  | Slow CPU execution requires `--force`.        |
+| Intel Mac or Windows without supported GPU              | Fail              | CPU fallback only                | Use a smaller model or `--force`.             |
+| Windows ARM64 with Adreno 6xx+ and 16GB+ unified memory | Pass with warning | llama.cpp / OpenCL               | Acceleration support is partial.              |
+| Raspberry Pi / low-memory ARM CPU                       | Fail              | CPU                              | Not default-compatible.                       |
 
 ## Validation
 

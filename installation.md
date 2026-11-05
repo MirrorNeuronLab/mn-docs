@@ -87,14 +87,14 @@ Run `mn node refresh-token` if it has been exposed.
 
 ## Local state, ports, and configuration
 
-| Item | Default | Owner |
-| --- | --- | --- |
-| Runtime state root | `~/.mn` | CLI, API, SDK, runtime services. |
-| REST API | `http://localhost:54001/api/v1` | `mn-api`; override with `MN_API_PORT`. |
-| Core gRPC endpoint | port `55051` | MirrorNeuron Core and authenticated federation control; override with `MN_GRPC_PORT` and client target settings. |
-| LiteLLM gateway | port `4000` when enabled | Owner-first model gateway; restrict peer access to trusted LAN/VPN networks. |
-| Web UI | port `55173` by default | Docker Compose service; local mode builds the mounted `mn-web-ui` source there. |
-| Blueprint run records | `~/.mn/runs/<run_id>/` | Blueprint run-store contract. |
+| Item                  | Default                         | Owner                                                                                                            |
+| --------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Runtime state root    | `~/.mn`                         | CLI, API, SDK, runtime services.                                                                                 |
+| REST API              | `http://localhost:54001/api/v1` | `mn-api`; override with `MN_API_PORT`.                                                                           |
+| Core gRPC endpoint    | port `55051`                    | MirrorNeuron Core and authenticated federation control; override with `MN_GRPC_PORT` and client target settings. |
+| LiteLLM gateway       | port `4000` when enabled        | Owner-first model gateway; restrict peer access to trusted LAN/VPN networks.                                     |
+| Web UI                | port `55173` by default         | Docker Compose service; local mode builds the mounted `mn-web-ui` source there.                                  |
+| Blueprint run records | `~/.mn/runs/<run_id>/`          | Blueprint run-store contract.                                                                                    |
 
 See [Environment Variables](env_variables.md) for the full configuration reference. Do not publish `~/.mn/docker-compose.env`, startup output, tokens, or generated endpoint files because they can contain deployment-specific configuration.
 

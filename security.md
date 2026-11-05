@@ -16,15 +16,15 @@ MirrorNeuron can execute worker code, access declared files, pass selected envir
 
 ## Assets and trust boundaries
 
-| Boundary | What crosses it | Operator responsibility |
-| --- | --- | --- |
-| Operator → runtime | Bundles, commands, configuration, credentials. | Only trusted operators should submit to a shared runtime. |
-| Runtime → worker payload | Manifest fields, payload files, selected environment variables, messages. | Treat payloads as application code, not trusted runtime code. |
-| HostLocal worker → host | Commands, files, processes, and host credentials reachable by the process. | Use only for trusted payloads and narrow environment access. |
-| OpenShell worker → sandbox | Uploads, policy-controlled commands, services, stdout/stderr, artifacts. | Review policy, mounts/uploads, service exposure, and egress. |
-| Worker → external service | Prompts, files, metadata, requests, and provider credentials. | Explicitly approve data transfer and scope credentials to the worker. |
-| Runtime → Redis | Jobs, events, agent snapshots, leases, bundle state, node state. | Protect Redis as a control-plane data store and use Sentinel appropriately for HA. |
-| Node → node | Cluster membership, scheduling, runtime traffic, shared credentials. | Treat a cluster as one trust domain and protect membership credentials. |
+| Boundary                            | What crosses it                                                            | Operator responsibility                                                                                                                            |
+| ----------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operator → runtime                  | Bundles, commands, configuration, credentials.                             | Only trusted operators should submit to a shared runtime.                                                                                          |
+| Runtime → worker payload            | Manifest fields, payload files, selected environment variables, messages.  | Treat payloads as application code, not trusted runtime code.                                                                                      |
+| HostLocal worker → host             | Commands, files, processes, and host credentials reachable by the process. | Use only for trusted payloads and narrow environment access.                                                                                       |
+| OpenShell worker → sandbox          | Uploads, policy-controlled commands, services, stdout/stderr, artifacts.   | Review policy, mounts/uploads, service exposure, and egress.                                                                                       |
+| Worker → external service           | Prompts, files, metadata, requests, and provider credentials.              | Explicitly approve data transfer and scope credentials to the worker.                                                                              |
+| Runtime → Redis                     | Jobs, events, agent snapshots, leases, bundle state, node state.           | Protect Redis as a control-plane data store and use Sentinel appropriately for HA.                                                                 |
+| Node → node                         | Cluster membership, scheduling, runtime traffic, shared credentials.       | Treat a cluster as one trust domain and protect membership credentials.                                                                            |
 | Stable Job → supervisory MCP client | Bounded context/results and explicit lifecycle or declared domain effects. | Require the configured API bearer boundary, validate Job/blueprint identity, review advertised effects, and protect potentially sensitive context. |
 
 ## Execution safety

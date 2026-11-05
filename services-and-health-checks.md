@@ -73,17 +73,17 @@ Use top-level `required_services` for external or cluster-wide requirements that
 
 Supported service fields:
 
-| Field | Meaning |
-| --- | --- |
-| `name` | Required service name. |
-| `id` | Optional stable instance id. Defaults from job, agent, and service name. |
-| `address` | Host or IP. Supports templates. |
-| `port` | Explicit port. Supports templates. |
-| `tags` | Discovery filters. |
-| `meta` | JSON metadata stored with the service. |
-| `provider` | `mirror_neuron` in v1. |
-| `origin` | `internal` for runtime registered services, `external` for dependencies outside the job. |
-| `checks` | HTTP, TCP, script, or gRPC check declarations. |
+| Field      | Meaning                                                                                  |
+| ---------- | ---------------------------------------------------------------------------------------- |
+| `name`     | Required service name.                                                                   |
+| `id`       | Optional stable instance id. Defaults from job, agent, and service name.                 |
+| `address`  | Host or IP. Supports templates.                                                          |
+| `port`     | Explicit port. Supports templates.                                                       |
+| `tags`     | Discovery filters.                                                                       |
+| `meta`     | JSON metadata stored with the service.                                                   |
+| `provider` | `mirror_neuron` in v1.                                                                   |
+| `origin`   | `internal` for runtime registered services, `external` for dependencies outside the job. |
+| `checks`   | HTTP, TCP, script, or gRPC check declarations.                                           |
 
 Templates supported in string fields include:
 
@@ -202,16 +202,14 @@ blueprint service.
     "command": ["python3.12", "<blueprint_web_ui_service>.py"]
   },
   "resources": {
-    "ports": [{"label": "web_ui", "port": 61000, "protocol": "http"}]
+    "ports": [{ "label": "web_ui", "port": 61000, "protocol": "http" }]
   },
   "services": [
     {
       "name": "<blueprint-web-ui-service-name>",
       "port": 61000,
       "tags": ["web_ui", "blueprint", "<blueprint_id>", "json-render"],
-      "checks": [
-        {"name": "http-ready", "type": "http", "path": "/healthz"}
-      ]
+      "checks": [{ "name": "http-ready", "type": "http", "path": "/healthz" }]
     }
   ]
 }
@@ -235,16 +233,16 @@ create another process.
 
 ## Important Code
 
-| Area | Files |
-| --- | --- |
-| Manifest service shape | `MirrorNeuron/lib/mirror_neuron/service_spec.ex` |
-| One-shot checks | `MirrorNeuron/lib/mirror_neuron/service_check.ex` |
-| Preflight | `MirrorNeuron/lib/mirror_neuron/service_preflight.ex` |
-| Registry | `MirrorNeuron/lib/mirror_neuron/service_registry.ex` |
-| Periodic monitor | `MirrorNeuron/lib/mirror_neuron/service_monitor.ex` |
+| Area                                | Files                                                       |
+| ----------------------------------- | ----------------------------------------------------------- |
+| Manifest service shape              | `MirrorNeuron/lib/mirror_neuron/service_spec.ex`            |
+| One-shot checks                     | `MirrorNeuron/lib/mirror_neuron/service_check.ex`           |
+| Preflight                           | `MirrorNeuron/lib/mirror_neuron/service_preflight.ex`       |
+| Registry                            | `MirrorNeuron/lib/mirror_neuron/service_registry.ex`        |
+| Periodic monitor                    | `MirrorNeuron/lib/mirror_neuron/service_monitor.ex`         |
 | Job registration and deregistration | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex` |
-| Redis storage | `MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex` |
-| Scheduler node-scoped requirements | `MirrorNeuron/lib/mirror_neuron/scheduler.ex` |
-| CLI commands | `mn-cli/mn_cli/libs/service_cmds.py` |
-| Blueprint validation | `mn-python-sdk/mn_sdk/blueprint_validation.py` |
-| SDK client | `mn-python-sdk/mn_sdk/client.py` |
+| Redis storage                       | `MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex` |
+| Scheduler node-scoped requirements  | `MirrorNeuron/lib/mirror_neuron/scheduler.ex`               |
+| CLI commands                        | `mn-cli/mn_cli/libs/service_cmds.py`                        |
+| Blueprint validation                | `mn-python-sdk/mn_sdk/blueprint_validation.py`              |
+| SDK client                          | `mn-python-sdk/mn_sdk/client.py`                            |

@@ -20,11 +20,11 @@ next time, definition/bundle reference, source metadata, counters, and bounded
 dispatch history. Due processing and schedule leases are owner-local;
 federated peers forward requests rather than competing to dispatch the work.
 
-| Kind | Purpose |
-| --- | --- |
-| `periodic` | Five-field, minute-level cron occurrences in the declared timezone. |
-| `delayed` | One occurrence at `run_at` or after `delay_ms`. |
-| `event` | Core event matching with declarative payload filters. |
+| Kind            | Purpose                                                                          |
+| --------------- | -------------------------------------------------------------------------------- |
+| `periodic`      | Five-field, minute-level cron occurrences in the declared timezone.              |
+| `delayed`       | One occurrence at `run_at` or after `delay_ms`.                                  |
+| `event`         | Core event matching with declarative payload filters.                            |
 | `resource_wait` | Wait for admissible capacity; also the projection kind for a durable queued Run. |
 
 The public CLI exposes `schedule list`, `show`, `set-time`, and `cancel`.
@@ -89,7 +89,7 @@ conditions. For example, this is a Core trigger fragment:
       "name": "dataset-uploaded",
       "enabled": true,
       "event_type": "file_uploaded",
-      "filters": {"path": {"prefix": "/datasets/"}}
+      "filters": { "path": { "prefix": "/datasets/" } }
     }
   ]
 }
@@ -143,10 +143,10 @@ deleting a schedule. See [API](api.md#schedules) for exact request bodies.
 another occurrence unless overlap is explicitly allowed. Capacity contention
 uses owner admission's durable queue and does not bypass this policy.
 
-| Missed policy | Behavior |
-| --- | --- |
-| `skip` | Skip occurrences outside the missed grace. |
-| `catchup_one` | Dispatch one missed occurrence. |
+| Missed policy | Behavior                                           |
+| ------------- | -------------------------------------------------- |
+| `skip`        | Skip occurrences outside the missed grace.         |
+| `catchup_one` | Dispatch one missed occurrence.                    |
 | `catchup_all` | Dispatch missed occurrences up to `catchup_limit`. |
 
 Before batch dispatch, a durable occurrence receipt binds the schedule and
@@ -164,13 +164,13 @@ time and execution window. Receipts live until their owning schedule is deleted.
 
 Service schedules operate on the single attached Run:
 
-| Existing state | Occurrence action |
-| --- | --- |
-| No Run | Start one. |
-| Paused | Resume the same Run. |
-| Pending/running | Record an already-running no-op. |
-| Terminal | Clear terminal run history and attach a fresh Run. |
-| Cancelling or ambiguous active history | Block for cleanup/review. |
+| Existing state                         | Occurrence action                                  |
+| -------------------------------------- | -------------------------------------------------- |
+| No Run                                 | Start one.                                         |
+| Paused                                 | Resume the same Run.                               |
+| Pending/running                        | Record an already-running no-op.                   |
+| Terminal                               | Clear terminal run history and attach a fresh Run. |
+| Cancelling or ambiguous active history | Block for cleanup/review.                          |
 
 Review run evidence before enabling a service schedule: replacement permanently
 removes old run-scoped history and artifacts. Job configuration, schedules, and
@@ -180,15 +180,15 @@ claim, so it does not return capacity to the PC queue.
 
 ## Important Code
 
-| Area | Files |
-| --- | --- |
-| Policy, cron, and event matching | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_policy.ex` |
-| Owner dispatch and service windows | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_dispatcher.ex` |
-| Durable batch occurrence identity | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_occurrence.ex` |
-| Queued-start projection and fencing | `MirrorNeuron/lib/mirror_neuron/runtime/node_admission.ex` |
-| Public gRPC contract | `MirrorNeuron/proto/job.proto`, `lib/mirror_neuron_grpc/handlers/job.ex` |
-| Public CLI | `mn-cli/mn_cli/libs/schedule_cmds.py`, `run_cmds/common.py` |
-| Public REST | `mn-api/mn_api/routes/v1/jobs.py`, `api_models.py` |
+| Area                                | Files                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------ |
+| Policy, cron, and event matching    | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_policy.ex`              |
+| Owner dispatch and service windows  | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_dispatcher.ex`          |
+| Durable batch occurrence identity   | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_occurrence.ex`          |
+| Queued-start projection and fencing | `MirrorNeuron/lib/mirror_neuron/runtime/node_admission.ex`               |
+| Public gRPC contract                | `MirrorNeuron/proto/job.proto`, `lib/mirror_neuron_grpc/handlers/job.ex` |
+| Public CLI                          | `mn-cli/mn_cli/libs/schedule_cmds.py`, `run_cmds/common.py`              |
+| Public REST                         | `mn-api/mn_api/routes/v1/jobs.py`, `api_models.py`                       |
 
 ## V1 Limits
 

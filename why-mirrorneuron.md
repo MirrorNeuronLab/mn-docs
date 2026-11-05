@@ -16,13 +16,13 @@ It can run on a single machine or on a small cluster of runtime nodes. The `mn` 
 
 ## Evaluation checklist
 
-| Question | Evidence to inspect | Why it matters |
-| --- | --- | --- |
-| Is the workflow safe to run? | `manifest.json`, `payloads/`, runner settings, `pass_env`, policy files. | A blueprint can execute code, read declared files, use selected secrets, and call services. |
-| Can the target machine satisfy requirements? | `mn blueprint validate`, `mn model doctor <model-id>`, service checks, resource declarations. | Validation identifies declared model, service, and input requirements before submission. |
-| Does the deployment fit the trust boundary? | `security.md`, listener configuration, Redis configuration, runner selection. | HostLocal, OpenShell, and cluster execution have different privilege and network boundaries. |
-| Can the workflow tolerate retries? | Retry policies, external adapters, idempotency keys, `reliability.md`. | Recovery can repeat work; side-effecting workers must be idempotent or independently deduplicated. |
-| Can operators diagnose failures? | Job events, run store, API health, Redis, model/service diagnostics. | A workflow is operational only when a user can inspect its state and collect evidence. |
+| Question                                     | Evidence to inspect                                                                           | Why it matters                                                                                     |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Is the workflow safe to run?                 | `manifest.json`, `payloads/`, runner settings, `pass_env`, policy files.                      | A blueprint can execute code, read declared files, use selected secrets, and call services.        |
+| Can the target machine satisfy requirements? | `mn blueprint validate`, `mn model doctor <model-id>`, service checks, resource declarations. | Validation identifies declared model, service, and input requirements before submission.           |
+| Does the deployment fit the trust boundary?  | `security.md`, listener configuration, Redis configuration, runner selection.                 | HostLocal, OpenShell, and cluster execution have different privilege and network boundaries.       |
+| Can the workflow tolerate retries?           | Retry policies, external adapters, idempotency keys, `reliability.md`.                        | Recovery can repeat work; side-effecting workers must be idempotent or independently deduplicated. |
+| Can operators diagnose failures?             | Job events, run store, API health, Redis, model/service diagnostics.                          | A workflow is operational only when a user can inspect its state and collect evidence.             |
 
 ## Non-goals and non-guarantees
 

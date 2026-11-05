@@ -5,14 +5,14 @@ MirrorNeuron workflows can express dependency graphs rather than only a linear
 and starts, blocks, skips, or triggers work from that state.
 
 A blueprint still needs runtime message routes to carry data between workers;
-graph edges decide *when* a step is eligible to run.
+graph edges decide _when_ a step is eligible to run.
 
 ## Core shape
 
 Declare runtime-controlled steps in `flow.steps` and dependency edges in
 `flow.graph.edges`:
 
-~~~
+```
 {
   "flow": {
     "steps": [
@@ -28,7 +28,7 @@ Declare runtime-controlled steps in `flow.steps` and dependency edges in
     }
   }
 }
-~~~
+```
 
 The default trigger is `all_success`: every upstream edge must have an
 accepted successful outcome. `completed`, `partial`, `skipped`, and
@@ -44,15 +44,15 @@ handler can run. A handled failure remains observable as
 
 Set `trigger_rule` on a step. It can be a string or a map for quorum:
 
-| Rule | Starts when | Typical pattern |
-| --- | --- | --- |
-| `all_success` | Every upstream succeeds; the default. | Linear pipeline, fan-in |
-| `all_done` | Every upstream is terminal. | Cleanup / teardown |
-| `one_success` | The first upstream succeeds. | Alternate providers |
-| `one_done` | The first upstream becomes terminal. | React to first completion |
-| `one_failed` | The first upstream has a handled failure. | Alert, recover, fallback |
-| `none_failed_min_one_success` | All upstreams are terminal, none failed, and one succeeded. | Branch join |
-| `{ "rule": "quorum_success", "quorum": 2 }` | The requested number succeed. | N-of-M approval |
+| Rule                                        | Starts when                                                 | Typical pattern           |
+| ------------------------------------------- | ----------------------------------------------------------- | ------------------------- |
+| `all_success`                               | Every upstream succeeds; the default.                       | Linear pipeline, fan-in   |
+| `all_done`                                  | Every upstream is terminal.                                 | Cleanup / teardown        |
+| `one_success`                               | The first upstream succeeds.                                | Alternate providers       |
+| `one_done`                                  | The first upstream becomes terminal.                        | React to first completion |
+| `one_failed`                                | The first upstream has a handled failure.                   | Alert, recover, fallback  |
+| `none_failed_min_one_success`               | All upstreams are terminal, none failed, and one succeeded. | Branch join               |
+| `{ "rule": "quorum_success", "quorum": 2 }` | The requested number succeed.                               | N-of-M approval           |
 
 Aliases `all_required`, `any_success`, `any_done`, `any_failed`,
 `partial_success`, and `quorum` are accepted. The runtime validates trigger
@@ -66,9 +66,9 @@ time.
 Use normal graph edges. A fork has one source and several downstream edges; a
 join has several upstream edges and uses the default `all_success` rule.
 
-~~~
+```
 extract → [profile, validate, enrich] → publish
-~~~
+```
 
 Independent branches can run concurrently, subject to executor-pool capacity.
 
@@ -77,7 +77,7 @@ Independent branches can run concurrently, subject to executor-pool capacity.
 A worker can expand a declared target step into independently tracked mapped
 instances. Emit `workflow_step_scatter` before completing the scattering step:
 
-~~~
+```
 {
   "events": [
     {
@@ -94,7 +94,7 @@ instances. Emit `workflow_step_scatter` before completing the scattering step:
   ],
   "complete_step": true
 }
-~~~
+```
 
 The runtime expands these to ids such as `worker_a[0]` and `worker_b[1]`,
 then replaces dependencies through the declared target steps. Items are
@@ -108,14 +108,14 @@ scatter event; the default is 1000.
 
 A router or executor selects downstream step ids by emitting:
 
-~~~
+```
 {
   "events": [
     {"type": "workflow_step_branch", "payload": {"branches": ["manual_review"]}}
   ],
   "complete_step": true
 }
-~~~
+```
 
 Direct unselected paths are marked `skipped`; propagation continues through
 paths whose parents are all skipped. Merge selected and skipped paths with
@@ -123,7 +123,7 @@ paths whose parents are all skipped. Merge selected and skipped paths with
 
 For a guard that should stop all downstream work, emit:
 
-~~~
+```
 {
   "events": [
     {
@@ -132,7 +132,7 @@ For a guard that should stop all downstream work, emit:
     }
   ]
 }
-~~~
+```
 
 This marks every descendant skipped and terminates any already-active descendant
 attempt.
@@ -141,7 +141,7 @@ attempt.
 
 These patterns differ only in the receiving step's trigger:
 
-~~~
+```
 {
   "steps": [
     {"id": "provider_a", "run": "provider_a",
@@ -153,7 +153,7 @@ These patterns differ only in the receiving step's trigger:
     {"id": "cleanup", "run": "cleanup", "trigger_rule": "all_done"}
   ]
 }
-~~~
+```
 
 Use `one_done` to react to either outcome of the first completed parent. For
 a fallback chain, connect `primary → fallback → emergency`, set `fallback`
@@ -163,7 +163,7 @@ failure-only trigger becomes impossible.
 
 ### Quorum and setup/work/teardown
 
-~~~
+```
 {
   "steps": [
     {"id": "replica_a", "run": "replica_a"},
@@ -174,7 +174,7 @@ failure-only trigger becomes impossible.
     {"id": "destroy", "run": "destroy", "trigger_rule": "all_done"}
   ]
 }
-~~~
+```
 
 `approve` can start after any two successful replicas. For temporary
 resources, declare `create → work → destroy`, give `destroy` `all_done`,
@@ -191,7 +191,7 @@ External callers can also deliver a message directly to a sensor node.
 To launch a whole DAG from an external event, declare a top-level runtime
 trigger:
 
-~~~
+```
 {
   "triggers": [
     {
@@ -202,7 +202,7 @@ trigger:
     }
   ]
 }
-~~~
+```
 
 The schedule dispatcher creates an ordinary child job when the event matches;
 the DAG starts from its normal entrypoint. See

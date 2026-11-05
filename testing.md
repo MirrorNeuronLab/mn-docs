@@ -55,18 +55,18 @@ Inspect selection before execution:
 
 Choose the smallest relevant check; each row is a separate command from the same directory:
 
-| Validation | Command |
-| --- | --- |
-| Injected API/CLI/SDK contracts | `.venv/bin/mn_test --suite contracts` |
-| Component unit suites | `.venv/bin/mn_test --level unit` |
-| One component's unit suite | `.venv/bin/mn_test --component mn-api --level unit` |
-| Local blueprint catalog validation | `.venv/bin/mn_test --suite blueprints.local` |
+| Validation                                      | Command                                                  |
+| ----------------------------------------------- | -------------------------------------------------------- |
+| Injected API/CLI/SDK contracts                  | `.venv/bin/mn_test --suite contracts`                    |
+| Component unit suites                           | `.venv/bin/mn_test --level unit`                         |
+| One component's unit suite                      | `.venv/bin/mn_test --component mn-api --level unit`      |
+| Local blueprint catalog validation              | `.venv/bin/mn_test --suite blueprints.local`             |
 | Installer and deterministic benchmark contracts | `.venv/bin/mn_test --suite installer --suite benchmarks` |
-| Interface performance measurements | `.venv/bin/mn_test --suite performance` |
-| Components with dirty Git working trees | `.venv/bin/mn_test --changed` |
-| Core runtime end-to-end checks | `.venv/bin/mn_test --suite MirrorNeuron.e2e` |
-| Browser end-to-end checks | `.venv/bin/mn_test --suite mn-web-ui.e2e` |
-| Python dependency consistency (`pip check`) | `.venv/bin/mn_test --suite security.dependencies` |
+| Interface performance measurements              | `.venv/bin/mn_test --suite performance`                  |
+| Components with dirty Git working trees         | `.venv/bin/mn_test --changed`                            |
+| Core runtime end-to-end checks                  | `.venv/bin/mn_test --suite MirrorNeuron.e2e`             |
+| Browser end-to-end checks                       | `.venv/bin/mn_test --suite mn-web-ui.e2e`                |
+| Python dependency consistency (`pip check`)     | `.venv/bin/mn_test --suite security.dependencies`        |
 
 With no selection filters, the runner selects the full catalog. Local services and demo blueprints can run; gated two-box, GPU, host-secret, and destructive suites remain skipped unless explicitly enabled. This is broader than an offline unit run:
 
@@ -148,16 +148,16 @@ The Nomad-inspired runtime features should be covered at three levels:
 
 Core areas to keep covered:
 
-| Feature | Test focus |
-| --- | --- |
-| Reconciliation | Node-loss recovery, live coordinator agent movement, whole-job recovery after lease loss, pause for unsafe work. |
-| Job types | `service`, `batch`, `system`, and `sysbatch` lifecycle behavior. |
-| Restart/reschedule policy | Sliding windows, delay functions, `mode: fail`, `mode: delay`, disabled and unlimited reschedule. |
-| Drain and maintenance | Eligibility, dry run, service migration, batch waiting, system ignore, cancellation, undrain. |
-| Services and checks | Manifest validation, service preflight, registry filtering, HTTP/TCP/script/gRPC checks. |
-| Resources and devices | CUDA vs Metal, GPU memory, device ID exclusivity, explicit port conflicts, host volume placement. |
-| Deployments | Rolling, canary isolation, promotion, rollback, service discovery roles. |
-| Schedules and events | Cron parsing, timezone, delayed runs, overlap prevention, missed policies, event filters, idempotent dispatch. |
+| Feature                   | Test focus                                                                                                       |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Reconciliation            | Node-loss recovery, live coordinator agent movement, whole-job recovery after lease loss, pause for unsafe work. |
+| Job types                 | `service`, `batch`, `system`, and `sysbatch` lifecycle behavior.                                                 |
+| Restart/reschedule policy | Sliding windows, delay functions, `mode: fail`, `mode: delay`, disabled and unlimited reschedule.                |
+| Drain and maintenance     | Eligibility, dry run, service migration, batch waiting, system ignore, cancellation, undrain.                    |
+| Services and checks       | Manifest validation, service preflight, registry filtering, HTTP/TCP/script/gRPC checks.                         |
+| Resources and devices     | CUDA vs Metal, GPU memory, device ID exclusivity, explicit port conflicts, host volume placement.                |
+| Deployments               | Rolling, canary isolation, promotion, rollback, service discovery roles.                                         |
+| Schedules and events      | Cron parsing, timezone, delayed runs, overlap prevention, missed policies, event filters, idempotent dispatch.   |
 
 Two-box federation checks must use distinct writable Redis identities. Sync the
 remote workspace through a fast-forward Git update and exact commit parity;

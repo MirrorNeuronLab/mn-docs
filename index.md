@@ -8,20 +8,20 @@ MirrorNeuron is a runtime for message-driven workflows with a Python CLI/API lay
 
 Every user-visible behavior has one canonical detailed page in this directory:
 
-| Fact | Canonical page | Implementation source to verify |
-| --- | --- | --- |
-| Project fit, boundaries, and non-guarantees | [Why MirrorNeuron](why-mirrorneuron.md) | Runtime, runner, and security implementation. |
-| Shared vocabulary | [Core Concepts](core-concepts.md) | Manifest/runtime terms and CLI/API contracts. |
-| Installation and local services | [Installation](installation.md) | `mn-deploy/install.sh`, `server.sh`, runtime start code. |
-| CLI syntax and behavior | [CLI Reference](cli.md) | `mn-cli/mn_cli/main.py` and command modules. |
-| REST API shape | [API Reference](api.md) | `mn-api` routes and running FastAPI OpenAPI schema. |
-| Environment defaults | [Environment Variables](env_variables.md) | CLI, API, SDK, and Core configuration definitions. |
-| Blueprint and manifest contracts | [Blueprint Standard](blueprint-standard.md), [Job Bundle Format](bundle.md) | Schemas, SDK validators, and checked-in blueprints. |
-| Execution authority and capacity | [Runtime Architecture](runtime-architecture.md), [Resources and Devices](resources-and-devices.md) | Core admission, workflow, runner, and native SDK contracts. |
-| Reliability and recovery | [Reliability Guide](reliability.md) | Core persistence, lease, scheduler, and recovery tests. |
-| Bounded working context and compression | [Context Intelligent System](context-memory.md) | Membrane working-memory contract and Python SDK context-session tests. |
-| Security boundaries | [Security Model](security.md) | Runner, network, Redis, secret, and policy behavior. |
-| Repeated operational failures | [Troubleshooting](troubleshooting.md) | Reproducible diagnostics and component tests. |
+| Fact                                        | Canonical page                                                                                     | Implementation source to verify                                        |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Project fit, boundaries, and non-guarantees | [Why MirrorNeuron](why-mirrorneuron.md)                                                            | Runtime, runner, and security implementation.                          |
+| Shared vocabulary                           | [Core Concepts](core-concepts.md)                                                                  | Manifest/runtime terms and CLI/API contracts.                          |
+| Installation and local services             | [Installation](installation.md)                                                                    | `mn-deploy/install.sh`, `server.sh`, runtime start code.               |
+| CLI syntax and behavior                     | [CLI Reference](cli.md)                                                                            | `mn-cli/mn_cli/main.py` and command modules.                           |
+| REST API shape                              | [API Reference](api.md)                                                                            | `mn-api` routes and running FastAPI OpenAPI schema.                    |
+| Environment defaults                        | [Environment Variables](env_variables.md)                                                          | CLI, API, SDK, and Core configuration definitions.                     |
+| Blueprint and manifest contracts            | [Blueprint Standard](blueprint-standard.md), [Job Bundle Format](bundle.md)                        | Schemas, SDK validators, and checked-in blueprints.                    |
+| Execution authority and capacity            | [Runtime Architecture](runtime-architecture.md), [Resources and Devices](resources-and-devices.md) | Core admission, workflow, runner, and native SDK contracts.            |
+| Reliability and recovery                    | [Reliability Guide](reliability.md)                                                                | Core persistence, lease, scheduler, and recovery tests.                |
+| Bounded working context and compression     | [Context Intelligent System](context-memory.md)                                                    | Membrane working-memory contract and Python SDK context-session tests. |
+| Security boundaries                         | [Security Model](security.md)                                                                      | Runner, network, Redis, secret, and policy behavior.                   |
+| Repeated operational failures               | [Troubleshooting](troubleshooting.md)                                                              | Reproducible diagnostics and component tests.                          |
 
 Do not duplicate large command tables, API shapes, or environment-variable lists on tutorial pages. Link to the canonical reference instead.
 
@@ -72,17 +72,17 @@ Do not duplicate large command tables, API shapes, or environment-variable lists
 
 ## Documentation map
 
-| Topic | Page |
-| --- | --- |
-| Local installation and verification | [installation.md](installation.md) |
-| First local workflow | [quickstart.md](quickstart.md) |
-| Checked-in blueprint selection | [examples.md](examples.md) |
-| CLI, API, SDK, and configuration | [cli.md](cli.md), [api.md](api.md), [SDK.md](SDK.md), [env_variables.md](env_variables.md) |
-| Models, OpenShell, services, and resources | [model-runtime.md](model-runtime.md), [docker-model-runner-arm64-nvidia.md](docker-model-runner-arm64-nvidia.md), [docker_and_openshell_for_blueprints.md](docker_and_openshell_for_blueprints.md), [services-and-health-checks.md](services-and-health-checks.md), [resources-and-devices.md](resources-and-devices.md) |
-| Cluster, deployment, schedules, and HA | [cluster.md](cluster.md), [deployments.md](deployments.md), [schedules-and-events.md](schedules-and-events.md), [redis-ha.md](redis-ha.md) |
-| Architecture, context, reliability, and security | [runtime-architecture.md](runtime-architecture.md), [cluster_architecture.md](cluster_architecture.md), [context-memory.md](context-memory.md), [reliability.md](reliability.md), [security.md](security.md) |
-| Internal quality and contributor process | [testing.md](testing.md), [contributing.md](contributing.md), [documentation-style.md](documentation-style.md) |
-| Runtime audit and documentation change table | [changes.md](changes.md) |
+| Topic                                            | Page                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Local installation and verification              | [installation.md](installation.md)                                                                                                                                                                                                                                                                                       |
+| First local workflow                             | [quickstart.md](quickstart.md)                                                                                                                                                                                                                                                                                           |
+| Checked-in blueprint selection                   | [examples.md](examples.md)                                                                                                                                                                                                                                                                                               |
+| CLI, API, SDK, and configuration                 | [cli.md](cli.md), [api.md](api.md), [SDK.md](SDK.md), [env_variables.md](env_variables.md)                                                                                                                                                                                                                               |
+| Models, OpenShell, services, and resources       | [model-runtime.md](model-runtime.md), [docker-model-runner-arm64-nvidia.md](docker-model-runner-arm64-nvidia.md), [docker_and_openshell_for_blueprints.md](docker_and_openshell_for_blueprints.md), [services-and-health-checks.md](services-and-health-checks.md), [resources-and-devices.md](resources-and-devices.md) |
+| Cluster, deployment, schedules, and HA           | [cluster.md](cluster.md), [deployments.md](deployments.md), [schedules-and-events.md](schedules-and-events.md), [redis-ha.md](redis-ha.md)                                                                                                                                                                               |
+| Architecture, context, reliability, and security | [runtime-architecture.md](runtime-architecture.md), [cluster_architecture.md](cluster_architecture.md), [context-memory.md](context-memory.md), [reliability.md](reliability.md), [security.md](security.md)                                                                                                             |
+| Internal quality and contributor process         | [testing.md](testing.md), [contributing.md](contributing.md), [documentation-style.md](documentation-style.md)                                                                                                                                                                                                           |
+| Runtime audit and documentation change table     | [changes.md](changes.md)                                                                                                                                                                                                                                                                                                 |
 
 ## Runtime alignment record
 

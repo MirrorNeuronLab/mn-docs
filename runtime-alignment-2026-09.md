@@ -8,19 +8,19 @@
 
 ## Changes readers need to make
 
-| Previous guidance | Current usage | Owning evidence |
-| --- | --- | --- |
-| Treat a job as one execution; cancel it with `mn job cancel` | Keep durable job and public run IDs separately; control execution through `mn run` | CLI job-definition/run commands; API v1 contract tests |
-| Launch a local folder without an explicit path prefix | Use `./folder`, `../folder`, or an absolute path for launch/doctor; other values select catalog IDs | CLI blueprint resolution and command help |
-| Assume an OtterDesk checkout and a particular model for the quickstart | Select a reviewed local package or configured catalog entry and diagnose its own prerequisites | CLI catalog, validate, doctor, and launch commands |
-| Author a monolithic `WorkflowSource` manifest | Reference workflow, execution, contracts, configuration, dependencies, and extensions from the source manifest | SDK `blueprints` schemas, package loader/compiler tests |
-| Treat source format migration as an SDK 2.0 release requirement | Check actual distribution metadata independently of the schema version | Current CLI and SDK `pyproject.toml` |
-| Require old independently versioned SDK components | Declare component distributions and supported explicit version constraints | SDK component, package-dependency, and version-constraint tests |
-| Route worker inference directly to DMR | Use the owner's managed LiteLLM gateway; direct DMR probes are diagnostic only | SDK model preparation and gateway routing; model CLI implementation |
-| Expect one run to spread across peers or share Redis | All workers stay on the job's owner Core; independent Cores federate | Core stable-job/federation code and cluster architecture contract |
-| Describe all execution as OpenShell | Review the declared HostLocal, Docker, or OpenShell boundary | Core runner implementations and native preparation code |
-| Treat quiet Docker output as missed node beacons | Task deadlines govern DockerWorker liveness; explicit workflow beacon policy remains authoritative | Core workflow ledger and child-workflow unit tests |
-| Repeat a model call after uncertain dispatch | Handle `AmbiguousInvocation`; partition required context on `NeedsPartition` | SDK context-session and LiteLLM-context tests |
+| Previous guidance                                                      | Current usage                                                                                                  | Owning evidence                                                     |
+| ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Treat a job as one execution; cancel it with `mn job cancel`           | Keep durable job and public run IDs separately; control execution through `mn run`                             | CLI job-definition/run commands; API v1 contract tests              |
+| Launch a local folder without an explicit path prefix                  | Use `./folder`, `../folder`, or an absolute path for launch/doctor; other values select catalog IDs            | CLI blueprint resolution and command help                           |
+| Assume an OtterDesk checkout and a particular model for the quickstart | Select a reviewed local package or configured catalog entry and diagnose its own prerequisites                 | CLI catalog, validate, doctor, and launch commands                  |
+| Author a monolithic `WorkflowSource` manifest                          | Reference workflow, execution, contracts, configuration, dependencies, and extensions from the source manifest | SDK `blueprints` schemas, package loader/compiler tests             |
+| Treat source format migration as an SDK 2.0 release requirement        | Check actual distribution metadata independently of the schema version                                         | Current CLI and SDK `pyproject.toml`                                |
+| Require old independently versioned SDK components                     | Declare component distributions and supported explicit version constraints                                     | SDK component, package-dependency, and version-constraint tests     |
+| Route worker inference directly to DMR                                 | Use the owner's managed LiteLLM gateway; direct DMR probes are diagnostic only                                 | SDK model preparation and gateway routing; model CLI implementation |
+| Expect one run to spread across peers or share Redis                   | All workers stay on the job's owner Core; independent Cores federate                                           | Core stable-job/federation code and cluster architecture contract   |
+| Describe all execution as OpenShell                                    | Review the declared HostLocal, Docker, or OpenShell boundary                                                   | Core runner implementations and native preparation code             |
+| Treat quiet Docker output as missed node beacons                       | Task deadlines govern DockerWorker liveness; explicit workflow beacon policy remains authoritative             | Core workflow ledger and child-workflow unit tests                  |
+| Repeat a model call after uncertain dispatch                           | Handle `AmbiguousInvocation`; partition required context on `NeedsPartition`                                   | SDK context-session and LiteLLM-context tests                       |
 
 Detailed internal ownership remains in [CLI](cli.md), [API](api.md),
 [Blueprint Standard](blueprint-standard.md), [SDK](SDK.md),
@@ -40,13 +40,13 @@ Model and API examples no longer require a private runtime workspace path.
 
 Focused Python suites passed against the workspace source:
 
-| Repository | Test files | Result |
-| --- | --- | --- |
-| `mn-cli` | `test_job_definition_cmds.py`, `test_run_public.py`, `test_main.py` | 53 passed |
-| `mn-api` | `test_v1_contract.py` | 26 passed |
+| Repository      | Test files                                                                                   | Result     |
+| --------------- | -------------------------------------------------------------------------------------------- | ---------- |
+| `mn-cli`        | `test_job_definition_cmds.py`, `test_run_public.py`, `test_main.py`                          | 53 passed  |
+| `mn-api`        | `test_v1_contract.py`                                                                        | 26 passed  |
 | `mn-python-sdk` | `test_version_constraints.py`, `test_dependency_versions.py`, `test_package_dependencies.py` | 131 passed |
-| `mn-python-sdk` | `test_blueprint_package.py`, `test_components.py` | 92 passed |
-| `mn-python-sdk` | `test_context_session.py`, `test_litellm_context.py` | 27 passed |
+| `mn-python-sdk` | `test_blueprint_package.py`, `test_components.py`                                            | 92 passed  |
+| `mn-python-sdk` | `test_context_session.py`, `test_litellm_context.py`                                         | 27 passed  |
 
 Run these files with `python -m pytest` from the owning repository in an
 environment with its dependencies and pytest installed. The focused API command
