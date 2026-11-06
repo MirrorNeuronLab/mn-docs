@@ -29,6 +29,7 @@ legal_assistant/
   "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/manifest.schema.json",
   "id": "legal_assistant",
   "name": "Legal Assistant",
+  "tagline": "Find key facts in legal documents",
   "version": "1.0.0",
   "description": "Review legal documents and prepare a review packet.",
   "license": "LICENSE.md",
@@ -49,7 +50,7 @@ All references are ordinary package-relative POSIX paths. Documents have fixed r
 
 | Document              | Responsibility                                                                                              |
 | --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `manifest.json`       | Identity, release version, description, legal references, and role references                               |
+| `manifest.json`       | Identity, release version, tagline, description, legal references, and role references                      |
 | `workflow.json`       | Logical steps, dependencies, dynamic workflows, and workflow policies                                       |
 | `execution.json`      | Execution mode, agents, workers, runners, resources, placement, services, schedules, and execution policies |
 | `contracts.json`      | Inputs, validation, adapters, live inputs, outputs, artifacts, events, status, and privacy                  |
@@ -58,6 +59,17 @@ All references are ordinary package-relative POSIX paths. Documents have fixed r
 | `extensions/*.json`   | Platform features and domain descriptors                                                                    |
 
 The SDK ships Draft 2020-12 schemas for each role and known extension. Canonical schema identifiers resolve against the SDK's local registry without fetching schemas from the network. Unknown core fields, duplicate JSON properties, invalid release versions, missing documents, and unsupported schema identifiers are errors.
+
+`tagline` is optional and contains 1–80 Unicode characters on a single line.
+Control characters and leading or trailing whitespace are rejected. Write a
+brief purpose statement, shorter than `description`, that helps users scan a
+catalog card or list. For example, Computer Use can use
+`"tagline": "Operate Mac apps and websites from a prompt"`.
+The manifest owns this text; its value is preserved in catalog records, runtime
+manifests and metadata, resolved descriptors, exported packages, and MCP
+blueprint identity. `mn blueprint list` displays it in the Tagline column and
+uses the description when a tagline is absent. Blueprint details and JSON
+output retain the full description alongside the tagline.
 
 ## Dependency versions
 
