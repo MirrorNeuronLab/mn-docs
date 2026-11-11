@@ -8,7 +8,7 @@ This workspace is intentionally multi-component. Tests stay with the component t
 - **Outcome:** run the smallest relevant check, then expand validation when a shared contract changes.
 - **Page type:** contributor reference.
 - **Scope:** local component checks, injected contracts, and selection of service-backed suites; production and two-box certification require their own environments.
-- **Status:** current source-workspace workflow. `test_all.py` remains a deprecated compatibility entry point.
+- **Status:** current source-workspace workflow through `mn_test`.
 - **Sources of truth:** `mn-system-tests/src/mn_system_tests/{cli,catalog,runner,config,reports}.py`, component test suites, and `mn_test --help`.
 - **Validation:** inspect `--help` and `--list`, check selection with `--dry-run`, then run the smallest owning suite. A skipped or blocked capability is not a passing test.
 
@@ -53,20 +53,21 @@ Inspect selection before execution:
 .venv/bin/mn_test --suite contracts --dry-run
 ```
 
-Choose the smallest relevant check; each row is a separate command from the same directory:
+Choose the smallest relevant check. Each row is a separate command from the
+same directory. Replace `<catalog-dir>` with the path to the local catalog:
 
-| Validation                                      | Command                                                  |
-| ----------------------------------------------- | -------------------------------------------------------- |
-| Injected API/CLI/SDK contracts                  | `.venv/bin/mn_test --suite contracts`                    |
-| Component unit suites                           | `.venv/bin/mn_test --level unit`                         |
-| One component's unit suite                      | `.venv/bin/mn_test --component mn-api --level unit`      |
-| Local blueprint catalog validation              | `.venv/bin/mn_test --suite blueprints.local`             |
-| Installer and deterministic benchmark contracts | `.venv/bin/mn_test --suite installer --suite benchmarks` |
-| Interface performance measurements              | `.venv/bin/mn_test --suite performance`                  |
-| Components with dirty Git working trees         | `.venv/bin/mn_test --changed`                            |
-| Core runtime end-to-end checks                  | `.venv/bin/mn_test --suite MirrorNeuron.e2e`             |
-| Browser end-to-end checks                       | `.venv/bin/mn_test --suite mn-web-ui.e2e`                |
-| Python dependency consistency (`pip check`)     | `.venv/bin/mn_test --suite security.dependencies`        |
+| Validation                                      | Command                                                                                   |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Injected API/CLI/SDK contracts                  | `.venv/bin/mn_test --suite contracts`                                                     |
+| Component unit suites                           | `.venv/bin/mn_test --level unit`                                                          |
+| One component's unit suite                      | `.venv/bin/mn_test --component mn-api --level unit`                                       |
+| Local blueprint catalog validation              | `.venv/bin/mn_test --suite blueprints.local --blueprints-local "<catalog-dir>" --offline` |
+| Installer and deterministic benchmark contracts | `.venv/bin/mn_test --suite installer --suite benchmarks`                                  |
+| Interface performance measurements              | `.venv/bin/mn_test --suite performance`                                                   |
+| Components with dirty Git working trees         | `.venv/bin/mn_test --changed`                                                             |
+| Core runtime end-to-end checks                  | `.venv/bin/mn_test --suite MirrorNeuron.e2e`                                              |
+| Browser end-to-end checks                       | `.venv/bin/mn_test --suite mn-web-ui.e2e`                                                 |
+| Python dependency consistency (`pip check`)     | `.venv/bin/mn_test --suite security.dependencies`                                         |
 
 With no selection filters, the runner selects the full catalog. Local services and demo blueprints can run; gated two-box, GPU, host-secret, and destructive suites remain skipped unless explicitly enabled. This is broader than an offline unit run:
 
@@ -95,7 +96,24 @@ For a local cross-component smoke run, prefer the runner's owned Core/API/Redis 
 
 These suites require their catalog-listed native tools and Python packages. They can start listeners, build local runtime artifacts, and execute trusted test payloads. Their service logs and cleanup diagnostics stay in the run directory.
 
-When invoking live pytest tests directly, the caller owns service startup and cleanup. Use a disposable Core/API/Redis setup with separate ports, writable storage roots, and a unique Redis namespace. Set `MN_GRPC_TARGET`, `MN_API_BASE_URL`, and `RUN_MN_SYSTEM_TESTS=1` for that setup. Do not point mutating tests at a developer or production runtime.
+When invoking live pytest tests directly, follow the selected test's fixture
+contract for service provisioning. Use disposable Core and Redis instances
+with separate ports, storage roots, and Redis namespaces. Tests that exercise
+the surface need the temporary installation profile or REST endpoint required
+by their fixtures. Set `RUN_MN_SYSTEM_TESTS=1` to enable live tests.
+
+To exercise the coordinated surface/runtime release boundary from
+`mn-system-tests`, provision Docker and the local workspace dependencies:
+
+```bash
+RUN_MN_SYSTEM_TESTS=1 MN_SPLIT_RUNTIME_ACCEPTANCE=1 \
+  PYTHONPATH=../mn-python-sdk/packages/runtime/src \
+  .venv/bin/python -m pytest tests/integration/live/test_split_runtime_acceptance.py
+```
+
+The acceptance test creates its own two Core/native processes and Redis
+containers. Check the test result and teardown output. A skip leaves this
+release gate unverified.
 
 ## Redis HA Tests
 
@@ -148,32 +166,24 @@ The Nomad-inspired runtime features should be covered at three levels:
 
 Core areas to keep covered:
 
-| Feature                   | Test focus                                                                                                       |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Reconciliation            | Node-loss recovery, live coordinator agent movement, whole-job recovery after lease loss, pause for unsafe work. |
-| Job types                 | `service`, `batch`, `system`, and `sysbatch` lifecycle behavior.                                                 |
-| Restart/reschedule policy | Sliding windows, delay functions, `mode: fail`, `mode: delay`, disabled and unlimited reschedule.                |
-| Drain and maintenance     | Eligibility, dry run, service migration, batch waiting, system ignore, cancellation, undrain.                    |
-| Services and checks       | Manifest validation, service preflight, registry filtering, HTTP/TCP/script/gRPC checks.                         |
-| Resources and devices     | CUDA vs Metal, GPU memory, device ID exclusivity, explicit port conflicts, host volume placement.                |
-| Deployments               | Rolling, canary isolation, promotion, rollback, service discovery roles.                                         |
-| Schedules and events      | Cron parsing, timezone, delayed runs, overlap prevention, missed policies, event filters, idempotent dispatch.   |
+| Feature                   | Test focus                                                                                                     |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Reconciliation            | Owner-local coordinator recovery, Redis lease fencing, and pause for unsafe work.                              |
+| Job types                 | `service`, `batch`, `system`, and `sysbatch` lifecycle behavior.                                               |
+| Restart/reschedule policy | Sliding windows, delay functions, `mode: fail`, `mode: delay`, disabled and unlimited reschedule.              |
+| Drain and maintenance     | Eligibility, dry run, owner-local blockers, system-job policy, cancellation, and undrain.                      |
+| Services and checks       | Manifest validation, service preflight, registry filtering, HTTP/TCP/script/gRPC checks.                       |
+| Resources and devices     | CUDA vs Metal, GPU memory, device ID exclusivity, explicit port conflicts, host volume placement.              |
+| Deployments               | Rolling, canary isolation, promotion, rollback, service discovery roles.                                       |
+| Schedules and events      | Cron parsing, timezone, delayed runs, overlap prevention, missed policies, event filters, idempotent dispatch. |
 
 Two-box federation checks must use distinct writable Redis identities. Sync the
 remote workspace through a fast-forward Git update and exact commit parity;
 never edit tracked files directly on the remote machine.
 
-Typical federation verification:
-
-```bash
-# Run once on each node
-mn runtime start
-
-# Run the command printed by the joining node on an existing peer
-mn node add <peer-ip> --token <join-token> --grpc-port 55051
-mn node list
-mn resource show
-```
+For manual verification, use the [runtime attachment and peer join procedure](cluster.md#start-and-join-two-nodes).
+Keep the installer-printed connection command private because it contains
+the runtime credential.
 
 Then run targeted system tests for:
 
@@ -196,7 +206,8 @@ All runtime/config overrides must use `MN_`.
 Useful test isolation vars:
 
 - `MN_GRPC_PORT`: use a non-default port for test core instances.
-- `MN_GRPC_TARGET`: point CLI/API/SDK tests at the test core.
+- `MN_GRPC_TARGET`: point the SDK's direct Core client and tests that use it at
+  the test Core. Connected CLI/API fixtures configure their own runtime profile.
 - `MN_API_BASE_URL`: point system e2e tests at a non-default API port.
 - `MN_REDIS_NAMESPACE`: isolate Redis keys per test run.
 - `MN_ENV=test`: use test-mode validation where appropriate.

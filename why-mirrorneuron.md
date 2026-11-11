@@ -9,7 +9,7 @@ MirrorNeuron is intended for workflows that need one or more of these properties
 - packaged workflow definitions, payload files, configuration, and validation rules;
 - explicit job submission, inspection, pause, resume, cancellation, and recovery controls;
 - observable runtime state, events, logs, and output artifacts;
-- a choice between trusted host-local execution, OpenShell sandbox execution, and placement on eligible runtime nodes; or
+- trusted host execution, prepared Docker execution, or OpenShell sandbox execution on an eligible owner node; or
 - local model execution through Docker Model Runner, with external integrations enabled only by the selected blueprint and its configuration.
 
 It can run on a single machine or on a small cluster of runtime nodes. The `mn` CLI, `mn-api` REST gateway, and Python SDK are the public operational surfaces; MirrorNeuron Core owns scheduling, orchestration, and durable runtime coordination.
@@ -36,10 +36,11 @@ MirrorNeuron does not provide these properties merely by being installed:
 
 ## Internal sources of truth
 
-- CLI surface: `mn-cli/mn_cli/main.py` and command modules under `mn-cli/mn_cli/libs/`.
+- CLI surface: `mn-cli/mn_cli/main.py`, `commands.py`, and the `client_*.py` adapters.
 - REST surface: `mn-api/mn_api/app.py`, route modules under `mn-api/mn_api/routes/`, and the running FastAPI OpenAPI schema.
 - Runtime behavior: `MirrorNeuron/lib/` and its tests.
-- Blueprint requirements: each blueprint's `manifest.json`, `config/`, `README.md`, `SPEC.md`, and tests in `otterdesk-blueprints/`.
+- Blueprint requirements: the selected catalog package's `manifest.json`,
+  referenced role and configuration files, README, and tests.
 - Runtime configuration: `mn-api/mn_api/config_schema.py`, `mn-cli/mn_cli/config.py`, and the environment-variable reference.
 
 ## Related pages

@@ -1,0 +1,33 @@
+{
+  "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/execution.schema.json",
+  "agents": {
+    "nodes": [
+      {
+        "node_id": "finish",
+        "agent_type": "aggregator",
+        "type": "reduce",
+        "config": {
+          "complete_on_message": true,
+          "terminal_sink": true,
+          "complete_run": true
+        }
+      }
+    ],
+    "edges": []
+  },
+  "runtime": {
+    "models": {
+      "primary": {
+        "provider": "docker_model_runner",
+        "model": "hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M",
+        "runtime_model": "hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M",
+        "backend": "llama.cpp",
+        "context_size": 4096,
+        "required": true,
+        "customize_mode": true
+      }
+    }
+  },
+  "mode": "explicit",
+  "job_name": "custom-hf-model-demo"
+}

@@ -16,30 +16,40 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 | ------------------------------------ | ------------------------------------------------- |
 | `actor_review_skill`                 | `mirrorneuron-actor-review-skill`                 |
 | `autonomous_research_skill`          | `mirrorneuron-autonomous-research-skill`          |
+| `beam_analysis_skill`                | `mirrorneuron-beam-analysis-skill`                |
 | `client_report_skill`                | `mirrorneuron-client-report-skill`                |
 | `code_generation_skill`              | `mirrorneuron-code-generation-skill`              |
+| `code_search_skill`                  | `mirrorneuron-code-search-skill`                  |
+| `computer_use_skill`                 | `mirrorneuron-computer-use-skill`                 |
 | `docs_to_markdown_skill`             | `mirrorneuron-docs-to-markdown-skill`             |
 | `email_delivery_skill`               | `mirrorneuron-email-delivery-skill`               |
 | `email_receive_agentmail_skill`      | `mirrorneuron-email-receive-agentmail-skill`      |
 | `email_send_resend_skill`            | `mirrorneuron-email-send-resend-skill`            |
 | `evidence_engine_skill`              | `mirrorneuron-evidence-engine-skill`              |
 | `first_draft_slides_skill`           | `mirrorneuron-first-draft-slides-skill`           |
+| `folder_files_skill`                 | `mirrorneuron-folder-files-skill`                 |
 | `generate_fake_data_skill`           | `mirrorneuron-generate-fake-data-skill`           |
 | `graph_analysis_skill`               | `mirrorneuron-graph-analysis-skill`               |
 | `implementation_plan_skill`          | `mirrorneuron-implementation-plan-skill`          |
 | `live_video_analysis_skill`          | `mirrorneuron-live-video-analysis-skill`          |
+| `macos_logs_skill`                   | `mirrorneuron-macos-logs-skill`                   |
 | `market_research_skill`              | `mirrorneuron-market-research-skill`              |
 | `marketing_email_skill`              | `mirrorneuron-marketing-email-skill`              |
 | `meeting_summary_skill`              | `mirrorneuron-meeting-summary-skill`              |
+| `nvidia_ocr_skill`                   | `mirrorneuron-nvidia-ocr-skill`                   |
+| `nvidia_transcribe_skill`            | `mirrorneuron-nvidia-transcribe-skill`            |
 | `opencode_skill`                     | `mirrorneuron-opencode-skill`                     |
 | `process_map_skill`                  | `mirrorneuron-process-map-skill`                  |
 | `public_research_orchestrator_skill` | `mirrorneuron-public-research-orchestrator-skill` |
 | `scoring_framework_skill`            | `mirrorneuron-scoring-framework-skill`            |
 | `slack_communicate_skill`            | `mirrorneuron-slack-communicate-skill`            |
 | `spreadsheet_analysis_skill`         | `mirrorneuron-spreadsheet-analysis-skill`         |
+| `static_code_analysis_skill`         | `mirrorneuron-static-code-analysis-skill`         |
+| `temporal_graph_skill`               | `mirrorneuron-temporal-graph-skill`               |
 | `text_analysis_skill`                | `mirrorneuron-text-analysis-skill`                |
 | `vendor_comparison_skill`            | `mirrorneuron-vendor-comparison-skill`            |
 | `web_browser_skill`                  | `mirrorneuron-web-browser-skill`                  |
+| `web_report_skill`                   | `mirrorneuron-web-report-skill`                   |
 
 Runtime infrastructure is maintained as independent SDK component packages:
 `mn-python-sdk-common`, `mn-python-sdk-web-ui`, `mn-python-sdk-models`,
@@ -50,11 +60,12 @@ MCP usage and work-packet authoring retain instruction-only Agent Skills.
 ## Document processing
 
 `docs_to_markdown_skill` owns complete local Markdown conversion, embedded PDF
-extraction, lazy OCR and document-intake helpers. The separate document-reading,
-PDF-extraction and OCR packages are removed from the current source catalog;
-callers import `mn_docs_to_markdown_skill` directly. There are no compatibility
-packages or import aliases. SourceCorpus retrieval and indexing remain SDK-owned.
-See the [package contract](../mn-skills/docs_to_markdown_skill/SKILL.md).
+extraction, lazy OCR and document-intake helpers. Import it through
+`mn_docs_to_markdown_skill`. The NVIDIA OCR skill provides a separate
+SDK-managed inference service for text and bounding boxes. SourceCorpus
+retrieval and indexing remain SDK-owned.
+[Markdown conversion](../mn-skills/docs_to_markdown_skill/SKILL.md) ·
+[NVIDIA OCR](../mn-skills/nvidia_ocr_skill/README.md)
 
 ## Browser skills
 

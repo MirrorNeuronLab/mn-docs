@@ -81,7 +81,8 @@ shared directory between runtimes. See
 
 See [Installation modes](installation.md#installation-modes) to install either
 part independently and the [Component Guide](component-guide.md#workspace-map)
-for repository ownership.
+for repository ownership. The [Structurizr workspace](architect.dsl) maps
+the same surface and runtime components.
 
 ## Runtime code map
 
@@ -124,8 +125,6 @@ MirrorNeuron is not trying to replicate Airflow as a general-purpose data schedu
 - keep inter-agent communication event-driven and observable
 - avoid turning the BEAM control plane into a pile of heavyweight OS processes
 
-That last point drives most of the recent changes.
-
 ## What we borrowed from Airflow
 
 The project intentionally borrows a few control-plane ideas from Airflow while avoiding Airflow's product shape.
@@ -139,7 +138,13 @@ Airflow's big lesson for this runtime is not "copy operators." It is "treat heav
 
 ## Workflow DAG execution model
 
-MirrorNeuron now separates the user-facing problem workflow from the lower-level agent runtime. In the generated `mn.workflow/v1` runtime descriptor, `workflow` is the problem DAG: it names the source, sink, step dependencies, branch requirements, join behavior, and accepted outcomes. `agents.nodes` and `agents.edges` are the runtime agent communication topology used by the BEAM runtime; they are not the problem workflow. Blueprint authors instead supply the referenced `workflow.json` and `execution.json` roles in the [canonical source package](blueprint-standard.md). Generated `nodes`, `edges`, bindings, and entrypoints belong to the compilation/submission boundary.
+Blueprint authors supply the referenced `workflow.json` and `execution.json`
+roles in the [canonical source package](blueprint-standard.md). The SDK's
+compiled `mn.workflow/v1` descriptor carries the logical DAG in `workflow`
+and the physical topology in `agents.nodes` and `agents.edges`. Submission
+lowers these into Core's executable `flow`: `flow.steps` and
+`flow.graph.edges` govern logical step eligibility, while `flow.nodes` and
+`flow.edges` define worker message routes. See [Generated Job Runtime Format](bundle.md).
 
 The DAG executor is a durable scheduler with per-step lifecycle state, explicit
 trigger rules, branch and guard skips, runtime-expanded mapped items for
@@ -425,9 +430,8 @@ A physical execution lease is permission to consume sandbox capacity on the curr
 - typically one OpenShell sandbox run
 - expensive compared to a BEAM process
 
-The runtime should be able to hold thousands of logical workers without starting thousands of sandboxes at once.
-
-That is why executor nodes now go through `MirrorNeuron.Execution.LeaseManager`.
+Logical workers can wait without holding physical slots.
+`MirrorNeuron.Execution.LeaseManager` grants slots for runner invocations.
 
 ## Why the lease manager exists
 
@@ -590,20 +594,10 @@ That means a logical worker does not "become Python." It requests external execu
 
 ## Operational guidance
 
-A healthy deployment usually looks like this:
-
-- many logical workers
-- modest executor concurrency per owner Core
-- independent jobs assigned to more Cores when more capacity is needed
-
-Example:
-
-- four jobs with 250 logical workers each
-- four owner Cores
-- eight executor slots per Core
-- up to eight concurrent sandboxes per job owner
-
-That is still a large multi-agent workload, but it does not overload a single OpenShell gateway.
+Size executor pools for the owner and its runner dependencies. With four
+independent Cores and eight slots in each Core's default pool, a one-slot
+invocation can occupy at most eight concurrent slots per pool. Run reservations,
+other pools, and runner readiness can further constrain useful concurrency.
 
 ## Current limitations
 

@@ -12,12 +12,14 @@ host service, or runs inside OpenShell.
 
 A blueprint launch can touch several different filesystems and networks:
 
-| Place                 | What Runs There                                                              | What It Can See                                                                         |
-| --------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Native OS             | OtterDesk, `mn-api`, `mn`, validation before launch                          | Native files such as `~/docs`, native localhost ports                                   |
-| Core Docker container | MirrorNeuron core, core-side validation, HostLocal workers in local installs | Submitted bundle under `/tmp/bundle_*`, payloads under `payloads/`, container localhost |
-| HostLocal workspace   | A copied payload directory for one agent                                     | Only files copied from the submitted payload `upload_path`                              |
-| OpenShell sandbox     | Sandboxed worker command                                                     | Only uploaded sandbox files and explicitly allowed network/filesystem resources         |
+| Place                 | What Runs There                                                                | What It Can See                                                                 |
+| --------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
+| Application surface   | OtterDesk, `mn-api`, and `mn`                                                  | The application's local filesystem, including downloaded results                |
+| Runtime host          | `mn_runtime` resolves sources, validates inputs, and prepares native resources | Paths and services accessible on the selected runtime                           |
+| Core Docker container | MirrorNeuron Core and Core-side preflight                                      | Core-mounted state, staged bundles, and container-local listeners               |
+| HostLocal workspace   | The trusted worker command in a staged work directory                          | Copied payloads and other files reachable with the worker's process permissions |
+| Docker worker         | A prepared container or Compose service                                        | Its image, configured mounts, and container network                             |
+| OpenShell sandbox     | Sandboxed worker command                                                       | Only uploaded sandbox files and explicitly allowed network/filesystem resources |
 
 The mistake to avoid: never assume a path or port that worked in native
 validation will work in the runtime worker.
@@ -27,9 +29,9 @@ validation will work in the runtime worker.
 Static files that ship with a blueprint belong under `payloads/`. Runtime worker
 commands should read them through paths relative to the node workdir.
 
-User-selected native folders or files need staging. Do not pass a native path such
-as `~/Downloads/tax2025` directly to a Docker or OpenShell worker.
-Instead:
+User-selected folders or files need staging. Local file paths are useful only
+when the preparing runtime can read them. For a remote launch, use a runtime
+path or an explicitly supported upload. Stage accessible inputs as follows:
 
 1. Validate the native path before launch.
 2. Copy the selected files into the submitted payload.
@@ -103,7 +105,7 @@ manifest to use a shared upload root. Do not rely on another node's workspace.
 
 Input validation can run twice:
 
-- API or CLI preflight, where native paths may exist.
+- Native runtime preparation, where runtime host paths may exist.
 - Core preflight, where only the submitted bundle and payloads exist.
 
 Command validators should read `MN_BLUEPRINT_CONFIG_JSON`. If launch preparation
@@ -142,12 +144,13 @@ valid staged config path.
 Docker-published ports look busy from the native host because Docker already owns
 the host listener. That is expected. A blueprint web UI is an explicit
 long-running service node, not a side process injected from configuration.
-Declare its command, port resource, service name, tags, and health check in the
-manifest:
+Declare its command, port resource, service name, tags, and health check in
+the execution role. This is a generated node fragment:
 
 ```json
 {
   "node_id": "example_web_ui",
+  "agent_type": "executor",
   "type": "stream",
   "config": {
     "runner_module": "MirrorNeuron.Runner.HostLocal",
@@ -210,7 +213,7 @@ Reference payload-local files in the manifest:
 
 ```json
 {
-  "runner_module": "MirrorNeuron.Sandbox.OpenShell",
+  "runner_module": "MirrorNeuron.Runner.OpenShell",
   "upload_path": "worker",
   "sandbox_upload_path": "/sandbox/job",
   "workdir": "/sandbox/job/worker",
@@ -218,9 +221,11 @@ Reference payload-local files in the manifest:
 }
 ```
 
-Do not pass native paths for policies, SSH keys, prompt files, model caches, or
-input data unless the OpenShell integration explicitly supports and validates that
-local path. Prefer copying those files into the payload.
+Stage authorized inputs, policies, and prompts through the payload. Use
+reviewed credential injection for secrets. To transfer immutable outputs,
+use `artifact_handoff.version: "mn.artifact_handoff/v1"` and its declared
+outputs. See [Artifact handoff](runtime-architecture.md#why-artifacts-matter)
+for commit and retry behavior.
 
 OpenShell network access is also explicit. If a worker needs a model provider,
 web API, local service, or dashboard callback, document the required hostname and
@@ -245,17 +250,17 @@ Verify service discovery:
 mn service show <blueprint-web-ui-service-name> --tag <blueprint_id>
 ```
 
-Expected output:
-
-```text
-<blueprint-web-ui-service-name>
-```
+Check that the matching instance is passing on the expected owner.
 
 For API clients, use:
 
 ```bash
-curl http://127.0.0.1:54001/api/v1/services/<blueprint-web-ui-service-name>/resolution
+curl "http://127.0.0.1:54001/api/v1/services/<blueprint-web-ui-service-name>/resolution" \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN"
 ```
+
+Set `SURFACE_API_TOKEN` to the surface API credential. For browser access,
+use the [Job UI relay](api.md#job-ui-relay).
 
 ## Debug Checklist
 
@@ -276,22 +281,18 @@ When a port fails:
 - Check the manifest-declared port resource and active runtime services.
 - Separate bind host, health-check address, and public browser URL.
 
-Useful commands:
+From a shell attached to a local runtime, use these diagnostics on a reviewed
+package. Replace the path and service identifiers with your values:
 
 ```bash
 mn blueprint validate /path/to/bundle
-mn blueprint run /path/to/bundle
+mn blueprint doctor /path/to/bundle
 mn service list --all
 mn service show <blueprint-web-ui-service-name> --tag <blueprint_id>
 ```
 
-For a local development runtime, inspect the submitted bundle from the job
-details. The `manifest_ref.cache_path` points at the bundle cache inside the core
-container:
-
-```bash
-docker exec mirror-neuron-core find /tmp/mirror_neuron/bundle_cache -maxdepth 4 -type f
-```
+Use `mn job show <job-id>` and the owning runtime's logs to identify the
+staged submission. Cache paths and container names depend on the installation.
 
 ## Design Checklist
 

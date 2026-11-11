@@ -1,5 +1,8 @@
 # November 2026 Internal Refactoring Report
 
+For the current surface/runtime split and module locations, see
+[Component Guide](component-guide.md#internal-module-boundaries).
+
 The approved refactor separates progress storage, CLI dependencies and launch helpers, SDK validation and staging, UI schemas and presentation helpers, and Core projections from their orchestration code. Existing entry points remain available. Structural compatibility checks found no API, CLI, public Python declaration, protobuf, or blueprint-schema differences.
 
 This is a contributor decision and validation record for the November 4, 2026 working-tree changes. It covers internal organization and compatibility evidence, not a release certification. Component suites pass as detailed below; existing cross-component fixture failures, three optional UI/API browser failures, one Core restart timeout, and Core compiler warnings remain reproducible on the original revisions. Live GPU, remote federation, and installed-runtime deployment were not exercised.

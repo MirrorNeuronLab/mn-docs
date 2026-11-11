@@ -17,7 +17,8 @@ The catalog is configured by `MN_BLUEPRINT_SOURCE`, `MN_BLUEPRINT_REPO`, and `MN
 
 ## Preflight a local package
 
-From the directory containing your reviewed blueprint folder:
+From the directory containing your reviewed blueprint folder, with the surface
+attached to the local runtime:
 
 ```bash
 mn blueprint validate ./my-blueprint
@@ -34,7 +35,8 @@ Replace `./my-blueprint` with the actual path. Both commands must complete witho
 mn blueprint run ./my-blueprint --detached
 ```
 
-For a catalog-managed package, use its ID instead of a path:
+For a catalog-managed package, use the ID returned by `mn blueprint list`.
+The connected runtime resolves that ID against its own catalog:
 
 ```bash
 mn blueprint run <blueprint-id> --detached

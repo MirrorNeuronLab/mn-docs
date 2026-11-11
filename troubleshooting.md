@@ -4,16 +4,31 @@ This page is the canonical symptom-led guide for local and two-node runtime fail
 
 ## Collect evidence before changing state
 
-Run these commands first and retain the output with secrets removed:
+From the configured surface, run these read-only checks and retain sanitized
+output:
 
 ```bash
 mn --version
 mn runtime status
-mn runtime doctor
 mn node list
 ```
 
-For a workflow failure, also record the job ID, run ID, timestamp, and exact error text. Use `mn job show <job_id>` and `mn run watch <run_id>` to determine whether the failure is in the runtime, a declared blueprint requirement, or worker code.
+For foundation diagnostics, run `mn runtime doctor` on a combined installation
+or `bin/mn-runtime doctor` from the runtime-only installation home. Client mode
+reports the saved connection through `mn runtime status`. The optional API
+surface can check the attached node through authenticated `GET /api/v1/runtime/health`.
+
+For a workflow failure, record the Job ID, Run ID, timestamp, and exact error.
+Use `mn job show <job-id>` and `mn run show <run-id>` to inspect the saved
+definition and execution.
+
+### The client cannot connect
+
+For `MN_CLIENT_NOT_CONNECTED`, verify the surface's `MN_HOME`, the runtime's
+gRPC listener and the runtime control credential. Run the attachment command
+in [Installation](installation.md#install-the-surface-without-docker). Use the
+same procedure to replace an old profile that points to an API URL. A failed
+attachment preserves the existing profile.
 
 ## Redis issues
 
@@ -22,7 +37,7 @@ For a workflow failure, also record the job ID, run ID, timestamp, and exact err
 Symptoms:
 
 - runtime tests fail immediately
-- `mn blueprint run ...` hangs or errors
+- starts fail with a Redis connection or readiness error
 
 Diagnose:
 
@@ -30,13 +45,15 @@ Diagnose:
 docker ps
 ```
 
-If `mirror-neuron-redis` is listed, check it directly:
+With the default Compose container name, check it directly from the owner:
 
 ```bash
 docker exec mirror-neuron-redis redis-cli ping
 ```
 
-`PONG` confirms that the container is responding. If the container is absent or stopped, start the managed runtime first:
+`PONG` confirms that Redis is responding. If a managed container is stopped,
+start the owning runtime through its installed lifecycle. For a combined
+installation:
 
 ```bash
 mn runtime start
@@ -71,33 +88,21 @@ Check from the remote box:
 nc -vz -w 3 <local-host> 46379
 ```
 
-If this fails, let the smoke test auto-select the remote side as the initial primary:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --redis-ha \
-  --redis-ha-remote-host <remote-host> \
-  --redis-ha-local-ip <local-host> \
-  --redis-ha-remote-ip <remote-host>
-```
-
-Expected output includes:
-
-```text
-Remote cannot reach local Redis at <local-host>:46379; using remote as initial primary.
-two_box_post_failover_write_read_ok
-```
-
-For direct script control:
+If this fails, use automatic primary selection on the disposable test
+topology described in [Redis HA](redis-ha.md#verification). From the workspace
+root, substitute the SSH target and the two test IP addresses:
 
 ```bash
 cd MirrorNeuron
 bash scripts/test_redis_sentinel_two_box_ha.sh \
-  --remote-host <remote-host> \
-  --local-ip <local-host> \
-  --remote-ip <remote-host> \
+  --remote-host "<user>@<remote-host>" \
+  --local-ip "<local-ip>" \
+  --remote-ip "<remote-ip>" \
   --remote-network auto \
   --initial-primary auto
 ```
+
+The successful smoke prints `two_box_post_failover_write_read_ok`.
 
 ### Redis failover returns `READONLY` or connection errors
 
@@ -113,10 +118,12 @@ or:
 %Redix.ConnectionError{}
 ```
 
-MirrorNeuron retries reconnectable Redis errors with bounded backoff. If errors persist, check Sentinel:
+MirrorNeuron retries reconnectable Redis errors with bounded backoff. If
+errors persist, check the owning Core's Sentinel group using its configured
+credentials:
 
 ```bash
-redis-cli -p 26379 SENTINEL get-master-addr-by-name mirror-neuron
+redis-cli -h "<sentinel-host>" -p 26379 SENTINEL get-master-addr-by-name mirror-neuron
 ```
 
 Expected output is the current primary host and port.
@@ -131,26 +138,17 @@ Symptoms:
 - connection reset by peer
 - jobs fail before worker code starts
 
-Check:
+On the runtime that owns the failing Run, check foundation health, then use
+its configured OpenShell client:
 
 ```bash
 openshell status
 openshell sandbox list
 ```
 
-Expected output includes:
-
-```text
-Status: Connected
-```
-
-Reset:
-
-```bash
-openshell gateway destroy --name openshell
-openshell gateway start
-openshell status
-```
+Check for a reachable gateway and record the failing Run's events. If the
+gateway is down, inspect the installed runtime's OpenShell service and its
+logs before restarting services. A gateway restart can interrupt other jobs.
 
 ### stale sandboxes slow everything down
 
@@ -160,41 +158,26 @@ Symptoms:
 - tiny jobs feel slow
 - repeated benchmark runs degrade over time
 
-Clean prime-test sandboxes:
+Preview runtime-owned cleanup on the runtime host before removing anything:
 
 ```bash
-NO_COLOR=1 openshell sandbox list | awk 'NR>1 && index($1, "prime-worker-")==1 {print $1}' | xargs -I{} openshell sandbox delete {}
+mn runtime cleanup --dry-run
 ```
+
+Use `bin/mn-runtime cleanup --dry-run --json` for a runtime-only installation.
+The receipt lists confirmed candidates. Apply cleanup only after verifying the
+resources are no longer needed. See [CLI](cli.md#runtime-nodes-and-resources).
 
 ## Cluster issues
 
-### `:nodistribution`
+### `MN_NODE_UNAVAILABLE` or a peer never becomes eligible
 
-Check:
-
-```bash
-epmd -names
-nc -vz 127.0.0.1 4369
-```
-
-Fix:
-
-- make sure `epmd` is running
-- use fixed Erlang distribution ports
-- verify local firewall rules
-
-### Invalid challenge reply
-
-Symptoms:
-
-- `[error] ** Connection attempt from node :"node2@<remote-host>" rejected. Invalid challenge reply. **`
-- Nodes fail to form a cluster even when IP and ports are fully reachable
-
-Fix:
-
-- This is an **Erlang Cookie mismatch**. Both nodes must share the exact same secret cookie.
-- If you are running nodes on different physical machines, they will auto-generate different cookies by default.
-- Set the cookie explicitly on both boxes before starting: `export MN_COOKIE="my_shared_secret"`
+Verify each Core's advertised gRPC endpoint from the other runtime and check
+both coordination stores. Retry the same join after restoring reachability.
+Use the exact runtime name from `mn node list` when inspecting a peer.
+Federation uses authenticated gRPC and distinct Redis stores. EPMD and Erlang
+cookie diagnostics apply only to BEAM distribution. See
+[Federation troubleshooting](cluster.md#troubleshooting).
 
 ### HTTP port already in use
 
@@ -239,22 +222,17 @@ See [Cluster](cluster.md) for registration and trust boundaries.
 
 ## Monitor issues
 
-### monitor shows too many old jobs
+### Monitor shows old Runs
 
-This usually means Redis still contains older job metadata.
-
-Options:
-
-- ignore completed jobs with `--running-only`
-- delete old jobs manually if needed
+The Run list includes retained executions. Use `mn run list --job <job-id>`
+or `--blueprint <blueprint-id>` and set `--limit` to narrow the view. See
+[Monitor](monitor.md#control) before deleting retained history.
 
 ### monitor JSON has build noise
 
-Use the CLI command:
-
-- `mn run watch <run_id>`
-
-If you need all jobs first, run `mn job list`.
+Use `mn run show <run-id> --json` for one result envelope, or
+`mn run watch <run-id> --json` for newline-delimited stream records.
+Keep stdout separate from stderr when capturing machine-readable output.
 
 ## LLM example issues
 
@@ -306,10 +284,7 @@ If the workflow itself is tiny but runtime is slow, look first at:
 
 ```bash
 mn node list
-mn job show <job_id>
-mn run watch <run_id>
-mn run logs <run_id> --channel events
-openshell status
-openshell sandbox list
-epmd -names
+mn job show <job-id>
+mn run show <run-id>
+mn run logs <run-id> --channel events
 ```

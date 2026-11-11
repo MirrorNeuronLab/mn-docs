@@ -113,17 +113,15 @@ docker info --format '{{json .Runtimes}}'
 ```
 
 If `nvidia-ctk` is present and Docker lists an `nvidia` runtime, continue to
-step 5. If `nvidia-ctk` is present but Docker does not list `nvidia`, register
-the runtime and restart Docker:
+step 5. If the runtime entry is missing, back up `/etc/docker/daemon.json`
+before configuring it. Restarting Docker can interrupt existing containers.
+Choose a maintenance window before running these commands:
 
 ```bash
 sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 docker info --format '{{json .Runtimes}}'
 ```
-
-The configuration command updates `/etc/docker/daemon.json`. Back up and review
-that file first when the Docker daemon has operator-managed settings.
 
 If `nvidia-ctk` is missing on a stock DGX Spark, repair the NVIDIA software
 installation instead of mixing arbitrary toolkit packages into the appliance.
@@ -148,17 +146,15 @@ than substituting an x86-only image.
 
 ## 6. Start and verify Docker Model Runner
 
-Run the small Docker test model, then check the local API:
+On Docker Engine, DMR enables TCP access on port `12434` by default. Restrict
+access to loopback or your trusted network before running a model. The following
+check can download a model and start its serving process:
 
 ```bash
 docker model run ai/smollm2 "Reply with one word: ready"
 docker model list
 curl --fail http://127.0.0.1:12434/engines/v1/models
 ```
-
-On Docker Engine, DMR enables TCP access on port `12434` by default. Keep this
-endpoint bound to the local host or a trusted network boundary; do not expose
-an unauthenticated model endpoint to an untrusted network.
 
 After this preflight succeeds, install MirrorNeuron by following
 [Install MirrorNeuron Locally](installation.md). On Linux NVIDIA hosts, the
@@ -242,4 +238,6 @@ process, then run `sudo apt-get update`.
 - [NVIDIA Container Runtime for Docker on DGX Spark](https://docs.nvidia.com/dgx/dgx-spark/nvidia-container-runtime-for-docker.html)
 - [Install NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 
-Last reviewed against the linked Docker and NVIDIA documentation: September 2026.
+The commands above were checked against the linked Docker and NVIDIA
+documentation in November 2026. Run the GPU and endpoint checks on the
+target host to verify the installed configuration.

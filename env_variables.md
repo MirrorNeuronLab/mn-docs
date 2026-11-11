@@ -24,20 +24,22 @@ Save sanitized output before changing listener, connection, catalog, model, or c
 
 ## Runtime state and client connection
 
-| Variable                  | Default                                                 | Behavior                                                                                       |
-| ------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `MN_ENV`                  | `dev`                                                   | CLI/API environment. Use `prod` only with intentional authentication and secret configuration. |
-| `MN_HOME`                 | [Installation mode](installation.md#installation-modes) | Installation home for configuration, credentials, logs, and role-specific state.               |
-| `MN_GRPC_TARGET`          | `localhost:55051` fallback                              | Core gRPC target for direct SDK connections. CLI and API use the saved runtime profile.        |
-| `MN_GRPC_TIMEOUT_SECONDS` | `10`                                                    | Per-RPC timeout.                                                                               |
-| `MN_GRPC_AUTH_TOKEN`      | unset                                                   | Sensitive gRPC bearer token.                                                                   |
-| `MN_GRPC_ADMIN_TOKEN`     | unset                                                   | Sensitive administrative token.                                                                |
-| `MN_REDIS_URL`            | deployment-specific                                     | Runtime state-store URL.                                                                       |
-| `MN_REDIS_NAMESPACE`      | `mirror_neuron`                                         | Redis namespace; use a separate value for isolated tests.                                      |
-| `MN_COOKIE`               | deployment-specific                                     | Sensitive cluster credential. Change before non-local cluster use.                             |
+| Variable                        | Default                                                 | Behavior                                                                                       |
+| ------------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `MN_ENV`                        | `dev`                                                   | CLI/API environment. Use `prod` only with intentional authentication and secret configuration. |
+| `MN_HOME`                       | [Installation mode](installation.md#installation-modes) | Installation home for configuration, credentials, logs, and role-specific state.               |
+| `MN_GRPC_TARGET`                | `localhost:55051` fallback                              | Core gRPC target for direct SDK connections. CLI and API use the saved runtime profile.        |
+| `MN_GRPC_TIMEOUT_SECONDS`       | `10`                                                    | Default timeout for the SDK's direct Core client.                                              |
+| `MN_GRPC_AUTH_TOKEN`            | unset                                                   | Sensitive gRPC bearer token.                                                                   |
+| `MN_GRPC_ADMIN_TOKEN`           | unset                                                   | Sensitive administrative token.                                                                |
+| `MN_GRPC_PORT`                  | `55051`                                                 | Published Core gRPC host port. The Compose container listens on `50051`.                       |
+| `MN_GRPC_BIND_HOST`             | `127.0.0.1`                                             | Host interface for the published Core gRPC port. Remote attachment requires a reachable bind.  |
+| `MN_RUNTIME_CONTROL_TOKEN_FILE` | installer-managed                                       | Private control credential file read by Core for runtime gateway calls.                        |
+| `MN_REDIS_URL`                  | deployment-specific                                     | Runtime state-store URL.                                                                       |
+| `MN_REDIS_NAMESPACE`            | `mirror_neuron`                                         | Redis namespace; use a separate value for isolated tests.                                      |
+| `MN_COOKIE`                     | deployment-specific                                     | Sensitive cluster credential. Change before non-local cluster use.                             |
 
-The deployed gRPC endpoint is normally published on port `55051`. The Core
-container can use a distinct internal port. CLI and API share the private
+CLI and API share the private
 `$MN_HOME/client.json` profile, which stores the target and its runtime control
 credential. Configure it with `mn node add` or `POST /api/v1/nodes`. See
 [Installation](installation.md#install-the-surface-without-docker) for attachment.
@@ -71,37 +73,47 @@ and [Runtime Architecture](runtime-architecture.md#workflow-action-allowances).
 
 ## FastAPI gateway and Web UI
 
-| Variable                          | Default                | Behavior                                                                                                                                 |
-| --------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `MN_API_HOST`                     | `localhost`            | FastAPI bind host. The installer defaults it to `0.0.0.0` when the Compose Web UI is enabled so the container can proxy to the host API. |
-| `MN_API_PORT`                     | `54001`                | FastAPI bind port.                                                                                                                       |
-| `MN_API_BASE_URL`                 | unset                  | External API base URL; must be absolute HTTP(S) when set.                                                                                |
-| `MN_API_TOKEN`                    | unset                  | Bearer credential for the surface API. When unset, installed API processes use `$MN_HOME/api.token`.                                     |
-| `MN_API_REQUEST_SIZE_LIMIT_BYTES` | `5242880`              | Maximum request body size.                                                                                                               |
-| `MN_API_CORS_ALLOW_ORIGINS`       | unset                  | Comma-separated CORS allowlist.                                                                                                          |
-| `MN_WEB_UI_HOST`                  | `localhost`            | Web UI endpoint host reported by the CLI.                                                                                                |
-| `MN_WEB_UI_PORT`                  | `55173`                | Web UI published/container port.                                                                                                         |
-| `MN_WEB_UI_BIND_HOST`             | `127.0.0.1`            | Compose host address for publishing the Web UI port.                                                                                     |
-| `MN_WEB_UI_SOURCE_MODE`           | installer-selected     | `package` for binary installs; `source` for local/GitHub installs.                                                                       |
-| `MN_WEB_UI_SOURCE_MOUNT`          | installer-selected     | Read-only source mount consumed by the Compose Web UI service.                                                                           |
-| `MN_WEB_UI_PACKAGE_VERSION`       | selected release       | Published package version installed inside the Compose service in package mode.                                                          |
-| `MN_WEB_UI_API_HOST`              | `host.docker.internal` | API host used by the Web UI container proxy.                                                                                             |
-| `MN_WEB_UI_API_BASE_URL`          | unset                  | Web UI upstream API URL.                                                                                                                 |
-| `MN_WEB_UI_PROXY_TIMEOUT_SECONDS` | `30`                   | Web UI upstream timeout in seconds.                                                                                                      |
+| Variable                              | Default                | Behavior                                                                                                                                 |
+| ------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `MN_API_HOST`                         | `localhost`            | FastAPI bind host. The installer defaults it to `0.0.0.0` when the Compose Web UI is enabled so the container can proxy to the host API. |
+| `MN_API_PORT`                         | `54001`                | FastAPI bind port.                                                                                                                       |
+| `MN_API_BASE_URL`                     | unset                  | External API base URL; must be absolute HTTP(S) when set.                                                                                |
+| `MN_API_TOKEN`                        | unset                  | Bearer credential for the surface API. When unset, installed API processes use `$MN_HOME/api.token`.                                     |
+| `MN_API_REQUEST_SIZE_LIMIT_BYTES`     | `5242880`              | General request size limit checked against Content-Length. Bundle uploads and backup restores have their own limits.                     |
+| `MN_API_BLUEPRINT_UPLOAD_LIMIT_BYTES` | `34359738368`          | Bundle ZIP file cap in bytes. Accepts 1 byte through 32 GiB.                                                                             |
+| `MN_API_CORS_ALLOW_ORIGINS`           | unset                  | Comma-separated CORS allowlist.                                                                                                          |
+| `MN_WEB_UI_HOST`                      | `localhost`            | Web UI endpoint host reported by the CLI.                                                                                                |
+| `MN_WEB_UI_PORT`                      | `55173`                | Web UI published/container port.                                                                                                         |
+| `MN_WEB_UI_BIND_HOST`                 | `127.0.0.1`            | Compose host address for publishing the Web UI port.                                                                                     |
+| `MN_WEB_UI_SOURCE_MODE`               | installer-selected     | `package` for binary installs; `source` for local/GitHub installs.                                                                       |
+| `MN_WEB_UI_SOURCE_MOUNT`              | installer-selected     | Read-only source mount consumed by the Compose Web UI service.                                                                           |
+| `MN_WEB_UI_PACKAGE_VERSION`           | selected release       | Published package version installed inside the Compose service in package mode.                                                          |
+| `MN_WEB_UI_API_HOST`                  | `host.docker.internal` | API host used by the Web UI container proxy.                                                                                             |
+| `MN_WEB_UI_API_BASE_URL`              | unset                  | Upstream API URL for the Python Web UI server. The Compose proxy uses `MN_WEB_UI_API_HOST` and `MN_API_PORT`.                            |
+| `MN_WEB_UI_PROXY_TIMEOUT_SECONDS`     | `30`                   | Upstream timeout in seconds for the Python Web UI server.                                                                                |
 
-Warning: CORS does not authenticate requests. A non-localhost bind requires firewall, reverse-proxy, authentication, and security-documentation review.
+Client installs and production API processes require a token from the
+configured environment or the installation's token file. Use the
+[listener guidance](security.md#local-defaults-and-listener-checks)
+before binding the API beyond loopback.
+
+The current Compose template and Python Web UI proxy use the surface API
+credential for same-origin requests that omit authorization. Keep the Web UI
+listener inside the same trust boundary as the API.
+In Vite development, `MN_WEB_API_TOKEN` can configure the browser client for
+a protected API. Keep that development configuration private.
 
 ## Blueprint catalog resolution
 
 Configure the catalog on the runtime host. The connected surface reads that
 runtime's catalog through the SDK client.
 
-| Variable                  | Default                                  | Behavior                                                                          |
-| ------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------- |
-| `MN_BLUEPRINT_SOURCE`     | `github`                                 | Must be `github` or `local`.                                                      |
-| `MN_BLUEPRINT_REPO`       | SDK default repository for Git source    | Must be a Git URL when source is `github`.                                        |
-| `MN_BLUEPRINT_LOCAL`      | unset                                    | Required for local source; must be an existing directory containing `index.json`. |
-| `MN_BLUEPRINT_REPO_CACHE` | `~/.cache/mirror-neuron/blueprint-repos` | Catalog checkout cache root.                                                      |
+| Variable                  | Default                                                | Behavior                                                                          |
+| ------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `MN_BLUEPRINT_SOURCE`     | `github`                                               | Must be `github` or `local`.                                                      |
+| `MN_BLUEPRINT_REPO`       | `https://github.com/MirrorNeuronLab/mn-blueprints.git` | Git source for the runtime catalog.                                               |
+| `MN_BLUEPRINT_LOCAL`      | unset                                                  | Required for local source; must be an existing directory containing `index.json`. |
+| `MN_BLUEPRINT_REPO_CACHE` | `~/.cache/mirror-neuron/blueprint-repos`               | Catalog checkout cache root.                                                      |
 
 For a local catalog, set `MN_BLUEPRINT_SOURCE=local` and `MN_BLUEPRINT_LOCAL` to
 the catalog directory in the runtime environment before startup. Then run
@@ -119,7 +131,7 @@ the catalog directory in the runtime environment before startup. Then run
 | `MN_PRE_LAUNCH_TIMEOUT_SECONDS`  | `30`               | Pre-launch timeout in seconds.                        |
 | `MN_POST_LAUNCH_TIMEOUT_SECONDS` | `10`               | Post-launch timeout in seconds.                       |
 | `MN_LOG_LEVEL`                   | `INFO`             | Process log level.                                    |
-| `MN_LOGS_ROOT`                   | `~/.mn/logs`       | Default log root.                                     |
+| `MN_LOGS_ROOT`                   | `$MN_HOME/logs`    | Default log root for the selected installation.       |
 | `MN_CLI_OUTPUT`                  | `rich`             | CLI rendering mode; `plain` disables Rich formatting. |
 
 Validate models and blueprint requirements with `mn model doctor <model-id>` and `mn blueprint validate <folder>`. Do not use `--force` as a routine fix for a failed hardware check.

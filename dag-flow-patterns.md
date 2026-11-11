@@ -9,26 +9,29 @@ graph edges decide _when_ a step is eligible to run.
 
 ## Core shape
 
-Declare runtime-controlled steps in `flow.steps` and dependency edges in
-`flow.graph.edges`:
+Declare `steps` and dependency `edges` at the top level of the referenced
+`workflow.json`. This example assumes the package supplies the three Python
+handler modules and a worker configuration in `execution.json`:
 
-```
+```json
 {
-  "flow": {
-    "steps": [
-      {"id": "extract", "run": "extract"},
-      {"id": "transform", "run": "transform"},
-      {"id": "load", "run": "load"}
-    ],
-    "graph": {
-      "edges": [
-        {"from": "extract", "to": "transform", "accepts": ["done"]},
-        {"from": "transform", "to": "load", "accepts": ["done"]}
-      ]
-    }
-  }
+  "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/workflow.schema.json",
+  "steps": [
+    { "id": "extract", "run": { "handler": "steps.extract" } },
+    { "id": "transform", "run": { "handler": "steps.transform" } },
+    { "id": "load", "run": { "handler": "steps.load" } }
+  ],
+  "edges": [
+    { "from": "extract", "to": "transform", "accepts": ["done"] },
+    { "from": "transform", "to": "load", "accepts": ["done"] }
+  ]
 }
 ```
+
+Use either `edges` or step `needs` in the source document. During submission
+the SDK lowers the logical graph into Core's `flow.steps` and
+`flow.graph.edges`, with separate routes for worker messages. See
+[Blueprint Standard](blueprint-standard.md#execution-modes).
 
 The default trigger is `all_success`: every upstream edge must have an
 accepted successful outcome. `completed`, `partial`, `skipped`, and
@@ -204,10 +207,10 @@ trigger:
 }
 ```
 
-The schedule dispatcher creates an ordinary child job when the event matches;
-the DAG starts from its normal entrypoint. See
-[Schedules And Events](schedules-and-events.md) for trigger creation and event
-emission commands.
+When a configured event matches, the dispatcher starts a Run of the durable Job
+on its owner. The DAG starts from its normal entrypoint. See
+[Schedules and Events](schedules-and-events.md#event-triggered-jobs) for the
+trigger contract and producer requirements.
 
 ## Operational notes
 

@@ -23,8 +23,8 @@ independent of the REST version.
   out of scope.
 - **Maturity:** stable canonical v1 surface; removed and unsupported routes are
   identified explicitly.
-- **Sources of truth:** `mn-api` route modules, request models, operation
-  implementation, OpenAPI schema, and contract tests.
+- **Sources of truth:** `mn-api/mn_api/routes/`, `mn_sdk/runtime_contract`,
+  `mn_runtime/services`, and the surface schema at `/api/v1/openapi.json`.
 - **Validation:** audit local links and Markdown syntax, then run the focused
   `mn-api` contract tests for changed routes and response behavior.
 
@@ -48,6 +48,8 @@ http://localhost:54001/api/v1
 
 Clients must verify `api_contract`. A server that responds on `/api/v1` without
 that value implements a historical, incompatible contract and must not be used.
+The response identifies the API process and its authentication setting.
+Use `GET /runtime/health` to check the connected runtime.
 Protected endpoints use `Authorization: Bearer <token>` with the surface
 credential from `MN_API_TOKEN` or the installed `api.token` file. The runtime
 client uses the separate runtime control credential saved in `client.json`.
@@ -71,16 +73,19 @@ See the [Federation Guide](cluster.md#start-and-join-two-nodes) for the join flo
 - JSON fields use `snake_case`; request bodies reject unknown fields.
 - Collection responses are `{ "items": [], "next_page_token": null }`.
 - `page_size` defaults to `50` and is capped at `200`. Pass the opaque
-  `page_token` unchanged to continue. Tokens expire after 24 hours and are
-  bound to the route, principal, filters, and stable sort.
+  `page_token` unchanged to continue. Tokens are scoped to the runtime process,
+  route, principal, filters, and sort. They expire after 24 hours and may be
+  evicted earlier by the bounded registry or lost on restart.
 - Synchronous creation returns `201 Created` with `Location`. Run creation and
   background Operations return `202 Accepted` with `Location`. Updates return
   `200`. Run deletion returns `204`; schedule deletion returns a `200` receipt.
   Checkpoint retry returns `202` with its accepted selection.
-- Send `Idempotency-Key` on non-idempotent POST requests, especially Run
-  creation, blueprint addition or removal, schedule creation, and
-  administrative operations. Replay records last 24 hours; reusing a key for
-  another request returns `409 Conflict`.
+- Send `Idempotency-Key` on POST routes that accept it, including Run creation,
+  blueprint addition or removal, and schedule creation. The runtime's bounded
+  HTTP replay registry holds records for up to 24 hours. Within that registry,
+  reusing a key for another request on the same route returns `409 Conflict`.
+  After a lost response, check the accepted Run or Operation before issuing a
+  new request.
 - Persistent jobs, schedules, model registrations, and model
   installations return strong `ETag` headers. Their `PATCH` and `DELETE`
   requests require `If-Match`; missing and stale conditions return `428` and
@@ -92,21 +97,43 @@ See the [Federation Guide](cluster.md#start-and-join-two-nodes) for the join flo
 
 ## Resource overview
 
-| Area                   | Canonical resources                                                                                                                                                                             |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Health and system      | `/health`, `/runtime/status`, `/runtime/health`, `/runtime/diagnostics`, `/runtime/resources`, `/system/summary`, `/metrics`                                                                    |
-| Jobs                   | `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/bundle`, `/jobs/{job_id}/data-resets`, `/jobs/{job_id}/relocations`, `/jobs/{job_id}/mcp`                                                            |
-| Runs                   | `/jobs/{job_id}/runs`, `/blueprints/{blueprint_id}/runs`, `/runs`, `/runs/{run_id}`                                                                                                             |
-| Admission and retry    | `/jobs/{job_id}/run-admission-checks`, `/runs/{run_id}/retry-plans`, `/runs/{run_id}/retries`                                                                                                   |
-| Run detail             | `/runs/{run_id}/monitor`, `/workflow-progress`, `/logs`, `/events`, `/resources`, `/human-requests`, `/ui`, `/artifacts`, `/outputs`, `/snapshots`, `/agent-graph`, `/export`, `/observability` |
-| Bundles and blueprints | `/bundles`, `/blueprints`, `/blueprints/{blueprint_id}`, `/additions`, `/removals`, `/validations`, `/runs`                                                                                     |
-| Schedules              | `/jobs/{job_id}/schedules`, `/schedules`, `/schedules/{schedule_id}`                                                                                                                            |
-| Infrastructure         | `/nodes`, `/models`, `/model-remotes`, `/model-proxies`, `/services`, `/service-checks`                                                                                                         |
-| Operations             | `/operations`, `/operations/{operation_id}`                                                                                                                                                     |
+| Area                         | Canonical resources                                                                                                                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Health and system            | `/health`, `/runtime/status`, `/runtime/health`, `/runtime/diagnostics`, `/runtime/resources`, `/system/summary`, `/metrics`                                                                       |
+| Jobs                         | `/jobs`, `/jobs/{job_id}`, `/jobs/{job_id}/bundle`, `/jobs/{job_id}/data-resets`, `/jobs/{job_id}/relocations`, `/jobs/{job_id}/mcp`                                                               |
+| Job preparation and transfer | `/job-preparations`, `/jobs/{job_id}/preparations`, `/jobs/{job_id}/backups`, `/job-restorations`                                                                                                  |
+| Job UI                       | `/jobs/{job_id}/ui`, `/jobs/{job_id}/ui-proxy/{port}/{path}`                                                                                                                                       |
+| Runs                         | `/jobs/{job_id}/runs`, `/blueprints/{blueprint_id}/runs`, `/runs`, `/runs/{run_id}`                                                                                                                |
+| Admission and retry          | `/jobs/{job_id}/run-admission-checks`, `/runs/{run_id}/retry-plans`, `/runs/{run_id}/retries`                                                                                                      |
+| Run detail                   | Under `/runs/{run_id}`: `/monitor`, `/workflow-progress`, `/logs`, `/events`, `/resources`, `/human-requests`, `/artifacts`, `/outputs`, `/snapshots`, `/agent-graph`, `/export`, `/observability` |
+| Run inputs and interactions  | `/runs/{run_id}/inputs`, `/runs/{run_id}/signals/stream`, `/interactions`                                                                                                                          |
+| Bundles and blueprints       | `/bundles`, `/blueprints`; under `/blueprints/{blueprint_id}`: detail, `/additions`, `/removals`, `/validations`, and `/runs`                                                                      |
+| Schedules                    | `/jobs/{job_id}/schedules`, `/schedules`, `/schedules/{schedule_id}`                                                                                                                               |
+| Infrastructure               | `/nodes`, `/models`, `/model-remotes`, `/model-proxies`, `/services`, `/service-checks`                                                                                                            |
+| Operations                   | `/operations`, `/operations/{operation_id}`                                                                                                                                                        |
 
 Durable configured work is a Job. One execution of that definition is a Run.
 Run URLs always use the public `run_id`; `runtime_run_id` is diagnostic metadata
 and is never part of a client URL.
+
+### Job UI relay
+
+Use `GET /jobs/{job_id}/ui` for the current Job UI descriptor. The relay
+accepts HTTP at `/jobs/{job_id}/ui-proxy/{port}/{path}` and WebSockets at
+`/jobs/{job_id}/ui-proxy/{port}/ws/{path}`. The owning runtime checks the
+current execution and the declared ports before forwarding. The current
+Compose template and Python Web UI proxy use the surface credential for
+same-origin API calls that omit authorization. Job UI
+pages use the proxy path for companion connections. The surface credential
+is stripped before a worker request. Disconnecting the browser closes the
+corresponding upstream relay.
+
+### Human responses
+
+For a pending human request, POST to
+`/runs/{run_id}/human-requests/{request_id}/responses` with a `response` field.
+Decision responses can use `{"response":{"decision":"approve","notes":"Reviewed"}}`.
+Submitting to a request that is no longer pending returns `409`.
 
 ## Run admission and queued starts
 
@@ -215,8 +242,8 @@ missing that contract require a definition update before supervision:
 POST /api/v1/jobs/{job_id}/mcp
 ```
 
-It uses the same bearer-authentication policy as protected REST routes. The URL
-binds the MCP session to one Job; no tool accepts a `job_id`, so a caller cannot
+Authenticate with the configured surface API bearer token or a grant scoped to
+this Job. The URL binds the MCP session to one Job, so a caller cannot
 switch Jobs through tool arguments. Discover the current tools and availability
 through `get_capabilities`; the endpoint includes lifecycle effects:
 
@@ -263,32 +290,51 @@ and 64 KiB. Response queries do not create Runs; bounded conversation state
 belongs to Job data. Read the advertised response contract for synchronous or
 operation-based behavior.
 
-Sources: `mn-api/mn_api/job_supervision.py`, `job_mcp.py`, SDK
-`packages/common/src/mn_sdk_common/mcp.py`, and
-`packages/mcp/src/mn_sdk_mcp/supervision.py` / `supervisor.py`.
+External OAuth access starts disabled for each Job. The authenticated owner
+uses `GET` or `PUT /jobs/{job_id}/mcp-access` to inspect or change policy.
+Enabling access requires the exact Job MCP URL with HTTPS or loopback HTTP.
+Share the returned connection code privately. Disabling or reconnecting revokes
+existing external grants. Internal `/jobs/{job_id}/mcp-sessions` grants are
+issued separately. The protected-resource discovery URL is
+`/.well-known/oauth-protected-resource/api/v1/jobs/{job_id}/mcp`.
+
+The surface implements this transport in `mn_api/job_mcp.py`,
+`routes/v1/mcp_access.py`, and `mcp_oauth.py`. Owner-side supervision runs
+in `mn_runtime/services/job_supervision.py` and `job_mcp.py`. Shared
+contracts live in `mn_sdk_common/mcp.py` and `mn_sdk_mcp/supervision.py`.
 
 ## Examples
+
+Run these from a shell with a configured local API surface connected to a
+runtime. Set `SURFACE_API_TOKEN` privately to that API's bearer credential.
+Replace angle-bracket values with IDs or tokens from the previous response
+and use a new idempotency key for each distinct mutation.
 
 ### List and continue a collection
 
 ```bash
-curl -s "http://localhost:54001/api/v1/runs?page_size=50"
+curl -s "http://localhost:54001/api/v1/runs?page_size=50" \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN"
 ```
 
 If `next_page_token` is not `null`:
 
 ```bash
 curl -sG http://localhost:54001/api/v1/runs \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN" \
   --data-urlencode "page_size=50" \
   --data-urlencode "page_token=<next-page-token>"
 ```
 
 ### Upload a bundle and create a Job
 
-Public requests never contain host paths or raw payload paths.
+Run this from the directory containing the reviewed `worker-bundle.zip`.
+The request uploads the archive bytes. The Job creation request uses its
+opaque ID.
 
 ```bash
 curl -s -X POST http://localhost:54001/api/v1/bundles \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN" \
   -F "bundle=@./worker-bundle.zip"
 ```
 
@@ -296,6 +342,7 @@ Use the returned opaque `bundle_id`:
 
 ```bash
 curl -i -X POST http://localhost:54001/api/v1/jobs \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: <uuid>" \
   -d '{"bundle_id":"<bundle-id>"}'
@@ -305,28 +352,37 @@ Catalog jobs may instead use `{"blueprint_id":"<blueprint-id>"}`.
 
 ### Start and control a Run
 
+> Starting a Run executes the Job's configured code and may cause external
+> effects. Review the Job's runner, inputs, secrets, and service access first.
+
 ```bash
-curl -i -X POST http://localhost:54001/api/v1/jobs/<job-id>/runs \
+curl -i -X POST "http://localhost:54001/api/v1/jobs/<job-id>/runs" \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: <uuid>" \
   -d '{"inputs":{}}'
 ```
 
-The response is an accepted Run with `202 Accepted`; it can be pending or,
-with explicit queue admission, queued. Pause, resume, or cancel active work
-through one desired-state update:
+The response is `202 Accepted`. Retain its Run ID for inspection and control.
+Explicit queue admission can return a queued Run.
 
 Catalog-backed Jobs may also send `config_overrides`. When they change saved
 configuration, the runtime rebuilds and prepares the Job definition before
 starting the Run. `inputs` supplies workflow input.
 
+Pause, resume, or cancel through a desired-state update. This example pauses
+the selected Run.
+
 ```bash
-curl -s -X PATCH http://localhost:54001/api/v1/runs/<run-id> \
+curl -s -X PATCH "http://localhost:54001/api/v1/runs/<run-id>" \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"desired_state":"paused"}'
 ```
 
-Invalid state transitions return `409 Conflict`.
+Inspect the Run after the update. Use `{"desired_state":"running"}` to resume a
+paused Run or `{"desired_state":"cancelled"}` to stop unfinished work. Invalid
+state transitions return `409 Conflict`.
 
 ### Add a blueprint and monitor preparation
 
@@ -336,7 +392,7 @@ The runtime validates the blueprint bundle, prepares required models and
 services, and records the addition in its catalog.
 
 ```bash
-curl -i -X POST http://localhost:54001/api/v1/blueprints/<blueprint-id>/additions \
+curl -i -X POST "http://localhost:54001/api/v1/blueprints/<blueprint-id>/additions" \
   -H "Authorization: Bearer $SURFACE_API_TOKEN" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: <uuid>" \
@@ -362,7 +418,7 @@ and the body includes fields like these:
 Poll the Operation until `status` is `completed` or `failed`:
 
 ```bash
-curl -s http://localhost:54001/api/v1/operations/<operation-id> \
+curl -s "http://localhost:54001/api/v1/operations/<operation-id>" \
   -H "Authorization: Bearer $SURFACE_API_TOKEN"
 ```
 
@@ -410,7 +466,8 @@ a new addition request with a new idempotency key.
 Preview removal without changing state:
 
 ```bash
-curl -i -X POST http://localhost:54001/api/v1/blueprints/<blueprint-id>/removals \
+curl -i -X POST "http://localhost:54001/api/v1/blueprints/<blueprint-id>/removals" \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: <uuid>" \
   -d '{"dry_run":true}'
@@ -420,7 +477,8 @@ Then submit the intended policy with a new idempotency key. This example keeps
 runtime resources and model images:
 
 ```bash
-curl -i -X POST http://localhost:54001/api/v1/blueprints/<blueprint-id>/removals \
+curl -i -X POST "http://localhost:54001/api/v1/blueprints/<blueprint-id>/removals" \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: <uuid>" \
   -d '{"keep_resources":true,"keep_models":true}'
@@ -494,8 +552,8 @@ Runtime-owned addition and removal Operations emit `operation.accepted`,
 including its progress and terminal result or error.
 
 ```bash
-curl -N http://localhost:54001/api/v1/runs/<run-id>/events/stream \
-  -H "Authorization: Bearer <token>" \
+curl -N "http://localhost:54001/api/v1/runs/<run-id>/events/stream" \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN" \
   -H "Last-Event-ID: <last-event-id>"
 ```
 

@@ -1,6 +1,9 @@
 # Services And Health Checks
 
-MirrorNeuron has a native Redis-backed service registry and generic health check layer. It is inspired by Nomad's `service` and `check` blocks: jobs declare services, checks decide whether service instances are discoverable, and registration follows job or agent lifecycle.
+MirrorNeuron has a native Redis-backed service registry and generic health
+checks. This reference shows Core's generated declarations. Author services in
+the blueprint's execution role and use the
+[Blueprint Standard](blueprint-standard.md#execution-modes) for the source format.
 
 Service discovery remains generic: blueprints and skills declare service endpoints and health checks for Ollama, vLLM, vector databases, and provider-specific services. Local Docker Model Runner LLMs are managed separately with `mn model`; see [Model Runtime](model-runtime.md).
 
@@ -8,8 +11,8 @@ Service discovery remains generic: blueprints and skills declare service endpoin
 
 Service support has three parts:
 
-- `services` and `nodes[].services` declare what a job or agent provides
-- `required_services` and `nodes[].requires_services` declare what must exist before the job starts or before a node can be selected
+- `services` and `flow.nodes[].services` declare what a job or agent provides
+- `required_services` and `flow.nodes[].requires_services` declare what must exist before the job starts or before a node can be selected
 - health checks mark service instances `passing`, `warning`, or `critical`
 
 Only passing services are returned by discovery by default. Critical services stay in the registry for inspection but are not normal routing targets.
@@ -25,7 +28,7 @@ Top-level fields:
 }
 ```
 
-Node-level fields:
+Node-level fields inside `flow`:
 
 ```json
 {
@@ -150,7 +153,9 @@ gRPC:
 
 `mn blueprint validate <bundle>` validates service declarations after manifest/schema checks and before input validation. `mn blueprint run <bundle>` runs the same local preflight, and core repeats service preflight before direct runtime starts.
 
-Failed required services stop the job before agents launch. A forced run can skip service preflight, and job metadata records the skipped check.
+Failed required services stop the job before agents launch. Review all reported
+blocking prerequisites before starting. Force can bypass preflight checks and
+let work reach an unready service.
 
 Run blueprint service and dependency checks through the blueprint doctor:
 
@@ -196,6 +201,7 @@ blueprint service.
 ```json
 {
   "node_id": "<blueprint_web_ui_node>",
+  "agent_type": "executor",
   "type": "stream",
   "config": {
     "runner_module": "MirrorNeuron.Runner.HostLocal",
@@ -217,6 +223,7 @@ blueprint service.
 
 The runtime supervises the declared stream node and registers its service.
 Discovery returns it as passing only after its declared health check succeeds.
+Clients resolve the current UI through the [Job UI relay](api.md#job-ui-relay).
 The blueprint service may write `ui.json` and `web_ui.json` as run artifacts,
 but those files are outputs, not instructions for the SDK, API, or CLI to
 create another process.
@@ -243,6 +250,6 @@ create another process.
 | Job registration and deregistration | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex` |
 | Redis storage                       | `MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex` |
 | Scheduler node-scoped requirements  | `MirrorNeuron/lib/mirror_neuron/scheduler.ex`               |
-| CLI commands                        | `mn-cli/mn_cli/libs/service_cmds.py`                        |
+| CLI commands                        | `mn-cli/mn_cli/commands.py`, `client_management.py`         |
 | Blueprint validation                | `mn-python-sdk/mn_sdk/blueprint_validation.py`              |
 | SDK client                          | `mn-python-sdk/mn_sdk/client.py`                            |

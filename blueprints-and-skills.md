@@ -77,29 +77,23 @@ leases, lifecycle events, retry policy, beacons, and UI liveness. Prefer this
 shared executor over per-blueprint wrapper scripts or direct background process
 launches.
 
-Validate the bundle:
+From the directory containing the authored package, validate with the CLI
+attached to a local runtime:
 
 ```bash
 mn blueprint validate ./my_bundle
 ```
 
-Expected output:
-
-```text
-Job bundle at 'my_bundle' is valid.
-```
-
-Run it:
+Resolve blocking validation and doctor findings before launch. Review the
+runner, input staging, credentials, and external effects first.
 
 ```bash
-mn blueprint run ./my_bundle
+mn blueprint doctor ./my_bundle
+mn blueprint run ./my_bundle --detached
 ```
 
-Expected output:
-
-```text
-Job submitted successfully
-```
+Record the Job and Run IDs. Follow [Monitor](monitor.md) to inspect or cancel
+the execution.
 
 ## Declare Multi-Step Workflows
 
@@ -191,9 +185,6 @@ Example:
 ```python
 from mn_sdk import agent, workflow
 
-TOPIC = workflow.input("topic", default="charging adoption")
-
-
 class ResearchAgents:
     @agent.defn(name="ingress", type="map", runner="host_local")
     def ingress(self, topic: str):
@@ -211,32 +202,12 @@ class ResearchFlow:
 
     @workflow.run
     def run(self):
-        request = self.agents.ingress(TOPIC)
+        request = self.agents.ingress(workflow.input("topic", default="charging adoption"))
         return self.agents.reviewer(request)
 ```
 
-Generate a Python-defined blueprint from a local source-mode blueprint folder:
-
-```bash
-cd path/to/python-source-blueprint
-.venv/bin/python -m pip install -e ../../mn-python-sdk/packages/common -e ../../mn-python-sdk
-python -m mn_sdk.blueprint_support.python_workflow_bundle_cli \
-  --blueprint-dir . \
-  --quick-test \
-  --output-dir /tmp/mn-python-research
-```
-
-Expected output:
-
-```text
-bundle generated
-```
-
-Validate it:
-
-```bash
-mn blueprint validate /tmp/mn-python-research
-```
+Use the SDK's [build and validation steps](SDK.md#python-defined-workflows)
+to generate a canonical package from a decorated workflow class.
 
 ## What The Python Compiler Does
 
@@ -307,26 +278,15 @@ Before publishing or running a blueprint or skill:
 
 ## Verification Commands
 
-Run SDK tests:
+Run the [SDK tests](SDK.md#test-commands) for compiler changes. To check a
+local catalog, follow the [test runner setup](testing.md#common-commands), then
+run from `mn-system-tests` with `<catalog-dir>` set to the catalog path:
 
 ```bash
-cd mn-python-sdk
-.venv/bin/python -m pytest tests
+.venv/bin/mn_test --suite blueprints.local --blueprints-local "<catalog-dir>" --offline
 ```
 
-Verify that the command exits successfully; the test count changes with the SDK.
-
-Run blueprint quick generation:
-
-```bash
-.venv/bin/python mn-system-tests/test_all.py --blueprints
-```
-
-Expected output:
-
-```text
-All selected test suites passed.
-```
+Inspect the runner's result report for selected checks, failures, and skips.
 
 ## Related Pages
 

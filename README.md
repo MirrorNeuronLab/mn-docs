@@ -6,5 +6,7 @@ The documentation site is a concise presentation layer. When a user-visible comm
 
 For authoring and validation requirements, read [documentation-style.md](documentation-style.md).
 
-The current runtime audit and table of documentation corrections are in
-[changes.md](changes.md), including implementation sources and validation limits.
+For current runtime boundaries and their owning code, see
+[Runtime Architecture](runtime-architecture.md#runtime-code-map). Earlier
+validation results are recorded in the
+[November 2026 refactoring report](refactoring-report-2026-11.md).

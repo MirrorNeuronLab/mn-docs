@@ -6,9 +6,10 @@ deployment procedure: the current CLI has no `deployment` group, REST v1 has no
 `/deployments`, and `mirrorneuron.job.v1.JobService` exposes durable Job/Run
 operations instead. Use [CLI](cli.md) and [API](api.md) for supported interfaces.
 Sources are `runtime/deployment_policy.ex`, `deployment_controller.ex`, and
-`deployment_policy_test.exs`; public-surface absence is checked against command
-registration, OpenAPI, and API contract tests. Internal policy support does not
-establish a released rollout API.
+`deployment_policy_test.exs`. The Elixir entry points in
+`MirrorNeuron/lib/mirror_neuron.ex` delegate to the internal controller.
+Check public availability against CLI registration, OpenAPI, and the API
+contract tests.
 
 MirrorNeuron deployments provide versioned updates for long-running workloads. The design is inspired by Nomad rolling and canary deployments, but uses MirrorNeuron's job coordinator, service registry, and Redis state.
 

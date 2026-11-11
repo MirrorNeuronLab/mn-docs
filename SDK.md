@@ -2,7 +2,8 @@
 
 The MirrorNeuron Python SDK provides:
 
-- a gRPC client for the core runtime
+- an authenticated runtime client for connected applications and a direct Core
+  gRPC client for integrations that own those credentials
 - workflow and agent decorators for pure Python bundle authoring
 - a compiler that turns restricted Python workflow definitions into normal MirrorNeuron bundles
 
@@ -14,10 +15,11 @@ submission preparation before execution.
 
 ## Install For Local Development
 
-From the workspace root:
+From the workspace root, create or activate a Python 3.12+ virtual environment:
 
 ```bash
-.venv/bin/python -m pip install -e mn-python-sdk/packages/common -e mn-python-sdk
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -e mn-python-sdk/packages/common -e 'mn-python-sdk[client,dev]'
 ```
 
 Expected output:
@@ -26,7 +28,7 @@ Expected output:
 Successfully installed mirrorneuron-python-sdk
 ```
 
-The `mn-system-tests/requirements.txt` file installs the SDK and CLI together for test runs.
+For cross-component tests, use the [workspace test runner](testing.md#common-commands).
 
 ## Optional Components
 
@@ -52,7 +54,8 @@ Blueprint authors select runtime capabilities in `dependencies.json`:
 }
 ```
 
-The base SDK installs only its common component. The RAG distribution includes
+The base SDK depends on the common component. Install additional components
+with the matching SDK extras or declare them for blueprint workers. The RAG distribution includes
 DuckDB and supports injected parsers, stores and embedders. Each component
 is a separate distribution built and tested from `mn-python-sdk/packages/`.
 Email, browsing, and task-oriented research remain skills.
@@ -110,13 +113,33 @@ The detailed implementation contract and tests live in the RAG component README.
 
 ## Client Usage
 
+After connecting the surface with `mn node add`, use the same private
+`$MN_HOME/client.json` profile from Python. Install `mirrorneuron-python-sdk[client]`
+and run this example with `MN_HOME` set to that surface's installation home:
+
 ```python
+from mn_sdk.runtime_resources import RuntimeResources
+
+runtime = RuntimeResources()
+print(runtime.items("/jobs"))
+print(runtime.items("/runs"))
+```
+
+These reads go over Core's native gRPC gateway. Runtime preparation,
+operations, and execution continue on the owning runtime.
+
+For direct Core integrations, `Client` uses the configured Core target and
+gRPC user credential. Set the target and credential using the variables below.
+Replace `<job-id>` with an ID returned by the first call:
+
+```python
+import json
+
 from mn_sdk import Client
 
-client = Client(target="localhost:55051")
-
-print(client.list_jobs())
-print(client.list_runs())
+with Client() as client:
+    print(json.loads(client.list_jobs(page_size=5)))
+    print(json.loads(client.list_runs("<job-id>", page_size=5)))
 ```
 
 Important environment variables:
@@ -134,9 +157,6 @@ Use decorators to author workflows in Python:
 
 ```python
 from mn_sdk import agent, workflow
-
-TOPIC = workflow.input("topic", default="electric vehicle charging adoption")
-
 
 class ResearchAgents:
     @agent.defn(
@@ -168,38 +188,33 @@ class MarketingResearchFlow:
 
     @workflow.run
     def run(self):
-        request = self.agents.ingress(TOPIC)
+        request = self.agents.ingress(
+            workflow.input("topic", default="electric vehicle charging adoption")
+        )
         return self.agents.reviewer(request)
 ```
 
-Generate a Python-defined blueprint from a local source-mode blueprint folder:
+Save the example as `research_flow.py` in a dedicated source directory and
+append this build entry point:
+
+```python
+if __name__ == "__main__":
+    import sys
+
+    print(workflow.to_bundle(MarketingResearchFlow, sys.argv[1]))
+```
+
+From that directory with the SDK environment active, compile into a fresh
+directory outside the source tree and validate with an attached local runtime:
 
 ```bash
-cd path/to/python-source-blueprint
-.venv/bin/python -m pip install -e ../../mn-python-sdk/packages/common -e ../../mn-python-sdk
-python -m mn_sdk.blueprint_support.python_workflow_bundle_cli \
-  --blueprint-dir . \
-  --quick-test \
-  --output-dir /tmp/mn-python-research
+bundle_root="$(mktemp -d)"
+python research_flow.py "$bundle_root/research"
+mn blueprint validate "$bundle_root/research"
 ```
 
-Expected output:
-
-```text
-bundle generated
-```
-
-Validate:
-
-```bash
-mn blueprint validate /tmp/mn-python-research
-```
-
-Expected output:
-
-```text
-Job bundle at '/tmp/mn-python-research' is valid.
-```
+The compiler prints the generated directory. Validation should exit zero.
+Remove the generated directory when you finish inspecting it.
 
 ## Compiler Model
 
@@ -212,7 +227,7 @@ It does:
 - map call order and return flow to graph edges
 - resolve literals, safe module constants, and `workflow.input(...)`
 - package declared includes and payload files
-- emit a normal `manifest.json` plus `payloads/`
+- emit a canonical source package with the referenced role documents and payloads
 
 It does not:
 
@@ -235,6 +250,7 @@ If you need durable long-running behavior, set the workflow type to `service` an
 | `runner`            | Runner choice such as `host_local` or OpenShell-backed execution.             |
 | `retries`           | Retry policy.                                                                 |
 | `pool`              | Executor pool name.                                                           |
+| `pool_slots`        | Number of slots requested from the pool.                                      |
 | `backpressure`      | Node-level queue and pressure policy.                                         |
 | `env`               | Explicit worker environment values.                                           |
 | `pass_env`          | Environment variables copied from the host into the worker.                   |
@@ -263,40 +279,30 @@ Keep `pass_env` narrow. See [Security Model](security.md).
 | `triggers`          | Event trigger declarations pass-through.                               |
 | `services`          | Job-scoped services provided by the workflow.                          |
 | `required_services` | Required service preflight declarations.                               |
-| `policies`          | Restart, reschedule, scheduler, and update policy maps.                |
+| `update_policy`     | Internal deployment update policy, when applicable.                    |
 | `backpressure`      | Job-level pressure policy.                                             |
-| `includes`          | Files or directories copied into the generated payload.                |
-| `excludes`          | Package paths to omit.                                                 |
+| `requirements`      | Job requirements passed through to the manifest.                       |
+| `input_validation`  | Input validation declarations.                                         |
+| `parameterized`     | Scheduled or triggered input and metadata declarations.                |
 
-The SDK passes these orchestration maps through unchanged so the runtime remains the source of truth for validation and behavior.
+Set `includes` and `excludes` when calling `workflow.to_bundle`. The
+runtime validates the generated orchestration policies.
 
 ## Operational Client Methods
 
-The gRPC client exposes operator surfaces for the Nomad-inspired runtime features:
+With a configured direct Core credential, inspect schedules and services:
 
 ```python
 from mn_sdk import Client
 
-client = Client()
-
-client.reconcile_node("mirror_neuron@<node-host>", reason="manual check", dry_run=True)
-client.drain_node("mirror_neuron@<node-host>", reason="reboot", deadline_ms=1_800_000)
-client.set_node_maintenance("mirror_neuron@<node-host>", True, reason="maintenance")
-
-client.list_services()
-client.resolve_service("ollama", tags=["llm"])
-client.check_services([{"name": "ollama", "checks": [{"type": "tcp", "address": "127.0.0.1", "port": 11434}]}])
-
-client.list_deployments()
-client.promote_deployment("agent-api")
-client.rollback_deployment("agent-api", version="1")
-
-client.list_schedules()
-client.dispatch_schedule("schedule-id", payload={"manual": True})
-client.emit_trigger_event("file_uploaded", payload={"path": "/datasets/eval.jsonl"})
+with Client() as client:
+    print(client.list_schedules())
+    print(client.list_services())
 ```
 
-See [Nomad-Inspired Runtime Features](nomad-inspired-runtime.md), [Services and Health Checks](services-and-health-checks.md), [Resources and Devices](resources-and-devices.md), [Deployments](deployments.md), and [Schedules and Events](schedules-and-events.md).
+The direct client also implements node reconciliation, maintenance, and drain.
+See [Cluster](cluster.md#node-operations), [Services and Health Checks](services-and-health-checks.md),
+and [Schedules and Events](schedules-and-events.md) for the operational boundaries.
 
 ## Packaging Rules
 
@@ -313,13 +319,11 @@ If a worker import depends on local files that are not included, the bundle may 
 ## Test Commands
 
 ```bash
-cd mn-python-sdk
-.venv/bin/python -m pytest tests
+.venv/bin/python -m pytest mn-python-sdk/tests
 ```
 
-Expected output:
-
-The command exits successfully; test counts change with the SDK.
+Run from the workspace root using the development environment above. The
+command exits zero when the selected tests pass.
 
 For checked-in source-mode examples, use the same
 `mn_sdk.blueprint_support.python_workflow_bundle_cli` command from the owning

@@ -1,45 +1,11 @@
 {
-  "apiVersion": "mn.workflow/v1",
-  "kind": "WorkflowSource",
-  "standard": {
-    "profile": "blueprint"
-  },
-  "identity": {
-    "id": "custom_hf_model_demo",
-    "name": "Custom Hugging Face Model Demo",
-    "version": 1
-  },
-  "config": {
-    "default": "config/default.json",
-    "embed": true
-  },
-  "defaults": {
-    "worker": {
-      "with": {
-        "image": "python:3.12-slim"
-      }
-    }
-  },
-  "runtime": {
-    "models": {
-      "primary": {
-        "provider": "docker_model_runner",
-        "model": "hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M",
-        "runtime_model": "hf.co/bartowski/Qwen2.5-7B-Instruct-GGUF:Q4_K_M",
-        "backend": "llama.cpp",
-        "context_size": 4096,
-        "required": true,
-        "customize_mode": true
-      }
-    }
-  },
-  "workflow": {
-    "steps": [
-      {
-        "id": "process_document",
-        "kind": "sink",
-        "goal": "Process the document with the custom Hugging Face model."
-      }
-    ]
-  }
+  "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/manifest.schema.json",
+  "id": "custom_hf_model_demo",
+  "name": "Custom Hugging Face Model Demo",
+  "version": "1.0.0",
+  "description": "Inspect how a source blueprint declares an uncataloged Hugging Face model.",
+  "workflow": "workflow.json",
+  "execution": "execution.json",
+  "contracts": "contracts.json",
+  "config": "config/default.json"
 }

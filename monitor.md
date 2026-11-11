@@ -18,6 +18,11 @@ Use deep diagnostics only when the aggregate status needs investigation:
 mn runtime doctor
 ```
 
+The Web UI dashboard reads the connected runtime's system summary. If it shows
+a connection error, attach the CLI/API surface using
+[Installation](installation.md#install-the-surface-without-docker) and retry
+the dashboard request. Entry and peer labels refer to the runtime connection.
+
 List and inspect executions:
 
 ```bash
@@ -39,8 +44,9 @@ mn run resources <run-id>
 mn run result <run-id>
 ```
 
-`run result` writes under `$MN_HOME/outputs/<run-id>` unless `--output` is
-supplied. Preserve logs, events, artifacts, timestamps, and sanitized
+`run result` downloads to the CLI installation's
+`$MN_HOME/outputs/<run-id>` unless `--output` is supplied. Preserve logs,
+events, artifacts, timestamps, and sanitized
 configuration when reporting a failure.
 
 Blueprint report generation stays under `blueprint`:
@@ -61,10 +67,13 @@ Cancellation stops runtime work but cannot reverse an external action already
 performed by a worker. Review side-effecting adapters and idempotency before
 launch.
 
-> Deleting a terminal run removes stored run data. Preserve needed evidence first; deletion is not a way to stop active work.
+> Deleting a Run permanently removes its stored data. If it is active, deletion
+> first cancels it. Preserve needed evidence before confirming. Use
+> `mn run cancel` to stop work while retaining its history.
 
 ```bash
-mn run delete <terminal-run-id> --yes
+mn run delete <run-id> --dry-run
+mn run delete <run-id> --yes
 ```
 
 ## Human collaboration

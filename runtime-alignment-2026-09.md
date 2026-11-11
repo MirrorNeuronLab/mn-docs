@@ -1,5 +1,9 @@
 # September 2026 runtime documentation alignment
 
+This record describes the September 2026 checkout. For current component
+owners and validation commands, see [Component Guide](component-guide.md) and
+[Testing](testing.md).
+
 - **Reader:** maintainers reviewing the internal references and external manual.
 - **Outcome:** identify changed contracts, owning evidence, and validation limits.
 - **Page type:** migration and validation record.

@@ -1,0 +1,12 @@
+{
+  "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/workflow.schema.json",
+  "steps": [
+    {
+      "id": "finish",
+      "kind": "sink",
+      "run": {
+        "agent": "finish"
+      }
+    }
+  ]
+}

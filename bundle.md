@@ -11,34 +11,37 @@ documents and invocation configuration. Core receives the executable graph.
 
 ## The `manifest.json` Schema
 
-The `manifest.json` is a JSON document that defines the execution graph.
+The generated Core manifest defines the execution graph. The source package's
+`manifest.json` references the authored role documents. See
+`MirrorNeuron/lib/mirror_neuron/manifest.ex` for Core validation.
 
 ### Top-level Fields
 
-| Field                     | Type    | Description                                                                                                                                                                                                                         |
-| ------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `manifest_version`        | String  | **Required.** The version of the manifest format (e.g., `"1.0"`).                                                                                                                                                                   |
-| `graph_id`                | String  | **Required.** A unique workflow id.                                                                                                                                                                                                 |
-| `job_name`                | String  | Optional. A human-readable name for the job. Defaults to `graph_id` if missing.                                                                                                                                                     |
-| `type`                    | String  | Optional. Set to `"service"` for workflows intended to run until manually stopped. Omit for default batch workflows. `system` and `sysbatch` are selected through scheduler policy.                                                 |
-| `response_service`        | Object  | Optional. Exactly `{"enabled": true}` enables one definition-scoped real-time Job responder. It is not a DAG node or Run service and accepts no command, handler, port, prompt, or endpoint fields.                                 |
-| `required_context_engine` | Boolean | Optional. Set to `true` when the workflow requires the Context Engine. The runtime checks `MN_CONTEXT_ADDR` (default port `50052`) and rejects the run before scheduling agents if the service is unavailable. Defaults to `false`. |
-| `services`                | Array   | Optional. Services registered by the job. See [Services and Health Checks](services-and-health-checks.md).                                                                                                                          |
-| `required_services`       | Array   | Optional. Services that must be healthy before job start.                                                                                                                                                                           |
-| `deployment`              | Object  | Optional. Stable deployment key and metadata. See [Deployments](deployments.md).                                                                                                                                                    |
-| `schedule`                | Object  | Optional. Periodic or delayed schedule declaration. See [Schedules and Events](schedules-and-events.md).                                                                                                                            |
-| `triggers`                | Array   | Optional. Event-trigger schedule declarations.                                                                                                                                                                                      |
-| `parameterized`           | Object  | Optional. Dispatch payload and metadata declaration for scheduled or event-triggered runs.                                                                                                                                          |
-| `metadata`                | Object  | Optional. Custom metadata tags for the job.                                                                                                                                                                                         |
-| `entrypoints`             | Array   | **Required.** A list of `node_id` strings where initial inputs will be injected to start the graph.                                                                                                                                 |
-| `initial_inputs`          | Object  | Optional. A map where the keys are `node_id`s (from `entrypoints`) and values are arrays of message payloads to seed the job.                                                                                                       |
-| `nodes`                   | Array   | **Required.** The list of agent nodes that make up the workflow.                                                                                                                                                                    |
-| `edges`                   | Array   | **Required.** The list of message-routing edges between nodes.                                                                                                                                                                      |
-| `policies`                | Object  | Optional. Job-level policies like `recovery_mode`.                                                                                                                                                                                  |
+| Field                     | Type    | Description                                                                                                                                                                         |
+| ------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `apiVersion`              | String  | **Required.** `"mn.workflow/v1"` for the executable Core manifest.                                                                                                                  |
+| `kind`                    | String  | **Required.** `"Workflow"`.                                                                                                                                                         |
+| `manifest_version`        | String  | **Required.** The version of the manifest format (e.g., `"1.0"`).                                                                                                                   |
+| `graph_id`                | String  | **Required.** A unique workflow id.                                                                                                                                                 |
+| `job_name`                | String  | Optional. A human-readable name for the job. Defaults to `graph_id` if missing.                                                                                                     |
+| `type`                    | String  | Optional. Set to `"service"` for workflows intended to run until manually stopped. Omit for default batch workflows. `system` and `sysbatch` are selected through scheduler policy. |
+| `response_service`        | Object  | Optional. `{"enabled": true}` enables a definition-scoped responder. The optional `agent` declares a bounded MCP agent. Author either through `mn.response`.                        |
+| `required_context_engine` | Boolean | Optional. Defaults to `false`. When true, Core requires TCP reachability at `MN_CONTEXT_ADDR` or one of its default addresses on port `50052` before scheduling agents.             |
+| `services`                | Array   | Optional. Services registered by the job. See [Services and Health Checks](services-and-health-checks.md).                                                                          |
+| `required_services`       | Array   | Optional. Services that must be healthy before job start.                                                                                                                           |
+| `deployment`              | Object  | Optional. Stable deployment key and metadata. See [Deployments](deployments.md).                                                                                                    |
+| `schedule`                | Object  | Optional. Periodic or delayed schedule declaration. See [Schedules and Events](schedules-and-events.md).                                                                            |
+| `triggers`                | Array   | Optional. Event-trigger schedule declarations.                                                                                                                                      |
+| `parameterized`           | Object  | Optional. Dispatch payload and metadata declaration for scheduled or event-triggered runs.                                                                                          |
+| `metadata`                | Object  | Optional. Custom metadata tags for the job.                                                                                                                                         |
+| `entrypoints`             | Array   | **Required.** A list of `node_id` strings where initial inputs will be injected to start the graph.                                                                                 |
+| `initial_inputs`          | Object  | Optional. A map where the keys are `node_id`s (from `entrypoints`) and values are arrays of message payloads to seed the job.                                                       |
+| `flow`                    | Object  | **Required.** Contains physical `nodes` and message-routing `edges`. For a logical DAG, it also carries `steps` and `graph.edges`.                                                  |
+| `policies`                | Object  | Optional. Job-level policies like `recovery_mode`.                                                                                                                                  |
 
 ### Nodes (Agents)
 
-Each item in the `nodes` array defines an agent that will be supervised by the BEAM runtime.
+Each item in `flow.nodes` defines an agent supervised by the BEAM runtime.
 
 | Field               | Type   | Description                                                                                                     |
 | ------------------- | ------ | --------------------------------------------------------------------------------------------------------------- |
@@ -79,7 +82,7 @@ Example:
 ### Restart Policies
 
 Job-level restart policy lives under `policies.restart`; per-agent overrides
-live under `nodes[].policies.restart`. Legacy `reschedule` fields remain
+live under `flow.nodes[].policies.restart`. Legacy `reschedule` fields remain
 accepted for stored-manifest compatibility, but federation does not move a job
 or agent to another Core.
 
@@ -213,7 +216,8 @@ See [Schedules and Events](schedules-and-events.md).
 
 ### Edges (Routing)
 
-Edges dictate how messages flow between agents after a step completes.
+`flow.edges` routes messages between agents. Logical step dependencies are
+stored separately in `flow.graph.edges`.
 
 | Field          | Type   | Description                                                                                   |
 | -------------- | ------ | --------------------------------------------------------------------------------------------- |
@@ -225,15 +229,19 @@ Edges dictate how messages flow between agents after a step completes.
 
 ## The `payloads/` Directory
 
-Because MirrorNeuron strictly separates the control plane (BEAM orchestration) from the execution plane (OpenShell sandboxes), any code executed by an `"executor"` agent must be supplied through the `payloads/` directory.
+Include portable worker code and assets under `payloads/`. An executor runs
+through its declared runner. A prepared image can already contain its command
+and dependencies.
 
-When you configure an executor node to run a script, you declare it in the `config.uploads` map. The `source` paths are evaluated relative to the `payloads/` directory:
+This generated OpenShell node stages a script using `config.uploads`. Each
+`source` is relative to `payloads/`:
 
 ```json
 {
   "node_id": "python_worker",
   "agent_type": "executor",
   "config": {
+    "runner_module": "MirrorNeuron.Runner.OpenShell",
     "uploads": [
       {
         "source": "process_data.py",
@@ -362,10 +370,14 @@ Runner before launch. Model licenses remain part of the bundle and backup.
 
 ## Example Bundle
 
-Here is a simple example of a complete `manifest.json` for a Map-Reduce style workflow.
+This is a generated Core manifest for a map/reduce workflow. For an authoring
+example that produces a source package the CLI can load, see
+[Python-defined workflows](SDK.md#python-defined-workflows).
 
 ```json
 {
+  "apiVersion": "mn.workflow/v1",
+  "kind": "Workflow",
   "manifest_version": "1.0",
   "graph_id": "document_summarizer",
   "required_context_engine": false,
@@ -373,54 +385,56 @@ Here is a simple example of a complete `manifest.json` for a Map-Reduce style wo
   "initial_inputs": {
     "dispatcher": [{ "file": "doc1.txt" }, { "file": "doc2.txt" }]
   },
-  "nodes": [
-    {
-      "node_id": "dispatcher",
-      "agent_type": "router",
-      "type": "map",
-      "role": "root_coordinator",
-      "config": {
-        "emit_type": "summarize_request"
+  "flow": {
+    "nodes": [
+      {
+        "node_id": "dispatcher",
+        "agent_type": "router",
+        "type": "map",
+        "role": "root_coordinator",
+        "config": {
+          "emit_type": "summarize_request"
+        }
+      },
+      {
+        "node_id": "summarizer_worker",
+        "agent_type": "executor",
+        "type": "map",
+        "config": {
+          "pool": "default",
+          "uploads": [
+            {
+              "source": "summarize.py",
+              "target": "/app/summarize.py"
+            }
+          ],
+          "command": ["/usr/bin/python3", "/app/summarize.py"]
+        }
+      },
+      {
+        "node_id": "result_collector",
+        "agent_type": "aggregator",
+        "type": "reduce",
+        "config": {
+          "complete_on_message": true,
+          "terminal_sink": true,
+          "complete_run": true
+        }
       }
-    },
-    {
-      "node_id": "summarizer_worker",
-      "agent_type": "executor",
-      "type": "map",
-      "config": {
-        "pool": "default",
-        "uploads": [
-          {
-            "source": "summarize.py",
-            "target": "/app/summarize.py"
-          }
-        ],
-        "command": ["/usr/bin/python3", "/app/summarize.py"]
+    ],
+    "edges": [
+      {
+        "from_node": "dispatcher",
+        "to_node": "summarizer_worker",
+        "message_type": "summarize_request"
+      },
+      {
+        "from_node": "summarizer_worker",
+        "to_node": "result_collector",
+        "message_type": "summarize_request"
       }
-    },
-    {
-      "node_id": "result_collector",
-      "agent_type": "aggregator",
-      "type": "reduce",
-      "config": {
-        "complete_on_message": true,
-        "terminal_sink": true,
-        "complete_run": true
-      }
-    }
-  ],
-  "edges": [
-    {
-      "from_node": "dispatcher",
-      "to_node": "summarizer_worker",
-      "message_type": "summarize_request"
-    },
-    {
-      "from_node": "summarizer_worker",
-      "to_node": "result_collector",
-      "message_type": "summarize_request"
-    }
-  ],
+    ]
+  },
   "policies": {
     "recovery_mode": "local_restart"
   }
@@ -429,23 +443,25 @@ Here is a simple example of a complete `manifest.json` for a Map-Reduce style wo
 
 ## Loading and Running
 
-You can validate and run a job bundle using the MirrorNeuron CLI:
+Use the CLI with a canonical source folder or catalog ID. The generated manifest
+above illustrates the Core boundary. The CLI compiles an authored package when
+preparing a Job. From the directory containing a reviewed package, with the
+CLI attached to its local runtime:
 
 ```bash
-# Validate the bundle structure and manifest constraints
-mn blueprint validate path/to/my_job_bundle
-
-# Execute the bundle on its selected owner Core
-mn blueprint run path/to/my_job_bundle
+mn blueprint validate ./my-blueprint
+mn blueprint doctor ./my-blueprint
 ```
 
-Expected validation output:
+> Launch executes the package's code. Review `manifest.json`, referenced role
+> documents, payloads, commands, `pass_env`, and OpenShell policy first.
 
-```text
-Job bundle at 'path/to/my_job_bundle' is valid.
+```bash
+mn blueprint run ./my-blueprint --detached
 ```
 
-Before running a third-party bundle, review `manifest.json`, `payloads/`, `runner`, `command`, `pass_env`, and any OpenShell `policy` file. See [Security Model](security.md).
+Use the returned Run ID to inspect results or cancel unfinished work in
+[Monitor](monitor.md).
 
 For HTTP clients, upload the ZIP as multipart data to `POST /api/v1/bundles`,
 then pass the returned opaque `bundle_id` to `POST /api/v1/jobs`. The REST API

@@ -11,9 +11,11 @@ Use this page when you are changing the Elixir/BEAM runtime in `MirrorNeuron/`. 
 
 ## Before you begin
 
-- Work from `MirrorNeuron/`.
-- Install the Elixir/Erlang versions required by the Core project.
-- Start Redis when the focused test requires durable runtime state.
+- Start at the workspace root. The development commands enter `MirrorNeuron/`.
+- Check `MirrorNeuron/mix.exs` and its CI workflow for the Elixir and OTP
+  requirements.
+- Use an isolated Redis store and namespace when the focused test requires
+  durable state.
 - Read the owning module and its nearest tests before changing an external contract.
 
 ## Development loop
@@ -25,13 +27,10 @@ mix format
 mix test
 ```
 
-When a focused test depends on a local Redis instance, start one only if the component test setup does not provision it:
-
-```bash
-docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
-```
-
-Warning: do not remove a Redis container used by another developer runtime. Use a dedicated namespace or disposable test environment for Core tests that mutate durable state.
+For service-backed tests, the [workspace test runner](testing.md#common-commands)
+can provision disposable services. If you manage them yourself, point the Core
+test process at the test store through `MN_REDIS_URL` and use a dedicated
+`MN_REDIS_NAMESPACE`.
 
 ## Architectural boundaries
 
@@ -39,7 +38,9 @@ MirrorNeuron Core owns orchestration, state, scheduling, supervision, and runtim
 
 - HostLocal worker code runs on the host and is appropriate only for trusted payloads.
 - OpenShell worker code runs through the sandbox integration and remains subject to its policy and service boundaries.
-- SDK/API/CLI layers own blueprint catalog resolution and model preparation before Core receives concrete runtime requirements.
+- The native `mn_runtime` service resolves catalogs and prepares models with
+  SDK helpers before Core receives concrete runtime requirements. CLI and API
+  send requests through the SDK client.
 
 Read [Runtime Architecture](runtime-architecture.md), [Reliability Guide](reliability.md), and [Security Model](security.md) before changing a lifecycle, recovery, runner, or trust boundary.
 

@@ -8,7 +8,8 @@ For developers with the CLI installed and a reviewed local blueprint package. Th
 - **Outcome:** launch one blueprint and inspect its public run ID, logs, and results.
 - **Page type:** tutorial.
 - **Maturity:** current checkout contract; availability in an installed release must be checked with `mn --version` and command help.
-- **Sources of truth:** `mn-cli/mn_cli/main.py`, `libs/run_cmds/`, `libs/run_public.py`, and `libs/job_definition_cmds.py`.
+- **Sources of truth:** `mn-cli/mn_cli/commands.py`, `client_blueprints.py`,
+  `client_management.py`, and `client_runs.py`.
 - **Validation:** command help and focused CLI contract tests; executing a chosen blueprint additionally requires its inputs and runtime services.
 
 ## Before you begin
@@ -41,7 +42,8 @@ mn blueprint doctor ./my-blueprint
 
 Validation checks the local package and declared requirements. Doctor diagnoses launch prerequisites. Resolve reported models, services, inputs, or hardware requirements before continuing; see [Model Runtime](model-runtime.md) and [Troubleshooting](troubleshooting.md). There is no universal model requirement for all blueprints.
 
-Local launch and doctor targets must begin with `./`, `../`, or `/`; other targets are interpreted as catalog IDs. Use [Examples](examples.md) to select a catalog entry.
+Use an explicit path for local launch and doctor targets. The connected
+runtime resolves catalog IDs. See [Examples](examples.md) to select one.
 
 ## Step 3: Launch
 
@@ -64,7 +66,10 @@ mn run result <run-id>
 
 Ctrl+C detaches from the watcher. Inspect the terminal run state, warnings, artifacts, and any required human review before using the result. Completion means execution finished, not that its domain conclusions are correct.
 
-`run result` downloads outputs into `$MN_HOME/outputs/<run-id>` by default. Blueprint run records live under `$MN_HOME/runs/<run-id>`, with `MN_HOME` defaulting to `~/.mn`. For pending human requests and report export, see [Monitor](monitor.md).
+`run result` downloads outputs into the surface's
+`$MN_HOME/outputs/<run-id>` by default. The owning runtime keeps blueprint run
+records under its own `$MN_HOME/runs/<run-id>`. For pending human requests and
+report export, see [Monitor](monitor.md).
 
 ## Clean up
 

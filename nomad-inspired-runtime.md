@@ -68,7 +68,8 @@ federated job across peer Cores:
 }
 ```
 
-Use resource and service requirements together when a worker needs a healthy local service:
+In a generated Core manifest, use resource and service requirements together
+when a worker needs a healthy local service. This fragment belongs in `flow`:
 
 ```json
 {
@@ -98,12 +99,14 @@ Use resource and service requirements together when a worker needs a healthy loc
 }
 ```
 
-Drain a node before rebooting it:
+From an attached surface, replace `<node-name>` with the name from
+`mn node list`. Drain the node and wait for owner-local work to finish before
+rebooting it. Restore eligibility after verifying health:
 
 ```bash
-mn node drain mirror_neuron@<node-host> --reason "driver update" --deadline 30m --dry-run
-mn node drain mirror_neuron@<node-host> --reason "driver update" --deadline 30m --wait
-mn node undrain mirror_neuron@<node-host> --mark-eligible --reason "ready"
+mn node drain "<node-name>" --reason "driver update" --deadline 30m --dry-run
+mn node drain "<node-name>" --reason "driver update" --deadline 30m --wait
+mn node undrain "<node-name>" --mark-eligible --reason "ready"
 ```
 
 Current public operations use durable Jobs and explicit Runs. Schedule a prepared
@@ -133,7 +136,7 @@ not runnable public interfaces.
 | Schedules and triggers                  | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_policy.ex`, `MirrorNeuron/lib/mirror_neuron/runtime/schedule_dispatcher.ex`                                                                                        |
 | Durable Redis state                     | `MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex`                                                                                                                                                         |
 | gRPC server surfaces                    | `MirrorNeuron/lib/mirror_neuron_grpc/server.ex`                                                                                                                                                                     |
-| CLI commands                            | `mn-cli/mn_cli/main.py`, `mn-cli/mn_cli/libs/*.py`                                                                                                                                                                  |
+| CLI commands                            | `mn-cli/mn_cli/commands.py`, `mn-cli/mn_cli/client_management.py`                                                                                                                                                   |
 | Python SDK                              | `mn-python-sdk/mn_sdk/client.py`, `mn-python-sdk/mn_sdk/bundle.py`, `mn-python-sdk/mn_sdk/decorators.py`                                                                                                            |
 | Blueprint validation                    | `mn-python-sdk/mn_sdk/blueprint_validation.py`                                                                                                                                                                      |
 

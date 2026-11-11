@@ -37,26 +37,9 @@ Expected result:
 Generated mirror_neuron app
 ```
 
-If the change requires a local Redis instance, first check whether one is already running:
-
-```bash
-docker ps --filter name=mirror-neuron-redis
-```
-
-Start a disposable Redis container only when it is absent:
-
-```bash
-docker run -d --name mirror-neuron-redis -p 6379:6379 redis:7
-docker exec mirror-neuron-redis redis-cli ping
-```
-
-Expected output:
-
-```text
-PONG
-```
-
-Warning: do not remove a Redis container to make this command work. It can contain another developer's runtime state. Use a separate container name, port, or Redis namespace for isolated testing.
+Use [Core development](development.md#development-loop) for component-local
+tests. Use the workspace runner for suites with disposable Redis and runtime
+fixtures.
 
 ## Test Commands
 
@@ -158,11 +141,9 @@ Run the same checks manually against every tracked file:
 uvx --from pre-commit==4.5.1 pre-commit run --hook-stage pre-push --all-files
 ```
 
-Tools are pinned in `.pre-commit-config.yaml`. Python uses Ruff lint (including
-syntax errors) and format checks. Shell uses Bash syntax, ShellCheck, and shfmt
-(two-space indentation). JSON, YAML, and TOML are parsed; Prettier checks document,
-web, and data formatting. Existing per-package Ruff configuration remains active.
-First use requires network access to populate tool caches. Existing style debt
-may fail checks; fix and commit the reported files before pushing.
+The `mn-docs` hook uses Bash syntax checks, ShellCheck, two-space shfmt, JSON,
+YAML and TOML parsers, and Prettier. Tool versions are pinned in
+`.pre-commit-config.yaml`. First use requires network access to populate
+the tool caches. For other repositories, use their own hook configuration.
 
 To remove this checkout’s hook, run `uvx --from pre-commit==4.5.1 pre-commit uninstall --hook-type pre-push`.

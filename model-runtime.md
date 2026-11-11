@@ -1,9 +1,9 @@
 # Model Runtime
 
-MirrorNeuron manages Docker Model Runner artifacts and external
-OpenAI-compatible provider routes through one model registry. The model runtime
-is used by blueprints that declare `provider: "docker_model_runner"` in
-`llm.configs`.
+MirrorNeuron manages Docker Model Runner artifacts, catalog-backed NVIDIA Docker
+services, and external OpenAI-compatible provider routes through one model
+registry. Blueprints declare logical model requirements and call them through
+the owner's managed LiteLLM gateway.
 
 Without an operator override, MirrorNeuron selects its built-in default from
 healthy cluster hardware, in this order:
@@ -28,10 +28,9 @@ discrete cards use dedicated VRAM. Driver acceleration must be verified with
 
 ## Ownership Boundary
 
-Model definition, registry persistence, catalog resolution, provider parsing,
-hardware compatibility checks, Docker Model Runner lifecycle operations, and
-model-to-service expansion are owned by `mn-python-sdk`, `mn-cli`, and
-`mn-api`.
+The native `mn_runtime` package performs model and provider operations on the
+runtime host using SDK registry, compatibility, and preparation helpers. CLI
+and API send commands through Core's authenticated runtime gateway.
 
 MirrorNeuron Core does not own the model catalog and does not install models directly. Core receives already-expanded runtime facts, checks concrete service availability, schedules jobs, and runs agents. If a required model or service is not ready, Core reports a preflight or scheduling error instead of preparing the resource itself.
 
@@ -41,7 +40,7 @@ Launch preparation should translate blueprint model references into concrete ser
 - service tags for `docker-model-runner` or provider endpoints
 - placement requirements for the node that can serve the model
 - endpoint environment such as `MN_MODEL_ENDPOINTS_JSON`
-- prepared-model metadata owned by the SDK/API/CLI layer
+- prepared-model metadata owned by the runtime and SDK
 
 ## Run admission and model residency
 
@@ -75,18 +74,22 @@ versions; source changes do not upgrade installed images.
 
 Sources: SDK `model_residency.py`, `model_residency_attempts.py`,
 `node_admission.py`, `run_model_allocation.py`, `litellm_context_admission.py`,
-and Core `runtime/node_admission.ex`. Focused offline checks are recorded in
-[Changes](changes.md#validation); they do not establish live accelerator behavior.
+and Core `runtime/node_admission.ex`. For live accelerator and gateway checks,
+see [Testing](testing.md).
 
 ## Commands
+
+Run these from an attached surface. Use an absolute path on the entry runtime
+for a provider definition. Adding models can pull weights or start services.
+Removal can delete installed artifacts and routes. Inspect their current state
+and ownership before confirming it.
 
 ```bash
 mn model list
 mn model list --available
 mn model add nano
-mn model add --file mn-docs/examples/openai-compatible-model-proxy.json
+mn model add --file /path/to/provider-models.json
 mn model add hf.co/acme/chat:Q4_K_M --default
-mn model add --file mn-docs/examples/muse-glimmer-gomokubench-config.json --default
 mn model probe nano
 mn model doctor nano
 mn model update nano
@@ -113,13 +116,14 @@ mn model probe nano --capabilities json-schema,streaming
 mn model probe nemotron-3.5-lightning:latest --json
 ```
 
-For a DMR artifact selected on the current node, the command also probes the
+For a DMR artifact selected on the entry runtime, the command also probes the
 host Docker Model Runner endpoint and requires exact parity through LiteLLM.
 For a remote-owner or provider model, the command respects the routing boundary
 and does not attempt direct access. A completed probe may contain `false`
 capabilities; these are verified unsupported behaviors, not command failures.
 An unknown result, unreachable endpoint, missing route, or direct/proxy mismatch
-fails the command.
+fails the command. With no model argument, it probes each model in the
+runtime inventory returned by `mn model list`.
 
 `--default` is valid for either a DMR reference or a provider JSON file that
 defines exactly one model. The registry stores only that model's ID as the
@@ -177,7 +181,7 @@ and inference weights unloaded. Other installed models are preserved.
 
 ## Bonsai2 on Docker Model Runner
 
-The unreleased `small` catalog entry uses
+The packaged `small` catalog entry uses
 `hf.co/prism-ml/Ternary-Bonsai-2-27B-gguf:PTQ1_0`, tagged locally as
 `bonsai2:ptq1_0`, with a 32,768-token initial context. Its ternary packing requires
 Prism llama.cpp. The catalog declares that customization, and the SDK prepares
@@ -378,11 +382,14 @@ are stripped before model dispatch. Response headers
 `x-mn-output-budget-reason` expose the decision without recording prompts or
 response content.
 
-Register a provider definition:
+Put the reviewed [provider definition](examples/openai-compatible-model-proxy.json)
+on the entry runtime and configure the environment variable named by
+`apiKeyEnv` in the native runtime service's environment. Use a model ID and
+base URL served by your endpoint. From the attached surface, pass the runtime's
+absolute path:
 
 ```bash
-export OPENAI_API_KEY="<provider-api-key>"
-mn model add --file mn-docs/examples/openai-compatible-model-proxy.json
+mn model add --file /path/to/provider-models.json
 mn model list
 ```
 
@@ -443,7 +450,10 @@ select another compatible PC as the Job owner. Once prepared, the definition
 keeps that owner; an inventory refresh does not migrate it or split a Run's
 managed inference across peers.
 
-For cluster launches, the SDK/API/CLI chooses the target node from the cluster resource summary, then sends `PrepareRuntimeModel` to that node's advertised Core gRPC endpoint. That node's Core only relays the request to its node-local SDK gRPC sidecar. The SDK sidecar on that same host performs Docker Model Runner operations and returns concrete endpoint facts.
+The runtime uses the cluster resource summary to select a target. Core routes
+`PrepareRuntimeModel` to the selected Core, which relays it to its private
+native service. That service performs the Docker or provider preparation and
+returns concrete endpoint facts.
 
 This path is intentionally gRPC-only between runtime nodes. Operators should not rely on SSH to install models on another box during normal blueprint launch.
 
@@ -454,7 +464,7 @@ An installed artifact or advertised route is not proof of loaded weights or
 an admitted Run; load and request checks still apply.
 
 `mn model add <MODEL>` selects the best compatible runtime node by default.
-Use `--local` to require the submitting machine or `--node <node-name>` to
+Use `--local` to require the entry runtime or `--node <node-name>` to
 select a specific cluster node. Cluster-managed model routes remain dynamic:
 the runtime monitor adds and removes them as node inventories change.
 
@@ -523,11 +533,11 @@ Only explicit `hf.co/<owner>/<repo>[:tag]` and `huggingface.co/<owner>/<repo>[:t
 
 MirrorNeuron does not perform model-specific hardware compatibility checks for this mode. It selects the healthy, schedulable, custom-model-capable node with the greatest accelerator capacity and attempts installation there. Failure on that selected node stops launch; it does not fall back locally or try another node. The resulting model and ownership records remain marked `unverified`.
 
-The fragment above is a runtime model descriptor. For authored source packages,
-place execution model declarations in the referenced execution document and
-follow [Blueprint Standard](blueprint-standard.md). The historical
-`examples/custom-hf-model` manifest uses the retired source shape and is not a
-current runnable tutorial.
+The [custom-model example](examples/custom-hf-model/manifest.json) shows the
+same declaration in a canonical source package. Its `execution.json` owns
+the model requirement and `config/default.json` selects the matching logical
+model. Use it to inspect and compile the declaration locally. Its terminal
+agent does not call the model.
 
 Custom model preparation uses the same timeout policy in CLI and API launches. Set
 `MN_RUNTIME_MODEL_PREPARE_TIMEOUT_SECONDS` to a positive number of seconds to override the
@@ -568,4 +578,6 @@ Run owner under its admission checks. Explicit installation remains available wi
 mn model add nano
 ```
 
-After submission, Core only checks the concrete service requirements provided by the SDK/API/CLI. It does not resolve aliases, choose model backends, inspect model hardware compatibility, or install Docker Model Runner models.
+Core checks the concrete service requirements provided by native preparation.
+Model resolution, backend selection, hardware checks, and installation run in
+the SDK and native runtime.

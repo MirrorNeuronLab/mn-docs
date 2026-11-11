@@ -32,9 +32,11 @@ reachable between hosts. Each Redis stays local to its Core. LiteLLM port
 `4000` is published for authenticated peer gateways, so restrict it with the
 host firewall rather than exposing it to an untrusted network.
 
-Each Core advertises a federation-reachable gRPC host and port. Pass `--host`
-to the lifecycle command to choose the advertised address explicitly. From the
-runtime installation home, replace `<node-address>` with its LAN or VPN address:
+Each Core advertises a federation-reachable gRPC host and port. A non-loopback
+`--host` can publish gRPC on all interfaces unless you set `MN_GRPC_BIND_HOST`
+explicitly. Restrict access to trusted clients and peers before starting.
+From the runtime installation home, replace `<node-address>` with its LAN or
+VPN address:
 
 ```bash
 bin/mn-runtime start --host <node-address>
@@ -91,8 +93,8 @@ after reciprocal readiness.
 
 ## Job ownership and routing
 
-Create a job for a chosen Core with the appropriate CLI or API `owner_node`
-field/`--node` option. If ownership is omitted, the resource/model selector
+Choose an owner when launching a blueprint with `mn blueprint run --node` or
+the API's `owner_node` field. If ownership is omitted, the resource/model selector
 chooses one eligible Core before creation. The chosen owner schedules every
 agent locally; federation never splits one job's agents across peers.
 
@@ -209,7 +211,7 @@ old ownership. Inspect the resulting Job owner and transfer state before
 starting new work. Unrelated destination Job IDs are never overwritten.
 
 Sources: Core `runtime/job_relocation.ex`, `job_relocation_reconciler.ex`,
-`backup/relocation_restore.ex`, CLI `job_definition_cmds.py`, and the relocation
+`backup/relocation_restore.ex`, CLI `client_management.py`, and the relocation
 tests. Offline unit checks do not establish live two-PC transfer behavior.
 
 ## Troubleshooting

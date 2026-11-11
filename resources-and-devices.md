@@ -127,6 +127,9 @@ cleanup claims can still be reserved. List projections do not read claims.
 
 ## Resource Request Shape
 
+This generated fragment belongs in `flow` in the Core manifest. In an
+explicit source package, configure the agent under `execution.agents.nodes`.
+
 ```json
 {
   "nodes": [
@@ -307,6 +310,9 @@ When an agent starts, allocation metadata is passed into its runtime context and
 | `MN_VOLUME_<NAME>_TARGET` | Requested target path.               |
 
 Worker code should use these hints when selecting devices, ports, and model/cache paths.
+Docker Compose services and managed inference within a Job reuse its admitted
+GPU allocation. Account for concurrent peak use in the Run's budget. Inference
+requests may still hold leases so cleanup can wait for in-flight work to drain.
 
 ## Inspect Resources
 
@@ -317,8 +323,9 @@ mn resource show
 ```
 
 The response includes per-node capacity, device inventory, runtime drivers, and
-admission information when available. Combined totals do not mean one run can
-pool several PCs. `cpu_load_average_1m`, when present, is measured one-minute
+admission information when available. A Run draws capacity from its owner.
+Resource reports carry the machine-readable `platform.os` and an optional
+display value in `platform.os_name`. `cpu_load_average_1m`, when present, is measured one-minute
 load, not CPU utilization or a reservation; a missing sample is unknown.
 
 To change coarse local capacity percentages, save the current limits first,
@@ -357,7 +364,7 @@ command to roll back; it does not install OS resource isolation.
 | Coarse resource percentages                | `MirrorNeuron/lib/mirror_neuron/resource_admission.ex`                                |
 | Runtime agent context                      | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex`                           |
 | Manifest validation                        | `MirrorNeuron/lib/mirror_neuron/manifest.ex`                                          |
-| CLI commands                               | `mn-cli/mn_cli/libs/resource_cmds.py`                                                 |
+| CLI commands                               | `mn-cli/mn_cli/commands.py`, `client_management.py`                                   |
 | SDK validation helpers                     | `mn-python-sdk/mn_sdk/blueprint_validation.py`                                        |
 
 ## V1 Limits
@@ -375,6 +382,6 @@ Core's `resource_allocation_test.exs`, `node_admission_state_test.exs`, and
 `resource_spec_test.exs` cover shared packing, backfill, conflicts, legacy claims,
 and port normalization. SDK `test_node_admission.py` and
 `test_run_model_allocation.py` cover native request leases and model bounds.
-Real hardware admission, Docker device binding, and release compatibility still
-require the matching installed-runtime integration checks. See [Changes](changes.md)
-for this audit's exact validation scope.
+Real hardware admission, Docker device binding, and release compatibility
+require matching installed-runtime integration checks. See [Testing](testing.md)
+for the integration suites.

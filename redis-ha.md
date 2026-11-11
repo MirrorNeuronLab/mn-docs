@@ -5,7 +5,10 @@ MirrorNeuron can run Redis in two modes:
 - `single`: one Redis endpoint from `MN_REDIS_URL`
 - `sentinel`: Redis primary-replica replication with Sentinel failover
 
-Use Sentinel mode for clusters where one Redis process or one box going down should not stop durable state access. MirrorNeuron still writes correctness-critical state only to the Sentinel-elected primary. Replicas are copies and failover candidates, not independent writable stores.
+Use Sentinel to give one Core's Redis store failover candidates. Each
+federated Core needs a distinct writable store identity and its own primary
+or Sentinel group. Federation rejects peers sharing the same store. See
+[Federation Architecture](cluster_architecture.md#2-coordination-and-control-plane).
 
 This is an operator how-to for the Core Sentinel integration and the supplied
 local helper. It does not replace the Redis and Sentinel security, backup, or
@@ -19,7 +22,8 @@ MirrorNeuron does not use Redis sharding or multi-master merging for runtime sta
 
 ## Runtime Configuration
 
-Set these on every runtime and control node:
+Set these in the Core process environment on the runtime that owns this
+store. Replace the sentinel addresses with endpoints reachable from Core:
 
 ```bash
 export MN_REDIS_HA_MODE="sentinel"
@@ -29,10 +33,12 @@ export MN_REDIS_SENTINEL_PORT="26379"
 export MN_REDIS_DB="0"
 ```
 
-`MN_REDIS_URL` remains useful as the single-Redis fallback and to provide the Redis URL scheme. In Sentinel mode, MirrorNeuron resolves the current primary from Sentinel before opening the Redix connection.
+`MN_REDIS_URL` supplies the endpoint in `single` mode and the connection
+scheme in Sentinel mode. In Sentinel mode, Core resolves the elected primary
+through Sentinel before opening the Redix connection.
 
 For externally managed Redis and Sentinel, configure their client credentials
-on every runtime and control node as needed:
+in the owning Core environment as needed:
 
 ```bash
 export MN_REDIS_USERNAME="default"
@@ -93,9 +99,10 @@ bash scripts/redis_ha.sh join \
   --quorum 1
 ```
 
-Run the same command on each box, changing `--self-host`. Configure the
-MirrorNeuron processes on all boxes with the same Sentinel endpoints and Redis
-credentials from [Runtime Configuration](#runtime-configuration).
+Run the same command on the hosts participating in this Redis group, changing
+`--self-host` for each host. Keep each data directory and set of ports
+dedicated to that group. Configure the owning Core with the Sentinel endpoints
+and credentials from [Runtime Configuration](#runtime-configuration).
 
 In production, run at least three Sentinel voters and use quorum appropriate for the deployment. A two-box quorum of `1` is useful for development smoke tests, but it can split-brain during network partitions.
 
@@ -118,56 +125,21 @@ If the local Redis is primary, the script first asks Sentinel to fail over to an
 
 Data is preserved by default. Use `--purge-local` only when you intentionally want `FLUSHDB` after detaching.
 
-## Start a Two-Box Runtime Cluster With Redis HA
+## Start a runtime with its own Redis HA store
 
-Before running either node's start command, export `MN_REDIS_PASSWORD` in that
-shell. The start helper invokes `redis_ha.sh join` by default in Sentinel mode,
-so it will otherwise exit before starting Core.
-
-Box 1:
-
-```bash
-cd MirrorNeuron
-
-bash scripts/start_cluster_node.sh \
-  --box1-ip <box1-host> \
-  --box2-ip <box2-host> \
-  --box 1 \
-  --redis-ha-mode sentinel \
-  --redis-sentinels <sentinel-1-host>:26379,<sentinel-2-host>:26379 \
-  --sentinel-master mirror-neuron \
-  --redis-wait-replicas 1
-```
-
-Box 2:
+Once the group's primary is available, apply the settings above to the
+owning Core through its deployment configuration. Preserve the previous
+configuration and data for rollback. Check the current master from a trusted
+host with the configured Sentinel client credential:
 
 ```bash
-cd MirrorNeuron
-
-bash scripts/start_cluster_node.sh \
-  --box1-ip <box1-host> \
-  --box2-ip <box2-host> \
-  --box 2 \
-  --redis-ha-mode sentinel \
-  --redis-sentinels <sentinel-1-host>:26379,<sentinel-2-host>:26379 \
-  --sentinel-master mirror-neuron \
-  --redis-wait-replicas 1
+redis-cli -h "<sentinel-host>" -p 26379 SENTINEL get-master-addr-by-name mirror-neuron
 ```
 
-The start script calls `scripts/redis_ha.sh join` automatically in Sentinel mode. Pass `--skip-redis-ha` if Redis and Sentinel are managed externally.
-
-For CLI/control calls:
-
-```bash
-bash scripts/cluster_cli.sh \
-  --box1-ip <box1-host> \
-  --box2-ip <box2-host> \
-  --self-ip <box1-host> \
-  --redis-ha-mode sentinel \
-  --redis-sentinels <sentinel-1-host>:26379,<sentinel-2-host>:26379 \
-  --sentinel-master mirror-neuron \
-  -- inspect nodes
-```
+The reply should identify a primary reachable from Core. Restart the owning
+runtime through its normal lifecycle and check its Redis and coordination
+health. To federate with another Core, follow [Cluster](cluster.md) and
+verify that the peer has a distinct coordination store.
 
 ## Verification
 
@@ -234,26 +206,26 @@ Options:
 | `--remote-network`  | `auto`  | `auto`, `host`, or `bridge`. On Linux Docker, `auto` chooses host networking for the remote side.                    |
 | `--initial-primary` | `auto`  | `auto`, `local`, or `remote`. `auto` falls back to remote-primary when the remote cannot reach the local Redis port. |
 
-From the workspace root, the workspace wrapper runs the same smoke:
+From `mn-system-tests` with its [test environment](testing.md#common-commands),
+the runner can execute the same smoke against a disposable remote workspace:
 
 ```bash
-.venv/bin/python mn-system-tests/test_all.py --redis-ha \
-  --redis-ha-remote-host <remote-host> \
-  --redis-ha-local-ip <local-host> \
-  --redis-ha-remote-ip <remote-host>
+.venv/bin/mn_test --suite redis-ha.two-box --two-node \
+  --remote-ssh-command "ssh <user>@<remote-host>" \
+  --remote-mn-set-folder "<remote-workspace>"
 ```
 
-Expected output:
-
-```text
-All selected test suites passed.
-```
+Use the SSH login and workspace path for the test peer. Run with `--dry-run`
+first to check connectivity and prerequisites. Confirm the suite passed and
+check the run report for cleanup errors.
 
 ## Operational Notes
 
-- Keep Sentinel endpoints reachable from all MirrorNeuron nodes.
+- Keep each group's Sentinel endpoints reachable from its owning Core.
 - Redis nodes should announce box-reachable IPs, not container bridge IPs.
 - Use at least three Sentinel voters for production.
-- Use `MN_REDIS_WAIT_REPLICAS=1` when losing the primary immediately after a write would be unacceptable.
+- `MN_REDIS_WAIT_REPLICAS=1` waits for a replica acknowledgement on selected
+  durable writes. A wait timeout can follow a committed primary write. Check
+  the durable result before retrying.
 - Keep `MN_REDIS_NAMESPACE` unique for tests.
 - Monitor Redis replication lag, Sentinel leadership, and MirrorNeuron Redis reconnect warnings.

@@ -25,6 +25,8 @@ This guide covers installation of the application surface, the runtime node, or 
 The combined and runtime-only modes start their services by default. Use
 `--no-start` to prepare either installation for later startup. Client mode
 starts no services. The optional `mn-api` process can run in the foreground.
+Runtime-only mode omits the application CLI, API, and Web UI. It can still
+serve a blueprint's own UI through the runtime.
 
 Use `MN_HOME` to choose a different home. Reinstall with the same role or use a
 separate directory for a different role. The two role flags are mutually
@@ -76,7 +78,9 @@ mn --help
 Detection should report `install_role` as `client` and `installed` as `true`.
 The client needs a reachable runtime with compatible capabilities to run
 blueprints. Use a trusted network or secure tunnel to reach the runtime's gRPC
-endpoint. Get the host and runtime control token from the runtime operator, and
+endpoint. For a runtime on another computer, verify its listener and advertised
+address using the [Federation Guide](cluster.md#network-requirements). Get the
+host and runtime control token from the runtime operator, and
 keep the token private. Set `RUNTIME_NODE_HOST` to that hostname or IP address and
 `RUNTIME_NODE_TOKEN` to the credential from the runtime's `runtime.token` file.
 For a first connection, run:
@@ -117,7 +121,9 @@ Check `install_role` for `runtime` and inspect the required component health.
 With a custom `MN_HOME`, use its `bin/mn-runtime` path. If you installed with
 `--no-start`, use the same executable with `start` before checking status.
 Share the runtime's reachable Core endpoint and private runtime control token
-with the surface operator.
+with the surface operator. A successful installation that starts services can
+print a ready-to-run `mn node add` command containing that token. Keep the
+command and terminal transcript private.
 
 ## Install an editable workspace runtime
 

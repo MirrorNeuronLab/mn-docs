@@ -4,8 +4,8 @@ For operators and runtime maintainers, this explanation defines durable state,
 replay, pause/cancel, and recovery boundaries in the current checkout. It assumes
 a configured owner Core and Redis; it does not establish a release SLA. Sources
 are Core's persistence, workflow, cancellation, recovery, and admission modules
-and their focused tests. [Changes](changes.md#validation) records which paths
-were exercised and which require live integration validation.
+and their focused tests. See [Verified scenarios](#verified-scenarios) for
+owning tests and [Testing](testing.md) for live integration prerequisites.
 
 MirrorNeuron is a durable, retryable, message-driven runtime for local and
 federated AI systems. It is not a consensus workflow engine. Reliability is
@@ -140,9 +140,10 @@ restoration contracts.
 ## Manual checkpoint retry
 
 Failed runs can expose a `mn.run_checkpoint/v1` plan through `PlanRunRetry`.
-`RetryRun` requires explicit overrides, expected attempt, checkpoint revision,
-and an idempotency key; Core revalidates under the lifecycle/start gate and
-reacquires owner capacity or explicitly queues the retry.
+`RetryRun` requires the expected attempt, checkpoint revision, and an
+idempotency key. Optional overrides must be declared retry-adjustable fields.
+Core revalidates under the lifecycle/start gate and reacquires owner capacity
+or explicitly queues the retry.
 
 The checkpoint binds ledger v3, Job/run identity, attempt, immutable
 manifest/input digests, Job-data generation, and artifact integrity. Completed
@@ -240,8 +241,8 @@ external side effects is the blueprint's responsibility.
 Artifact-handoff receipts are a narrow disk-recovery exception: Core can repair
 publication of an already executed result without rerunning the command. They
 do not restore agent memory or replace Redis coordination. An uncertain isolated
-dispatch without trustworthy completion is `unknown_blocked` and requires an
-explicit new run. Only verified receipt publication can authorize completion.
+dispatch becomes `unknown_blocked` and requires operator review before another
+execution attempt. Only verified receipt publication can authorize completion.
 See [Runtime Architecture](runtime-architecture.md#why-artifacts-matter).
 
 ## Maintenance and drain
@@ -256,7 +257,8 @@ and create new jobs on another eligible Core when appropriate.
 
 ## Verified scenarios
 
-Normal CI protects the architecture with `cluster.federation.local`, including:
+The `cluster.federation.local` suite exercises a disposable two-Core topology
+and covers:
 
 - distinct writable stores and no BEAM peer membership;
 - reciprocal CLI and API readiness;
@@ -267,8 +269,7 @@ Normal CI protects the architecture with `cluster.federation.local`, including:
 - projection refresh after reconnection; and
 - mandatory owner-LiteLLM-first model routing.
 
-The gated two-box suites repeat these boundaries on the Mini/Spark network
-after exact Git commit parity.
+The gated two-box suites cover these boundaries on separate hosts.
 
 ## Current limitations
 

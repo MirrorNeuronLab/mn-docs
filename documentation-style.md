@@ -91,6 +91,10 @@ For every documentation pull request:
 4. Inspect rendered diagrams when a Mermaid diagram changes.
 5. Record commands run, sources verified, and untested limitations in the pull request.
 
+The local pre-push hook checks formatting and file syntax. Run link, anchor,
+diagram, and owning-product checks as well. See the
+[hook setup](contributing.md#automatic-pre-push-checks).
+
 Do not merge when a runnable command is untested but presented as a verified path, a destructive operation lacks a warning/recovery path, or a claim conflicts with code/tests/schemas.
 
 ## Contribution checklist

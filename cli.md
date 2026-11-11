@@ -15,7 +15,8 @@ runtime services. The CLI uses resource-oriented nouns and a small common verb
 set:
 
 - `list` shows a collection.
-- `show` returns stored facts about one resource without active probes.
+- `show` returns details about one resource. Use the command's help to check
+  whether it reads stored facts or queries live state.
 - `status` summarizes live runtime state.
 - `doctor` runs deep diagnostics and supplies fixes.
 - `validate` checks static input without mutation.
@@ -102,9 +103,11 @@ mn blueprint run <catalog-id>
 mn blueprint cleanup --dry-run
 ```
 
-Local `run` and `doctor` targets must be explicit paths such as `./folder`,
-`../folder`, or an absolute path. Local paths require an attached local runtime.
-Use catalog IDs and runtime-accessible input paths for remote launches.
+Use explicit paths such as `./folder`, `../folder`, or an absolute path for
+local `run` and `doctor` targets. An existing path in the CLI's working
+directory is also recognized as local. Local sources require an attached
+local runtime. Use catalog IDs and runtime-accessible input paths for remote
+launches.
 
 Report generation remains a blueprint operation even though it accepts a run
 ID:
@@ -124,9 +127,9 @@ A job is a durable definition. A run is one execution of that definition.
 Batch Jobs can have many Runs; a service Job has at most one attached Run and
 ordinary repeated starts reject with `service_run_exists`.
 
-The following commands work from any directory with runtime access. Reset and
-delete permanently remove the data identified by the command; inspect the Job,
-Runs, and required artifacts before confirming them.
+Use a shell with access to the attached runtime. The local `./bundle` path
+requires local attachment. Reset and delete permanently remove data. Inspect the
+Job, Runs, and required artifacts before confirming them.
 
 ```bash
 mn job list
@@ -154,8 +157,11 @@ mn run cancel <run-id>
 mn run delete <run-id> --yes
 ```
 
-`mn run result` resolves the runtime job internally and writes to
-`$MN_HOME/outputs/<run-id>` unless `--output` is supplied.
+`mn run result` resolves the owning runtime internally and downloads to the
+surface's `$MN_HOME/outputs/<run-id>` unless `--output` is supplied.
+Local bundle creation may wait for preparation. `mn job create --json` returns
+one final envelope for that operation. Use `mn operation watch` to follow a
+known Operation ID.
 
 Paired Core/native SDK versions must advertise `resource_admission_v2`.
 Missing resource profiles reserve a whole PC; shared profiles permit compatible
@@ -187,7 +193,7 @@ mn run cancel <run-id> --queued-only
 
 Setting a time defers that same Run; it becomes eligible in the owner queue when due.
 Queued-only cancellation cannot cancel a run that has already been admitted.
-`mn schedule cancel queue_<run-id>` also cancels only the queued start.
+`mn schedule cancel queue_<run-id> --node <owner-node>` also cancels only the queued start.
 
 Inspect a failed Run's checkpoint before an explicit retry:
 
@@ -203,9 +209,10 @@ resubmission accepts `--idempotency-key`, `--expected-attempt`, and
 `--checkpoint-revision` together. Do not request a new execution to reconcile an
 uncertain retry. See [Reliability](reliability.md#manual-checkpoint-retry).
 
-Service replacement through `mn job start <job-id> --force --yes` permanently
-clears the attached Run's history and artifacts, cancelling active work first.
-Review that evidence before using it; Job data/configuration remain. To move an
+Service replacement requires `mn job start <job-id> --run-id <new-run-id> --force --yes`.
+It permanently clears the attached Run's history and artifacts, cancelling
+active work first. Preserve that evidence before confirming replacement. Job
+data and configuration are retained. To move an
 idle definition to another PC, use `mn job relocate <job-id> --node <node>`;
 see [ownership transfer](cluster.md#moving-an-idle-job) for prerequisites and
 pre-commit abort behavior.
@@ -251,21 +258,21 @@ Schema output, SSE streaming, and thinking, then writes the effective matrix to
 `$MN_HOME/models/catalog.json`. `--capabilities` accepts a comma-separated
 subset and the SDK's aliases, such as `image`, `json-schema`, and `stream`.
 
-When the selected DMR artifact is on the current node, the command runs the
-same requests directly against Docker Model Runner and fails with
-`MN_MODEL_CAPABILITY_MISMATCH` if LiteLLM changes a result. For a provider or a
+When the selected DMR artifact is on the entry runtime, the command runs the
+same requests directly against Docker Model Runner and fails on a capability
+mismatch. For a provider or a
 remote-owner route, only the managed LiteLLM path is tested; the JSON result
 reports the direct path as `not_run`. Exit code `0` and `status: verified` mean
 the requested probes completed, including legitimate unsupported results such
 as `embeddings: false`. Unknown results or endpoint failures return exit code
-`1`.
+`1`. Omit the model ID to probe the runtime inventory.
 
-Use `--default` while adding exactly one DMR or provider model to make it the
+Use `--default` while adding exactly one runtime or provider model to make it the
 highest-priority logical `default`:
 
 ```bash
 mn model add hf.co/acme/chat:Q4_K_M --default
-mn model add --file mn-docs/examples/muse-glimmer-gomokubench-config.json --default
+mn model add --file /path/to/provider-models.json --default
 ```
 
 The custom choice stays registered until removed and takes priority over the
@@ -278,7 +285,8 @@ Provider files use the JSON shape shown in
 [`examples/openai-compatible-model-proxy.json`](examples/openai-compatible-model-proxy.json)
 and [`examples/muse-glimmer-gomokubench-config.json`](examples/muse-glimmer-gomokubench-config.json).
 All entries and referenced environment variables are validated before registry
-or gateway changes.
+or gateway changes. Use a path readable on the connected runtime and configure
+referenced credentials there. `--file` passes a path to that runtime.
 
 ## Runtime, nodes, and resources
 
@@ -295,13 +303,23 @@ mn runtime ensure-context-engine
 mn runtime upgrade
 ```
 
-`runtime status` includes endpoints, component health, nodes, active jobs, and
-shared storage. `runtime doctor` adds coordination, Docker Model Runner,
-gateway, storage, and foundation checks. Repair belongs only to `doctor`.
+`runtime status` on a combined installation includes endpoints, component
+health, nodes, active jobs, and shared storage. In client mode it reports the
+saved connection. `runtime doctor` inspects the local runtime and adds
+coordination, model runner, gateway, storage, and foundation checks. Use
+`--repair` on a combined installation to attempt recovery of a critical
+API or Web UI sidecar, then inspect the refreshed status.
+
+`runtime cleanup --dry-run` reports node-local Docker and OpenShell cleanup
+candidates without updating the registry or deleting resources. Review that
+receipt before applying cleanup with `--yes`. Add `--include-cache` to include
+the managed DockerWorker image cache policy.
 
 These lifecycle commands manage the runtime in the current installation.
 For runtime-only installs, run `bin/mn-runtime` from that installation home.
-In client mode, use `mn node list` to inspect the connected cluster.
+In client mode, use `mn node list` to inspect the connected cluster. To change
+the runtime credential for the surface, manage it at the runtime installation
+and connect again using `mn node add`.
 
 `mn node add` takes a runtime hostname or IP and its private runtime control
 token. The first successful addition saves the connection. A subsequent

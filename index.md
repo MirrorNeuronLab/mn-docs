@@ -81,15 +81,16 @@ Do not duplicate large command tables, API shapes, or environment-variable lists
 | Models, OpenShell, services, and resources       | [model-runtime.md](model-runtime.md), [docker-model-runner-arm64-nvidia.md](docker-model-runner-arm64-nvidia.md), [docker_and_openshell_for_blueprints.md](docker_and_openshell_for_blueprints.md), [services-and-health-checks.md](services-and-health-checks.md), [resources-and-devices.md](resources-and-devices.md) |
 | Cluster, deployment, schedules, and HA           | [cluster.md](cluster.md), [deployments.md](deployments.md), [schedules-and-events.md](schedules-and-events.md), [redis-ha.md](redis-ha.md)                                                                                                                                                                               |
 | Architecture, context, reliability, and security | [runtime-architecture.md](runtime-architecture.md), [cluster_architecture.md](cluster_architecture.md), [context-memory.md](context-memory.md), [reliability.md](reliability.md), [security.md](security.md)                                                                                                             |
-| Internal quality and contributor process         | [testing.md](testing.md), [contributing.md](contributing.md), [documentation-style.md](documentation-style.md)                                                                                                                                                                                                           |
-| Runtime audit and documentation change table     | [changes.md](changes.md)                                                                                                                                                                                                                                                                                                 |
+| Blueprint authoring and execution                | [blueprint-standard.md](blueprint-standard.md), [bundle.md](bundle.md), [blueprints-and-skills.md](blueprints-and-skills.md), [dag-flow-patterns.md](dag-flow-patterns.md), [skill-catalog.md](skill-catalog.md)                                                                                                         |
+| Internal quality and contributor process         | [component-guide.md](component-guide.md), [development.md](development.md), [testing.md](testing.md), [system-benchmarks.md](system-benchmarks.md), [contributing.md](contributing.md), [documentation-style.md](documentation-style.md)                                                                                 |
 
 ## Runtime alignment record
 
-See [Changes](changes.md) for the November 2026 code snapshot, documentation
-corrections, owning evidence, validation results, and remaining integration/site
-checks. [September 2026 alignment](runtime-alignment-2026-09.md) retains the
-earlier migration and validation history.
+The [runtime code map](runtime-architecture.md#runtime-code-map) identifies
+the current owners of runtime contracts. The
+[November 2026 refactoring report](refactoring-report-2026-11.md) and
+[September 2026 alignment record](runtime-alignment-2026-09.md) document
+their respective source snapshots and validation.
 
 ## Source-doc update rule
 

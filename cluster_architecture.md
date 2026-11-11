@@ -8,7 +8,7 @@ share Redis job state.
 
 ## 1. Node and job ownership
 
-Each runtime node runs Core and can own jobs. A job has exactly one `owner_node`, selected
+Each runtime node runs Core, the private `mn_runtime` service, and Redis. A job has exactly one `owner_node`, selected
 explicitly or by the resource/model selector before creation. The owner stores
 the authoritative job state and runs every agent, lease, schedule, and control
 loop for that job in its own Core.

@@ -27,6 +27,14 @@ system's storage, query and evidence interfaces, and the
 [query benchmark](../Membrane/mn-context-auto-optimizer-benchmark/docs/cross-datatype.md)
 for measured retrieval and context quality.
 
+The Membrane Python SDK exposes the four-part
+[Context Intelligent System](../Membrane/docs/intelligent-system.md). It
+separates authored runtime memory, original inputs, final context assembly,
+and finite query classification. Runtime records default to the current Run.
+Use explicit `namespace="job"` for authorized history shared across Runs of
+the same Job. The SDK verifies the complete assembled request against the
+serving budget before dispatch.
+
 This page is for blueprint authors and runtime operators. It explains how to
 keep long-running jobs useful when their accumulated evidence is larger than
 any model context window. The behavior described here is implemented by
@@ -183,19 +191,22 @@ prompt inputs.
 
 ## Python SDK
 
-Install the Membrane Python SDK from source:
+From the workspace root, install the Membrane Python SDK and run its tests in
+a Python 3.12+ environment:
 
 ```bash
 cd Membrane/mn-context-engine-python-sdk
+python3.12 -m venv .venv
 .venv/bin/python -m pip install -e ".[dev]"
 .venv/bin/python -m pytest -q
 ```
 
-Optional extras are package-specific:
+Use `grpc` for the authenticated TextMemory and Evidence clients.
+`embeddings` and `routing` provide optional local adapters. Configure their
+checkpoints explicitly. Install only the extras needed by the caller:
 
 ```bash
-.venv/bin/python -m pip install -e ".[compression]"
-.venv/bin/python -m pip install -e ".[qdrant]"
+.venv/bin/python -m pip install -e ".[grpc]"
 ```
 
 Use `qdrant` and `qdrant-gpu` in separate environments because their FastEmbed
@@ -203,28 +214,30 @@ dependencies are mutually exclusive.
 
 ## Optimizer Runtime
 
-Install the deterministic optimizer:
+From the workspace root, install the deterministic optimizer with the matching
+local engine SDK in its own Python 3.12+ environment:
 
 ```bash
 cd Membrane/mn-context-auto-optimizer
-.venv/bin/python -m pip install -e ".[dev]"
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -e ../mn-context-engine-python-sdk -e ".[dev]"
 .venv/bin/python -m pytest -q
 ```
 
 Inspect runtime capabilities:
 
 ```bash
-mn-context-packer runtime-info
+.venv/bin/mn-context-packer runtime-info
 ```
 
 Compress a context packet from standard input:
 
 ```bash
-cat packet.json | mn-context-packer compress \
+.venv/bin/mn-context-packer compress \
   --compression-mode graph_nlp \
   --target-tokens 800 \
   --focus-id goal_1 \
-  --agent-role executor
+  --agent-role executor < packet.json
 ```
 
 Supported compression modes:
@@ -237,29 +250,37 @@ Supported compression modes:
 
 ## Benchmarks
 
-Install the benchmark package:
+From the workspace root, install the benchmark package with the matching local
+optimizer and SDK:
 
 ```bash
 cd Membrane/mn-context-auto-optimizer-benchmark
-.venv/bin/python -m pip install -e ".[dev]"
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -e ../mn-context-engine-python-sdk -e ../mn-context-auto-optimizer -e ".[dev]"
 ```
 
 Run the default graph benchmark:
 
 ```bash
-mn-context-benchmark --config configs/default.yaml
+.venv/bin/mn-context-benchmark --config configs/default.yaml
 ```
 
-Build a blueprint-derived benchmark suite from the local catalog:
+Build a blueprint-derived benchmark suite from a local catalog. Replace
+`<catalog-dir>` with that catalog's path and use a fresh output directory so
+the commands preserve previous reports:
 
 ```bash
-mn-context-build-blueprint-suite \
-  --blueprint-root ../../otterdesk-blueprints \
-  --packet-output artifacts/data/blueprint_packet_results.json \
-  --working-memory-output artifacts/data/blueprint_working_memory_cases.json \
-  --coverage-output artifacts/data/blueprint_suite_coverage.json \
+report_dir="$(mktemp -d)"
+.venv/bin/mn-context-build-blueprint-suite \
+  --blueprint-root "<catalog-dir>" \
+  --packet-output "$report_dir/blueprint_packet_results.json" \
+  --working-memory-output "$report_dir/blueprint_working_memory_cases.json" \
+  --coverage-output "$report_dir/blueprint_suite_coverage.json" \
   --cases-per-manifest 12
 ```
+
+Review coverage and any skipped packages in the generated reports. Remove the
+temporary directory when you finish.
 
 ## Notes
 

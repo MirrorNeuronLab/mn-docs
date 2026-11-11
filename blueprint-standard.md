@@ -81,6 +81,10 @@ With `MN_USE_LOCAL_SKILLS=1`, source development resolves matching local distrib
 
 Evidence: `mn_sdk/version_constraints.py`, `blueprints/schemas/dependencies.schema.json`, `components/dependencies.py`, and the SDK version-constraint tests.
 
+Skill declarations can request `"setup": "on_install"` for an implemented
+`mn.skills.setup` hook. Review the hook before adding the blueprint because it
+executes during runtime preparation.
+
 ## Execution modes
 
 `execution.mode` is required:
@@ -131,6 +135,8 @@ Each extension document declares its own canonical `$schema`. Manifest extension
 | `mn.product`  | Product information and discovery descriptors                           |
 | `mn.testing`  | Quick-test descriptors                                                  |
 | `mn.agentic`  | Bounded research and tool-use policy                                    |
+| `mn.blocks`   | Reusable blueprint block bindings                                       |
+| `mn.mcp`      | Declared MCP services and tool integration                              |
 | `mn.domain`   | Blueprint-owned domain descriptors                                      |
 
 Known runtime features are handled by the SDK. An unknown required extension fails compilation. Unknown optional descriptive extensions remain in the snapshot and exported package without being executed. Adding a runtime feature requires a handler and a schema; adding fields to the core document is not an extension mechanism.
@@ -196,6 +202,19 @@ Folders and extracted ZIPs use the same package path validator. Absolute documen
 
 ## Verification
 
+With the standalone Synapsy CLI installed, inspect a package from its parent
+directory before runtime preparation:
+
+```bash
+synapsy verify ./legal_assistant --format json
+```
+
+Static verification checks schemas, references, graph structure, dependencies,
+and source findings without executing worker code. Use `--workspace` to select
+local catalogs and SDK contracts. Exit code `0` means the selected checks
+passed. See the [Synapsy guide](../Synapse/README.md) for report options and
+opt-in SDK compilation.
+
 Run the SDK package, submission lifecycle, compiler, bundle, and payload tests. Run CLI and API catalog/launch tests, blueprint behavior contracts, UI tests/build, and Core/system boundary gates for affected runtime behavior. Catalog inventories are independently versioned; derive the current published set from each catalog's `index.json` rather than a fixed package count.
 
 Source packages intentionally require the canonical format. Runtime artifacts and historical run records remain their own contracts. The documentation describes this source migration; publishing a coordinated SDK/CLI/API release is a separate release operation.
@@ -203,9 +222,8 @@ Source packages intentionally require the canonical format. Runtime artifacts an
 ## Coordinated release
 
 The source schema version and Python distribution version are separate contracts.
-Current CLI metadata declares `mirrorneuron-python-sdk>1.3,<2.0`; do not infer
-an SDK 2.0 requirement from the source-format migration. Git tags and owning
-package metadata determine distribution compatibility. Ship compatible CLI, API,
+Use the SDK requirements in `mn-cli/pyproject.toml` and `mn-api/pyproject.toml`
+and the installer package index to check distribution compatibility. Ship compatible CLI, API,
 SDK components, and catalogs together, and validate installed artifacts against
 the schemas they actually package. The external blueprint-authoring reference
 is maintained in `mn-doc-site/content/docs/blueprint-standard.mdx`.

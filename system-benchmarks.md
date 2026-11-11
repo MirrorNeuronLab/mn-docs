@@ -33,14 +33,17 @@ The report covers injected API HTTP routes, SDK/gRPC-boundary calls, CLI runtime
 status, and the LLM stream parser. It also records hardware, software, Python
 package versions, git revisions, and skipped/live probe reasons.
 
-Live endpoint measurements are opt-in:
+Live endpoint measurements are opt-in. Supply the reachable addresses of the
+prepared test services and a model already installed at the local test DMR
+endpoint. Set `MN_GRPC_AUTH_TOKEN` privately if the direct Core probe needs it.
+The optional LLM probe sends a short inference request.
 
 ```bash
 RUN_MN_PERF_LIVE=1 \
 MN_API_BASE_URL=http://127.0.0.1:54001/api/v1 \
 MN_GRPC_TARGET=127.0.0.1:55051 \
 MN_LLM_BASE_URL=http://127.0.0.1:12434/engines/v1 \
-MN_LLM_MODEL=ai/gemma3 \
+MN_LLM_MODEL="<installed-model-id>" \
 MN_WEB_UI_URL=http://127.0.0.1:55173 \
 .venv/bin/mn_test --suite performance
 ```
@@ -60,7 +63,9 @@ Use the `scale.local` runner suite for the owned local service path. A direct py
 
 The report includes completion, recovery, tool/action correctness, cost, human
 intervention, and a compact scorecard JSON object for CI trend checks.
-The command writes fixture-derived reports to the selected directory; choose a fresh output directory to preserve earlier results. Remove that directory when the artifacts are no longer needed. Runner-owned services are stopped at teardown, and their cleanup diagnostics remain in the aggregate report.
+The command computes the scorecard from stored fixture observations and writes
+reports to the selected directory. Choose a fresh output directory to preserve
+earlier results, and remove it when the artifacts are no longer needed.
 
 ## Publishing Notes
 

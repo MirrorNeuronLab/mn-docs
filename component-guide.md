@@ -31,7 +31,7 @@ isolation.
 | `mn-blueprints`                  | Default external blueprint catalog consumed by the runtime.                                                                                                             | [Blueprints and Skills](blueprints-and-skills.md)                                    | Blueprint validation and repository tests                          |
 | `mn-docs`                        | Canonical contributor and operator documentation.                                                                                                                       | [Documentation Index](index.md)                                                      | [Documentation checks](documentation-style.md#required-validation) |
 | `otterdesk-blueprints`           | Self-contained user-facing workflow blueprints.                                                                                                                         | [Examples](examples.md), [Blueprint Standard](blueprint-standard.md)                 | Blueprint validation and repository tests                          |
-| `otterdesk-desktop-app`          | Desktop application for launching and monitoring blueprints.                                                                                                            | [Deployments](deployments.md)                                                        | `cd otterdesk-desktop-app && npm run doctor`                       |
+| `otterdesk-desktop-app`          | Desktop application for launching and monitoring blueprints.                                                                                                            | [API Reference](api.md), [Monitor Guide](monitor.md)                                 | `cd otterdesk-desktop-app && npm run doctor`                       |
 
 ## Internal module boundaries
 
@@ -89,7 +89,8 @@ mn runtime status
 mn node list
 ```
 
-Use [Quickstart](quickstart.md) for the model-backed first workflow path. Do not substitute a deleted blueprint ID or assume a checked-in blueprint has no model, service, or device requirements.
+Use [Quickstart](quickstart.md) to preflight a reviewed blueprint and check
+its model, service, device, and input requirements before launch.
 
 ## Related pages
 

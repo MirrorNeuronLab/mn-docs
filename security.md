@@ -37,12 +37,11 @@ HostLocal workers run directly on the machine. They can act with the permissions
 
 OpenShell provides a stronger execution boundary. It does not remove the need to review sandbox policy, uploads, mounted data, network access, environment variables, and exposed services. A sandboxed worker can still leak data or spend money through an allowed external integration.
 
-Its versioned artifact handoff and whole-tree shared-storage sync are mutually
-exclusive modes. Handoff verifies confined paths, identities, hashes/sizes, and
-a committed receipt before accepting output; it is not permission to publish
-every sandbox file. Configured-folder exports require explicit
-`export_outputs: true`. An uncertain dispatch without trustworthy completion
-remains blocked rather than rerunning an external effect to recover files.
+Use the versioned artifact handoff for declared outputs. The runner rejects
+`sync_shared_storage`. Handoff verifies confined paths, producer identity,
+file hashes and sizes, and a committed receipt before accepting output.
+Configured-folder exports require explicit `export_outputs: true`. An uncertain
+dispatch remains blocked for review.
 See [Runtime Architecture](runtime-architecture.md#why-artifacts-matter).
 
 ### Docker execution
@@ -66,15 +65,13 @@ trusted network boundary. See the [Federation Guide](cluster.md#start-and-join-t
 
 ## Local defaults and listener checks
 
-The deployed defaults include:
-
-```bash
-export MN_REDIS_URL="redis://127.0.0.1:6379/0"
-export MN_API_PORT="54001"
-export MN_GRPC_PORT="55051"
-```
-
-Verify the actual local deployment rather than assuming defaults:
+The default Compose Core endpoint publishes port `55051` on loopback. Redis
+normally stays on the Compose network. The surface API uses port `54001` and
+can bind to all interfaces when the installer enables the Compose Web UI.
+The current Compose template and Python Web UI proxy add the API credential
+to same-origin requests that omit it. Restrict access to the Web UI listener
+as well as the API.
+Check the installed listeners before connecting a client or peer:
 
 ```bash
 mn runtime status
@@ -88,6 +85,10 @@ Warning: setting a listener host such as `MN_API_HOST=0.0.0.0` exposes it beyond
 ## Secrets and data movement
 
 - Include only the minimum required environment variables in `pass_env`.
+- Keep the surface API token private. For external Job MCP connections, use
+  the Job-scoped OAuth flow and a trusted HTTPS endpoint. Review the advertised
+  tools for lifecycle and domain effects before granting access. See
+  [Job MCP](api.md#stable-job-mcp-and-real-time-responses).
 - Keep credentials out of manifests, payloads, example files, and committed configuration.
 - Treat logs, run stores, backups, and bundle archives as potentially sensitive. They can contain inputs, output artifacts, configuration, event history, or derived data.
 - A pending offline Job deletion can hide cached records before owner cleanup
@@ -126,8 +127,10 @@ Before launching a bundle from another person or repository:
 4. Validate the bundle:
 
    ```bash
-   mn blueprint validate <bundle_folder>
+   mn blueprint validate ./my-blueprint
    ```
+
+   Use the reviewed folder's path and an attached local runtime.
 
 5. Start with mock, dry-run, quick-test, or sample configuration when available.
 6. Launch only on a trusted runtime and inspect the resulting job/events before enabling real side effects.
