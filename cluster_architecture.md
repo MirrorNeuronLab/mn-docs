@@ -8,7 +8,7 @@ share Redis job state.
 
 ## 1. Node and job ownership
 
-Every Core is a full runtime node. A job has exactly one `owner_node`, selected
+Each runtime node runs Core and can own jobs. A job has exactly one `owner_node`, selected
 explicitly or by the resource/model selector before creation. The owner stores
 the authoritative job state and runs every agent, lease, schedule, and control
 loop for that job in its own Core.
@@ -31,10 +31,10 @@ at the same coordination store, including legacy shared-store deployments.
 Redis and Redis Sentinel ports are local deployment details and are not opened
 between federated hosts.
 
-Peer registration is reciprocal and authenticated. `mn node add` succeeds only
-after both nodes report the peer as federated, online, and job-capable. A peer
-appears in the authoritative node list with `connection_mode=federated`, but it
-must not appear in BEAM `connected_nodes`.
+An attached surface asks its entry runtime to add a peer. Peer registration is
+reciprocal and authenticated. It succeeds after both nodes report the peer as
+federated, online, and job-capable. A peer appears in the authoritative node
+list with `connection_mode=federated`. Each Core keeps separate BEAM membership.
 
 The Core gRPC port, normally `55051` on the host, must be reachable between
 trusted peers. EPMD port `4369`, BEAM distribution port `4370`, and Redis port
@@ -65,40 +65,12 @@ fallback.
 
 ## 4. Starting and joining nodes
 
-There is no leader/worker start distinction. On each machine, start the same
-federation-capable runtime:
-
-```bash
-mn runtime start
-```
-
-The success output shows the advertised host, gRPC endpoint, node identity,
-active join token, and an exact command such as:
-
-```bash
-mn node add <node-host> --token <join-token> --grpc-port 55051
-```
-
-Run that printed command on an already-running peer. The CLI waits for
-reciprocal readiness before returning success. The API's
-`POST /api/v1/nodes` follows the same SDK orchestration and returns `201` only
-after the same readiness check.
-
-Treat the displayed token as a credential: keep terminal output private and
-rotate it with `mn node refresh-token` if exposed. The former
-`mn runtime start --worker` option has been removed; use `mn runtime start` on
-every node.
-
-Verify the relationship from either peer:
-
-```bash
-mn node list
-mn runtime status
-```
-
-The peer should be federated and job-capable, each node should report a
-different store identity, and no peer should be present in BEAM
-`connected_nodes`.
+Use either runtime installation role to start a node. An application surface
+attaches to the first runtime with its control token. That runtime coordinates
+additional peer joins through Core federation. Internal peer credentials
+authenticate subsequent federated traffic. See the
+[Federation Guide](cluster.md#start-and-join-two-nodes) for connection, startup,
+and verification commands.
 
 ## 5. Storage and scale
 

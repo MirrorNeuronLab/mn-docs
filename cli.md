@@ -7,7 +7,7 @@ The CLI uses the current SDK contract. Old SDK constructor detection, forwarding
 For operators and automation authors, this reference covers the current
 checkout's command surface. It assumes an installed CLI and configured runtime
 credentials. Sources are `mn-cli/mn_cli/main.py`, command modules, live `--help`,
-and command tests; [Changes](changes.md#validation) records this audit's checks.
+and command tests. See [Testing](testing.md) for validation commands.
 Installed release compatibility is determined by the CLI/SDK artifacts.
 
 `mn` is the operator interface for MirrorNeuron blueprints, runs, models, and
@@ -103,7 +103,8 @@ mn blueprint cleanup --dry-run
 ```
 
 Local `run` and `doctor` targets must be explicit paths such as `./folder`,
-`../folder`, or an absolute path. Other values are catalog IDs.
+`../folder`, or an absolute path. Local paths require an attached local runtime.
+Use catalog IDs and runtime-accessible input paths for remote launches.
 
 Report generation remains a blueprint operation even though it accepts a run
 ID:
@@ -298,25 +299,27 @@ mn runtime upgrade
 shared storage. `runtime doctor` adds coordination, Docker Model Runner,
 gateway, storage, and foundation checks. Repair belongs only to `doctor`.
 
-Every runtime is federation-capable and owns its own coordination store and
-jobs. Start both nodes with the same command:
+These lifecycle commands manage the runtime in the current installation.
+For runtime-only installs, run `bin/mn-runtime` from that installation home.
+In client mode, use `mn node list` to inspect the connected cluster.
+
+`mn node add` takes a runtime hostname or IP and its private runtime control
+token. The first successful addition saves the connection. A subsequent
+addition of another runtime asks the entry node to add a peer. For remote
+connections, use a trusted network or secure tunnel and keep the token private.
 
 ```bash
-# On each node
-mn runtime start
-
-# On either already-running peer, use the command printed by the other node
-mn node add <node-host> --token <join-token>
+mn node add <node-host> --token <runtime-node-token>
+mn node add local --runtime-home <runtime-home>
 ```
 
-Successful startup prints the advertised host, gRPC endpoint, node identity,
-active join token, and exact add-node command. The token grants federation
-registration access: keep the terminal output private and rotate it with
-`mn node refresh-token` when exposed. The removed `--worker` option exits with
-code `2` and directs operators to `mn runtime start`.
+Use `--grpc-port` when the runtime endpoint uses a port other than `55051`.
+Local attachment reads the credential from the installation home. For a
+complete connection procedure, see [Install the surface without Docker](installation.md#install-the-surface-without-docker).
 
-The printed command uses the default gRPC port (`55051`) implicitly. If the
-advertised gRPC endpoint uses another port, it includes `--grpc-port`.
+Drain and finish a node's work before removing its cluster membership. Removing
+the entry node also clears the saved connection. Runtime services continue on
+the removed node.
 
 ```bash
 mn node list
@@ -326,7 +329,6 @@ mn node reconcile <node>
 mn node drain <node> --reason maintenance --wait
 mn node undrain <node>
 mn node maintenance <node> --enable
-mn node refresh-token
 
 mn resource show
 mn resource usage

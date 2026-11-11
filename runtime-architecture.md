@@ -2,15 +2,86 @@
 
 ## Current contract requirement
 
-Core, SDK, CLI, API and worker packages must use the current contracts together. Admission schema 3 rejects older saved state. Resource cleanup uses native ownership records; ownerless compatibility reservations and metadata-based cleanup replay are removed.
+Core, SDK, runtime, CLI, API and worker packages must use the current contracts together. Admission schema 3 rejects older saved state. Resource cleanup uses native ownership records; ownerless compatibility reservations and metadata-based cleanup replay are removed.
 
 For runtime maintainers: this explanation maps compilation, admission,
 owner-local execution, and federation in the current checkout. It assumes
 familiarity with [Core Concepts](core-concepts.md); command syntax and source
-authoring belong in their canonical references. Sources are Core's `lib/`,
-`proto/job.proto`, SDK preparation code, and the tests listed below. These are
-checkout-verified contracts; release maturity and installed compatibility depend
-on the owning artifacts. [Changes](changes.md) records validation and limits.
+authoring belong in their canonical references. Sources include Core's
+`proto/runtime_control.proto` and `proto/job.proto`, the SDK runtime client, the
+`mn_runtime` package, and the tests listed below. These are checkout-verified
+contracts. Installed compatibility depends on the versions of those components.
+
+## Application surface and runtime nodes
+
+The application surface accepts commands and presents results. Each runtime node
+prepares and executes work with its own Core and native Python service. A surface
+can connect to a runtime on the same machine or across the network using the same
+authenticated gRPC protocol. Only runtime nodes join the compute cluster.
+
+```mermaid
+flowchart TB
+    UI["mn-web-ui or your application"]
+
+    subgraph Surface["Application surface"]
+        CLI["mn-cli<br/>Terminal commands"]
+        API["mn-api<br/>REST, streams, job UI"]
+        Client["SDK runtime client<br/>Shared connection profile"]
+        CLI --> Client
+        API --> Client
+    end
+
+    UI <-->|"HTTP with surface API token"| API
+
+    subgraph Runtime["Execution on runtime node A"]
+        Core["MirrorNeuron Core<br/>Gateway and scheduler"]
+        Native["mn_runtime<br/>Catalog and preparation"]
+        Workers["Job workers<br/>Agents and skills"]
+        Redis[("Redis<br/>Coordination state")]
+        Files[("Host filesystem<br/>Job files and artifacts")]
+        Services["Execution services<br/>Docker, OpenShell, models, Membrane"]
+
+        Core -->|"Delegate preparation"| Native
+        Native -->|"Submit work"| Core
+        Core -->|"Schedule workers"| Workers
+        Core <--> Redis
+        Workers <--> Files
+        Native -->|"Prepare and manage"| Services
+        Workers -->|"Use"| Services
+    end
+
+    Client <-->|"Core gRPC with runtime token"| Runtime
+    Core <-->|"Federation with peer credentials"| Peers["Runtime nodes B, C<br/>Same execution stack"]
+```
+
+The SDK client runs inside the CLI and API processes. Both read the private
+`$MN_HOME/client.json` profile. The CLI connects directly to Core, so the API
+process is optional for CLI use. The surface API bearer token, runtime control
+token, and internal federation credentials serve separate connections.
+
+1. The first `mn node add` validates a runtime's identity and capabilities, then
+   saves the connection. Subsequent additions ask that runtime to add cluster
+   peers. A combined install attaches its local runtime automatically.
+2. A blueprint launch reaches the connected Core. Core delegates catalog lookup,
+   preparation hooks, dependencies, and launch coordination to `mn_runtime`.
+   Catalog IDs and input paths resolve on the runtime.
+3. Core handles admission, placement, and queueing. The selected owner runs the
+   job's workers using the blueprint's declared runner and dependencies.
+4. Authenticated runtime streams carry progress, results, artifacts, and job UI
+   traffic back to the surface. The runtime retains accepted preparation and
+   execution when a CLI or API process exits.
+
+Each runtime uses its own Redis coordination store. The default Compose service
+uses append-only persistence in the `redis-data` volume. Files live in host
+directories mounted into the runtime. The installer defaults to
+`$MN_HOME/job-data` for Job data, `$MN_HOME/runs` for run records, and
+`$MN_HOME/shared` for shared files. Optional Syncthing replicates files in the
+shared directory between runtimes. See
+[Shared blobs](cluster.md#shared-blobs-are-optional) for replication boundaries.
+
+See [Installation modes](installation.md#installation-modes) to install either
+part independently and the [Component Guide](component-guide.md#workspace-map)
+for repository ownership.
 
 ## Runtime code map
 
@@ -32,7 +103,7 @@ otherwise stated. Bare filenames in a cell share the preceding file's directory.
 | Durability and recovery    | `persistence/`, `runtime/local_recovery.ex`, `recovery_safety.ex`, `run_retry.ex`  | Fenced Redis state, safe clean attempts, and explicit checkpoint retry.                                                      |
 | Finalization               | `runtime/finalization.ex`, `job_cleanup.ex`, `cancellation_reconciler.ex`          | Terminal publication, durable cancellation intent, and retryable cleanup.                                                    |
 | Peer control               | `cluster/federation_client.ex`, `federation_registry.ex`, `federation_channels.ex` | Authenticated owner forwarding and cached projections. Horde supervision remains local to a Core.                            |
-| Remote interfaces          | `MirrorNeuron/proto/job.proto`, `MirrorNeuron/lib/mirror_neuron_grpc/handlers/`    | Authoritative `mirrorneuron.job.v1.JobService`; CLI and REST adapt it through the SDK.                                       |
+| Remote interfaces          | `MirrorNeuron/proto/runtime_control.proto`, `MirrorNeuron/proto/job.proto`         | Core serves native runtime control and job RPCs. CLI and REST use the SDK runtime client.                                    |
 
 ```text
 source package -> SDK validate/compile/prepare -> durable Job on one owner
@@ -306,7 +377,10 @@ Native preparation includes:
 - Docker image build or pull decisions for prepared workers
 - host filesystem setup and ownership ledgers
 
-Those operations belong to `mn-python-sdk`, `mn-cli`, and `mn-api`, because they run outside the Core container and can safely interact with the native operating system, Docker daemon, and host filesystem.
+The `mirrorneuron-runtime` package in `mn-python-sdk/packages/runtime` owns those
+operations and uses reusable SDK preparation code. Its private native service
+runs on the runtime host and works with the operating system, Docker daemon, and
+filesystem there. CLI and API forward requests through Core's runtime gateway.
 
 Core consumes concrete facts prepared by those layers:
 
@@ -318,23 +392,9 @@ Core consumes concrete facts prepared by those layers:
 
 If a required resource is missing, Core reports the failure. It should not silently install models, edit Docker Compose files, choose model backends, or perform host-level setup.
 
-For model preparation, the gRPC flow is:
-
-```text
-Local node:
-  SDK/API/CLI -> local Core gRPC PrepareRuntimeModel
-  -> MN_NATIVE_SDK_GRPC_TARGET -> Compose proxy mn-native-sdk-grpc
-  -> host-side SDK gRPC service -> Docker Model Runner
-
-Federated owner selection:
-  SDK/API/CLI -> selected owner Core
-  -> owner's node-local SDK gRPC service -> Docker Model Runner
-```
-
-Core's local relay keeps the Core boundary small. A request received by another
-peer is forwarded to the selected owner, whose SDK service performs the native
-operation. The service returns concrete facts for owner-local scheduling and
-worker environment injection.
+The selected owner's native service performs model preparation through its host
+backend, such as Docker Model Runner. It returns prepared-resource and endpoint
+details for Core scheduling and worker environment setup.
 
 Model inference follows a separate mandatory gateway boundary: agents call the
 owner's LiteLLM gateway. For admitted runs, managed models, embeddings, and
@@ -565,8 +625,11 @@ Those are good next steps, but the current runtime is already much closer to the
 
 The focused Core suites for resource allocation, admission state, start
 receipts, activity supervision, workflow budgets, resource specs, and event-only
-services are listed in [Changes](changes.md#validation). Related boundaries are
+services complement the [system test suites](testing.md). Related boundaries are
 covered by `workflow_ledger_test.exs`, `workflow_admission_test.exs`,
 `workflow_message_test.exs`, `live_input_test.exs`, and
 `submission_readiness_test.exs`. Source/test inspection does not establish live
 Docker/OpenShell behavior, hardware capacity, or installed-version parity.
+The surface/runtime release gate is `mn-deploy/scripts/validate-runtime-split.sh`.
+Its `--two-runtimes` mode provisions isolated runtimes to verify attachment,
+federation, job execution, and streams.

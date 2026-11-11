@@ -7,7 +7,7 @@ This is the canonical internal reference for shared MirrorNeuron configuration. 
 - CLI parsing/defaults: `mn-cli/mn_cli/config.py`.
 - API parsing/defaults: `mn-api/mn_api/config_schema.py` and `mn-api/mn_api/config.py`.
 - Blueprint catalog resolution: `mn-python-sdk/mn_sdk/blueprint_source.py`.
-- Deployment/runtime publication: `mn-cli/mn_cli/runtime/server.py`, `mn-deploy/install.sh`, and `mn-deploy/docker-compose.yml`.
+- Deployment/runtime publication: `mn-python-sdk/packages/runtime/src/mn_runtime/host/server.py`, `mn-deploy/install.sh`, and `mn-deploy/docker-compose.yml`.
 - Core defaults and validation: `MirrorNeuron/lib/mirror_neuron/config/schema.ex`,
   `config.ex`, and `execution/lease_manager.ex`.
 
@@ -24,19 +24,23 @@ Save sanitized output before changing listener, connection, catalog, model, or c
 
 ## Runtime state and client connection
 
-| Variable                  | Default                  | Behavior                                                                                       |
-| ------------------------- | ------------------------ | ---------------------------------------------------------------------------------------------- |
-| `MN_ENV`                  | `dev`                    | CLI/API environment. Use `prod` only with intentional authentication and secret configuration. |
-| `MN_HOME`                 | `~/.mn`                  | State root for endpoints, logs, models, and default run records.                               |
-| `MN_GRPC_TARGET`          | `localhost:55051` in CLI | Core gRPC target.                                                                              |
-| `MN_GRPC_TIMEOUT_SECONDS` | `10`                     | Per-RPC timeout.                                                                               |
-| `MN_GRPC_AUTH_TOKEN`      | unset                    | Sensitive gRPC bearer token.                                                                   |
-| `MN_GRPC_ADMIN_TOKEN`     | unset                    | Sensitive administrative token.                                                                |
-| `MN_REDIS_URL`            | deployment-specific      | Runtime state-store URL.                                                                       |
-| `MN_REDIS_NAMESPACE`      | `mirror_neuron`          | Redis namespace; use a separate value for isolated tests.                                      |
-| `MN_COOKIE`               | deployment-specific      | Sensitive cluster credential. Change before non-local cluster use.                             |
+| Variable                  | Default                                                 | Behavior                                                                                       |
+| ------------------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `MN_ENV`                  | `dev`                                                   | CLI/API environment. Use `prod` only with intentional authentication and secret configuration. |
+| `MN_HOME`                 | [Installation mode](installation.md#installation-modes) | Installation home for configuration, credentials, logs, and role-specific state.               |
+| `MN_GRPC_TARGET`          | `localhost:55051` fallback                              | Core gRPC target for direct SDK connections. CLI and API use the saved runtime profile.        |
+| `MN_GRPC_TIMEOUT_SECONDS` | `10`                                                    | Per-RPC timeout.                                                                               |
+| `MN_GRPC_AUTH_TOKEN`      | unset                                                   | Sensitive gRPC bearer token.                                                                   |
+| `MN_GRPC_ADMIN_TOKEN`     | unset                                                   | Sensitive administrative token.                                                                |
+| `MN_REDIS_URL`            | deployment-specific                                     | Runtime state-store URL.                                                                       |
+| `MN_REDIS_NAMESPACE`      | `mirror_neuron`                                         | Redis namespace; use a separate value for isolated tests.                                      |
+| `MN_COOKIE`               | deployment-specific                                     | Sensitive cluster credential. Change before non-local cluster use.                             |
 
-The deployed gRPC endpoint is normally published on port `55051`; the Core container can use a distinct internal port. Confirm actual endpoints with `mn runtime status` after custom deployment.
+The deployed gRPC endpoint is normally published on port `55051`. The Core
+container can use a distinct internal port. CLI and API share the private
+`$MN_HOME/client.json` profile, which stores the target and its runtime control
+credential. Configure it with `mn node add` or `POST /api/v1/nodes`. See
+[Installation](installation.md#install-the-surface-without-docker) for attachment.
 
 `MN_COOKIE` applies to BEAM distribution where configured. Independent federated
 Cores use authenticated peer credentials and distinct Redis stores; they do not
@@ -72,7 +76,7 @@ and [Runtime Architecture](runtime-architecture.md#workflow-action-allowances).
 | `MN_API_HOST`                     | `localhost`            | FastAPI bind host. The installer defaults it to `0.0.0.0` when the Compose Web UI is enabled so the container can proxy to the host API. |
 | `MN_API_PORT`                     | `54001`                | FastAPI bind port.                                                                                                                       |
 | `MN_API_BASE_URL`                 | unset                  | External API base URL; must be absolute HTTP(S) when set.                                                                                |
-| `MN_API_TOKEN`                    | unset                  | Sensitive bearer token for protected API deployments.                                                                                    |
+| `MN_API_TOKEN`                    | unset                  | Bearer credential for the surface API. When unset, installed API processes use `$MN_HOME/api.token`.                                     |
 | `MN_API_REQUEST_SIZE_LIMIT_BYTES` | `5242880`              | Maximum request body size.                                                                                                               |
 | `MN_API_CORS_ALLOW_ORIGINS`       | unset                  | Comma-separated CORS allowlist.                                                                                                          |
 | `MN_WEB_UI_HOST`                  | `localhost`            | Web UI endpoint host reported by the CLI.                                                                                                |
@@ -89,6 +93,9 @@ Warning: CORS does not authenticate requests. A non-localhost bind requires fire
 
 ## Blueprint catalog resolution
 
+Configure the catalog on the runtime host. The connected surface reads that
+runtime's catalog through the SDK client.
+
 | Variable                  | Default                                  | Behavior                                                                          |
 | ------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------- |
 | `MN_BLUEPRINT_SOURCE`     | `github`                                 | Must be `github` or `local`.                                                      |
@@ -96,11 +103,9 @@ Warning: CORS does not authenticate requests. A non-localhost bind requires fire
 | `MN_BLUEPRINT_LOCAL`      | unset                                    | Required for local source; must be an existing directory containing `index.json`. |
 | `MN_BLUEPRINT_REPO_CACHE` | `~/.cache/mirror-neuron/blueprint-repos` | Catalog checkout cache root.                                                      |
 
-```bash
-export MN_BLUEPRINT_SOURCE="local"
-export MN_BLUEPRINT_LOCAL="/absolute/path/to/blueprint-catalog"
-mn blueprint list
-```
+For a local catalog, set `MN_BLUEPRINT_SOURCE=local` and `MN_BLUEPRINT_LOCAL` to
+the catalog directory in the runtime environment before startup. Then run
+`mn blueprint list` from the attached surface to verify its entries.
 
 ## Models, launch controls, and logs
 

@@ -13,7 +13,12 @@ For developers with the CLI installed and a reviewed local blueprint package. Th
 
 ## Before you begin
 
-Complete [Installation](installation.md). Obtain a blueprint folder from a catalog or its author, and read its README, referenced execution/configuration documents, dependencies, and payloads. Use its documented sample inputs. Commands below run from the directory containing that folder; replace `./my-blueprint` with its actual relative or absolute path.
+Complete a combined [installation](installation.md#installation-modes) so the CLI
+is attached to the local runtime. Obtain a blueprint folder from a catalog or
+its author, and read its README, referenced execution/configuration documents,
+dependencies, and payloads. Use its documented sample inputs. Commands below run
+from the directory containing that folder. Replace `./my-blueprint` with its
+actual relative or absolute path.
 
 > Review worker code, mounted files, passed environment variables, model endpoints, and external actions before launch. Validation does not establish that a package is safe to execute.
 
@@ -24,7 +29,8 @@ mn runtime start
 mn runtime status
 ```
 
-Resolve failed required components before submitting work. Use `mn runtime doctor` for deeper diagnostics. Startup prints a federation join credential; keep it private.
+Resolve failed required components before submitting work. Use
+`mn runtime doctor` for deeper diagnostics.
 
 ## Step 2: Validate and diagnose the blueprint
 

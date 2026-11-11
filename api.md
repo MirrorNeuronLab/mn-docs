@@ -2,7 +2,9 @@
 
 ## Current contract requirement
 
-Run-file reads require current owner bindings. Enabled remote owners must publish their current HTTP API advertisement; missing advertisements return an explicit unavailable response. Shared configuration/activity helpers use SDK imports.
+Run-file reads require current owner bindings. Core routes artifact and job UI
+streams to the owning runtime over authenticated gRPC. The surface serves the
+public HTTP responses, including WebSockets for job UI traffic.
 
 This page describes the canonical HTTP API used by the Web UI, OtterDesk, and
 HTTP automation. The CLI and Python SDK also use internal gRPC interfaces; the
@@ -16,8 +18,9 @@ independent of the REST version.
 - **Outcome:** select canonical resources, make conditional or idempotent
   requests, and monitor accepted work without relying on retired routes.
 - **Page type:** REST and streaming API reference.
-- **Scope:** the canonical `mirrorneuron.rest.v1` HTTP and SSE surface. Internal
-  gRPC interfaces, CLI syntax, and domain payload schemas are out of scope.
+- **Scope:** the canonical `mirrorneuron.rest.v1` HTTP and SSE surface and job UI
+  relay. Internal gRPC interfaces, CLI syntax, and domain payload schemas are
+  out of scope.
 - **Maturity:** stable canonical v1 surface; removed and unsupported routes are
   identified explicitly.
 - **Sources of truth:** `mn-api` route modules, request models, operation
@@ -45,12 +48,23 @@ http://localhost:54001/api/v1
 
 Clients must verify `api_contract`. A server that responds on `/api/v1` without
 that value implements a historical, incompatible contract and must not be used.
-All other endpoints require `Authorization: Bearer <token>` when
-`MN_API_TOKEN` is configured.
+Protected endpoints use `Authorization: Bearer <token>` with the surface
+credential from `MN_API_TOKEN` or the installed `api.token` file. The runtime
+client uses the separate runtime control credential saved in `client.json`.
 
 `/api/v2`, historical aliases, `/runtime-runs`, `/deployments`,
-`/trigger-events`, manual schedule `/dispatches`, and WebSocket routes are not
-supported. Use the current Job/Run and schedule resources.
+`/trigger-events`, and manual schedule `/dispatches` are unsupported. Use the
+current Job/Run and schedule resources.
+
+## Runtime connection
+
+`POST /api/v1/nodes` accepts a runtime `host`, its control `token`, and an
+optional `grpc_port`. For local attachment, use `host: "local"` with an optional
+`runtime_home` path. Local attachment reads the installed runtime credential.
+The first successful request saves the connection shared with `mn node add`.
+Adding another runtime through an existing connection registers a cluster peer.
+Keep runtime tokens private and connect over a trusted network or secure tunnel.
+See the [Federation Guide](cluster.md#start-and-join-two-nodes) for the join flow.
 
 ## Common conventions
 
@@ -303,9 +317,8 @@ with explicit queue admission, queued. Pause, resume, or cancel active work
 through one desired-state update:
 
 Catalog-backed Jobs may also send `config_overrides`. When they change saved
-configuration, the API rebuilds and prepares the Job definition before starting the Run;
-`inputs` remains reserved for runtime workflow input rather than blueprint
-configuration.
+configuration, the runtime rebuilds and prepares the Job definition before
+starting the Run. `inputs` supplies workflow input.
 
 ```bash
 curl -s -X PATCH http://localhost:54001/api/v1/runs/<run-id> \
@@ -317,21 +330,21 @@ Invalid state transitions return `409 Conflict`.
 
 ### Add a blueprint and monitor preparation
 
-Prerequisites: run `mn-api` with its blueprint catalog configured, choose an ID
-returned by `GET /blueprints`, and authenticate when `MN_API_TOKEN` is set. The
-request validates the blueprint bundle, prepares required runtime models and
-services, and records the blueprint locally. It does not require a separate
-`mn blueprint add` command.
+Run `mn-api` with a configured runtime connection. Choose an ID from
+`GET /blueprints` and set `SURFACE_API_TOKEN` to the surface's API credential.
+The runtime validates the blueprint bundle, prepares required models and
+services, and records the addition in its catalog.
 
 ```bash
 curl -i -X POST http://localhost:54001/api/v1/blueprints/<blueprint-id>/additions \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: <uuid>" \
   -d '{"force":false}'
 ```
 
 The response is `202 Accepted`. Its `Location` header identifies an Operation,
-and the body initially resembles:
+and the body includes fields like these:
 
 ```json
 {
@@ -341,8 +354,7 @@ and the body initially resembles:
   "progress": {
     "percent": 0,
     "stage": "queued",
-    "label": "Queued",
-    "detail": "The operation is queued on the local API host."
+    "label": "Queued"
   }
 }
 ```
@@ -350,7 +362,8 @@ and the body initially resembles:
 Poll the Operation until `status` is `completed` or `failed`:
 
 ```bash
-curl -s http://localhost:54001/api/v1/operations/<operation-id>
+curl -s http://localhost:54001/api/v1/operations/<operation-id> \
+  -H "Authorization: Bearer $SURFACE_API_TOKEN"
 ```
 
 `progress.percent` is monotonic and bounded from `0` through `100`; successful
@@ -450,7 +463,7 @@ Explicit model installation uses the same background SDK preparation boundary.
 
 ## Server-Sent Events
 
-The only realtime HTTP surfaces are authenticated, resumable SSE:
+Run and operation events use authenticated, resumable SSE:
 
 ```text
 GET /runs/{run_id}/events/stream
@@ -475,7 +488,7 @@ comments while idle, releases stream resources on disconnect, and closes after
 a terminal event. Keep ordinary snapshot and history GETs as the recovery
 source of truth.
 
-API-owned addition and removal Operations emit `operation.accepted`,
+Runtime-owned addition and removal Operations emit `operation.accepted`,
 `operation.progress`, and one terminal `operation.completed` or
 `operation.failed` event. Each event's `data` is the current Operation snapshot,
 including its progress and terminal result or error.

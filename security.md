@@ -57,7 +57,12 @@ listener or open a firewall. Review those runner/host settings separately.
 
 ### Cluster execution
 
-Federated nodes keep independent coordination stores and execute each job on its owner Core. Registration uses join credentials; protect and rotate them with `mn node refresh-token`. Federation does not provide automatic takeover of an offline owner. Keep Redis, gRPC, artifact sharing, and model gateways inside the intended trusted network boundary.
+Federated nodes keep independent coordination stores and execute each job on its
+owner Core. Protect the runtime control credential in `runtime.token` and the
+surface's saved `client.json`. API bearer tokens and internal peer credentials
+authenticate separate connections. An offline owner remains responsible for its
+jobs. Keep Redis, gRPC, artifact sharing, and model gateways inside the intended
+trusted network boundary. See the [Federation Guide](cluster.md#start-and-join-two-nodes).
 
 ## Local defaults and listener checks
 

@@ -6,10 +6,10 @@ network partition.
 
 ## Architecture
 
-Every machine runs a complete Core with its own writable Redis, API, runtime
-services, and LiteLLM gateway. Federation uses authenticated gRPC peer calls;
-it does not use a shared Redis, shared BEAM membership, Horde supervision, or a
-shared Erlang cookie.
+Each runtime node runs Core, `mn_runtime`, its own writable Redis, and the
+execution services it needs. A separate CLI/API surface can attach to an entry
+runtime. Core peers federate over authenticated gRPC and keep independent
+coordination stores. See the [architecture diagram](runtime-architecture.md#application-surface-and-runtime-nodes).
 
 A job has exactly one `owner_node`. The owner stores its authoritative state
 and runs all agents, leases, schedules, and execution controls for that job.
@@ -32,59 +32,47 @@ reachable between hosts. Each Redis stays local to its Core. LiteLLM port
 `4000` is published for authenticated peer gateways, so restrict it with the
 host firewall rather than exposing it to an untrusted network.
 
-Each Core advertises a federation-reachable gRPC host and port. Use `--host`
-when automatic address selection would choose the wrong interface:
+Each Core advertises a federation-reachable gRPC host and port. Pass `--host`
+to the lifecycle command to choose the advertised address explicitly. From the
+runtime installation home, replace `<node-address>` with its LAN or VPN address:
 
 ```bash
-mn runtime start --host <this-node-lan-or-vpn-address>
+bin/mn-runtime start --host <node-address>
 ```
 
 ## Start and join two nodes
 
-There is no leader/worker start distinction. Start the same full runtime on
-both machines:
+Install and start both runtimes using the combined or runtime-only procedure
+in [Installation](installation.md#installation-modes). Each runtime can own
+jobs. The connected surface can be on either machine or a third machine.
+
+Only join runtimes in the same trust domain. Get each runtime's advertised gRPC
+host and the private control credential in its `runtime.token` file. Keep both
+credentials out of shared terminal output. From a shell using the surface
+installation, set `ENTRY_HOST` and `PEER_HOST` to the respective hosts and
+`ENTRY_TOKEN` and `PEER_TOKEN` to their runtime control tokens. Add the entry
+runtime first, then the peer. A fresh combined install already has its local
+entry connection, so start with the peer command there.
 
 ```bash
-mn runtime start
+mn node add "$ENTRY_HOST" --token "$ENTRY_TOKEN"
+mn node add "$PEER_HOST" --token "$PEER_TOKEN"
 ```
 
-Successful startup prints:
-
-- the advertised host and gRPC endpoint;
-- the node identity;
-- the active federation join token; and
-- the exact `mn node add` command for another peer.
-
-On one already-running node, execute the add command printed by the other:
-
-```bash
-mn node add <peer-host> --token <join-token>
-```
-
-The add operation authenticates the token, verifies distinct writable store
-identities, registers both peers, clears stale legacy links, and waits for
-reciprocal federation readiness. It returns success only after both sides are
-online and job-capable. Repeating the same identity/endpoint join is
-idempotent; identity conflicts fail without replacing the existing peer.
-
-The join token is a credential. Keep startup output private and rotate it if
-exposed:
-
-```bash
-mn node refresh-token
-```
-
-The former `mn runtime start --worker` option is removed. Every runtime can own
-jobs and resume its local work independently.
+Use `--grpc-port` for an endpoint with a port other than `55051`. On the first
+addition, the surface validates and saves its connection. For peer additions,
+the entry runtime verifies distinct writable store identities, registers both
+peers, and waits until each sees the other as online and job-capable. Repeating
+the same peer join is idempotent. Identity conflicts fail without replacing
+the existing peer.
 
 ## Verify federation
 
-From either machine:
+From the attached surface:
 
 ```bash
 mn node list
 mn node show <peer-node>
-mn runtime status
 mn resource show
 ```
 
@@ -96,10 +84,10 @@ Expected signs include:
 - the peer is absent from BEAM `connected_nodes`; and
 - each node reports its own local scheduler eligibility and resources.
 
-`POST /api/v1/nodes` uses the same SDK orchestration as the CLI. It returns
-`201` with `Location` only after reciprocal readiness. Authentication,
-readiness, or rollback failures return a sanitized error instead of premature
-success.
+For local service health, run `bin/mn-runtime status` from the installation
+home of each runtime. `POST /api/v1/nodes` uses the same attachment and peer
+registration behavior as the CLI. Peer additions return `201` with `Location`
+after reciprocal readiness.
 
 ## Job ownership and routing
 
@@ -123,7 +111,7 @@ summaries with:
 If federation connectivity is lost:
 
 - existing jobs continue on their owner Core;
-- direct API/CLI access to that owner remains functional;
+- a surface with a direct connection to the owner can still reach it;
 - peers can return previously cached summary projections, marked stale; and
 - ordinary cross-peer mutations, streams, logs, artifacts, and uncached reads
   return `503 MN_NODE_UNAVAILABLE` and are not queued.
@@ -166,14 +154,13 @@ Set `MN_SYNCTHING_REQUIRED=1` when failure to establish the optional storage
 sidecar should stop startup. Derived HostLocal environments and checkpoints
 remain node-local under `$MN_HOME/cache` and `$MN_HOME/checkpoints`.
 
-The Syncthing API key is sensitive. Do not paste it or the federation join
-token into tickets, test reports, or shared command output.
+Keep Syncthing API keys, runtime tokens, and peer credentials out of tickets,
+test reports, and shared command output.
 
 ## Node operations
 
 Maintenance and drain controls change whether a Core can be selected as the
-owner of new jobs. They do not migrate individual agents from an existing job
-to another peer; the job remains single-home.
+owner of new jobs. Its current jobs retain their owner.
 
 ```bash
 mn node maintenance <node> --enable --reason "host maintenance"
@@ -183,6 +170,11 @@ mn node undrain <node> --reason "host ready" --mark-eligible
 
 Use an independent owner-local job on another eligible Core when capacity is
 needed during maintenance.
+
+Drain a runtime and let its work finish before removing it with `mn node remove`.
+Removal checks drain and admission state, removes cluster membership, and leaves
+the runtime services and files in place. Removing the entry node also clears
+the surface's saved connection.
 
 ## Moving an idle Job
 
