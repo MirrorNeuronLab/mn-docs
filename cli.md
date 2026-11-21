@@ -28,17 +28,18 @@ set:
 <!-- BEGIN GENERATED MN COMMAND TREE -->
 
 ```text
-blueprint  list add show update remove run validate doctor cleanup export
-job        list create backup restore show relocate analysis start archive reset-data delete
-schedule   list show set-time cancel
-run        list show info watch logs result resources compare pause resume retry cancel delete
-run human  list respond ack
-model      list add show probe update remove doctor start stop unload
-runtime    start stop status reconnect doctor cleanup restart-sidecars ensure-context-engine upgrade
-node       list show add remove reconcile drain undrain maintenance refresh-token
-operation  show watch
-resource   show usage set
-service    list show
+blueprint    list add show update remove run validate doctor cleanup export
+job          list create backup restore show relocate analysis start archive reset-data delete
+job mailbox  list send ack
+schedule     list show set-time cancel
+run          list show info watch logs result resources compare pause resume retry cancel delete
+run human    list respond ack
+model        list add show probe update remove doctor start stop unload
+runtime      start stop status reconnect doctor cleanup restart-sidecars ensure-context-engine upgrade
+node         list show add remove reconcile drain undrain maintenance refresh-token
+operation    show watch
+resource     show usage set
+service      list show
 ```
 
 <!-- END GENERATED MN COMMAND TREE -->
