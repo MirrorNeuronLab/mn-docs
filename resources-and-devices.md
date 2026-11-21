@@ -8,8 +8,8 @@ For blueprint authors and operators, this reference explains how the current
 checkout reserves one run's capacity on its Job owner, queues compatible work,
 and selects devices, ports, and volumes. It covers admission and allocation;
 runner isolation is covered in [Security](security.md). The contracts below are
-verified against Core's `runtime/resource_allocation.ex`, `node_admission.ex`,
-`node_admission_state.ex`, `resource_spec.ex`, and their unit tests. Release
+verified against Core's `lib/mirror_neuron/scheduler/admission/` and
+`lib/mirror_neuron/scheduler/resources/` modules and their unit tests. Release
 compatibility requires matching Core and native SDK artifacts.
 
 Admission enforces runtime reservations. It does not create cgroups, mount host
@@ -354,18 +354,18 @@ command to roll back; it does not install OS resource isolation.
 
 ## Important Code
 
-| Area                                       | Files                                                                                 |
-| ------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Resource shape and env hints               | `MirrorNeuron/lib/mirror_neuron/resource_spec.ex`                                     |
-| Scheduler matching and allocation          | `MirrorNeuron/lib/mirror_neuron/scheduler.ex`                                         |
-| Node inventory                             | `MirrorNeuron/lib/mirror_neuron/resource.ex`                                          |
-| Run budgets and device accounting          | `MirrorNeuron/lib/mirror_neuron/runtime/resource_allocation.ex`                       |
-| Durable reservation, dispatch, and cleanup | `MirrorNeuron/lib/mirror_neuron/runtime/node_admission.ex`, `node_admission_state.ex` |
-| Coarse resource percentages                | `MirrorNeuron/lib/mirror_neuron/resource_admission.ex`                                |
-| Runtime agent context                      | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex`                           |
-| Manifest validation                        | `MirrorNeuron/lib/mirror_neuron/manifest.ex`                                          |
-| CLI commands                               | `mn-cli/mn_cli/commands.py`, `client_management.py`                                   |
-| SDK validation helpers                     | `mn-python-sdk/mn_sdk/blueprint_validation.py`                                        |
+| Area                                       | Files                                                                                             |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Resource shape and env hints               | `MirrorNeuron/lib/mirror_neuron/scheduler/resources/resource_spec.ex`                             |
+| Scheduler matching and allocation          | `MirrorNeuron/lib/mirror_neuron/scheduler/scheduler.ex`                                           |
+| Node inventory                             | `MirrorNeuron/lib/mirror_neuron/scheduler/resources/resource.ex`                                  |
+| Run budgets and device accounting          | `MirrorNeuron/lib/mirror_neuron/scheduler/admission/resource_allocation.ex`                       |
+| Durable reservation, dispatch, and cleanup | `MirrorNeuron/lib/mirror_neuron/scheduler/admission/node_admission.ex`, `node_admission_state.ex` |
+| Coarse resource percentages                | `MirrorNeuron/lib/mirror_neuron/scheduler/admission/resource_admission.ex`                        |
+| Runtime agent context                      | `MirrorNeuron/lib/mirror_neuron/runtime/job/job_coordinator.ex`                                   |
+| Manifest validation                        | `MirrorNeuron/lib/mirror_neuron/manifest.ex`                                                      |
+| CLI commands                               | `mn-cli/mn_cli/commands/resource.py`, `client_management.py`                                      |
+| SDK validation helpers                     | `mn-python-sdk/mn_sdk/blueprints/validation.py`                                                   |
 
 ## V1 Limits
 

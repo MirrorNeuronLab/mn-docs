@@ -3,9 +3,9 @@
 For operators and integrators, this reference explains owner-local scheduled
 Runs, service lifecycle schedules, and queued-start controls in the current
 checkout. It assumes a prepared durable Job and authenticated runtime access.
-Core's `runtime/schedule_policy.ex`, `schedule_dispatcher.ex`,
-`schedule_occurrence.ex`, `node_admission.ex`, `proto/job.proto`, and the CLI/API
-adapters own this behavior. See [Testing](testing.md) for the Core and
+Core implements scheduling in `lib/mirror_neuron/scheduler/schedules/` and run
+admission in `lib/mirror_neuron/scheduler/admission/node_admission.ex`.
+The public contract lives in `proto/job.proto` and the CLI and API adapters. See [Testing](testing.md) for the Core and
 cross-component suites and their live-test prerequisites.
 
 ## Design Concept
@@ -182,12 +182,12 @@ claim, so it does not return capacity to the PC queue.
 
 | Area                                | Files                                                                          |
 | ----------------------------------- | ------------------------------------------------------------------------------ |
-| Policy, cron, and event matching    | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_policy.ex`                    |
-| Owner dispatch and service windows  | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_dispatcher.ex`                |
-| Durable batch occurrence identity   | `MirrorNeuron/lib/mirror_neuron/runtime/schedule_occurrence.ex`                |
-| Queued-start projection and fencing | `MirrorNeuron/lib/mirror_neuron/runtime/node_admission.ex`                     |
+| Policy, cron, and event matching    | `MirrorNeuron/lib/mirror_neuron/scheduler/schedules/schedule_policy.ex`        |
+| Owner dispatch and service windows  | `MirrorNeuron/lib/mirror_neuron/scheduler/schedules/schedule_dispatcher.ex`    |
+| Durable batch occurrence identity   | `MirrorNeuron/lib/mirror_neuron/scheduler/schedules/schedule_occurrence.ex`    |
+| Queued-start projection and fencing | `MirrorNeuron/lib/mirror_neuron/scheduler/admission/node_admission.ex`         |
 | Public gRPC contract                | `MirrorNeuron/proto/job.proto`, `lib/mirror_neuron_grpc/handlers/job.ex`       |
-| Public CLI                          | `mn-cli/mn_cli/commands.py`, `client_management.py`                            |
+| Public CLI                          | `mn-cli/mn_cli/commands/schedule.py`, `client_management.py`                   |
 | Public REST                         | `mn-api/mn_api/routes/v1/jobs.py`, SDK `mn_sdk/runtime_contract/api_models.py` |
 | Native operations                   | `mn_runtime/services/routes/v1/jobs.py`                                        |
 

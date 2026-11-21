@@ -86,25 +86,25 @@ the same surface and runtime components.
 
 ## Runtime code map
 
-Paths in this table are relative to `MirrorNeuron/lib/mirror_neuron/` unless
-otherwise stated. Bare filenames in a cell share the preceding file's directory.
+Paths in this table are relative to `MirrorNeuron/lib/mirror_neuron/` unless otherwise stated.
 
-| Boundary                   | Owning code                                                                        | Contract                                                                                                                     |
-| -------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Startup                    | `application.ex`                                                                   | Supervises registries, job/agent supervisors, admission, recovery, cancellation, responses, and native-resource maintenance. |
-| Definition and start       | `runtime/stable_job.ex`, `stable_job_update.ex`, `run_start_request.ex`            | Durable Job identity, revision/start gates, service single-run rules, and keyed start reconciliation.                        |
-| Physical capacity          | `runtime/node_admission.ex`, `node_admission_state.ex`, `resource_allocation.ex`   | Atomic owner-local reservations, durable queue, generation fencing, and verified reclamation.                                |
-| Physical placement         | `scheduler.ex`, `resource_spec.ex`                                                 | Resolves admitted workers, devices, ports, and volume requirements on the owner.                                             |
-| Execution lifecycle        | `runtime/job_runner.ex`, `job_coordinator.ex`, `agent_worker.ex`                   | Per-run supervision, worker delivery, status, and durable transition ownership.                                              |
-| Logical workflow           | `runtime/workflow_ledger.ex`, `workflow_admission.ex`, `workflow_message.ex`       | Dependency admission, attempt context, step boundaries, retries, and completion fencing.                                     |
-| Adaptive work              | `runtime/dynamic_workflow.ex`, `child_workflow.ex`                                 | Bounded graph patches and child rounds within the existing run.                                                              |
-| Progress and action limits | `runtime/workflow_activity.ex`, `workflow_budget.ex`                               | Live progress supervision and durable named action allowances.                                                               |
-| Messages                   | `runtime/delivery.ex`, `backpressure.ex`, `live_input.ex`                          | Leases, ACK/retry/deduplication, queue pressure, and declared live controls.                                                 |
-| External execution         | `runner/`, `execution/lease_manager.ex`, `sandbox/`                                | Host/Docker/OpenShell invocation, local executor slots, staging, and owned cleanup.                                          |
-| Durability and recovery    | `persistence/`, `runtime/local_recovery.ex`, `recovery_safety.ex`, `run_retry.ex`  | Fenced Redis state, safe clean attempts, and explicit checkpoint retry.                                                      |
-| Finalization               | `runtime/finalization.ex`, `job_cleanup.ex`, `cancellation_reconciler.ex`          | Terminal publication, durable cancellation intent, and retryable cleanup.                                                    |
-| Peer control               | `cluster/federation_client.ex`, `federation_registry.ex`, `federation_channels.ex` | Authenticated owner forwarding and cached projections. Horde supervision remains local to a Core.                            |
-| Remote interfaces          | `MirrorNeuron/proto/runtime_control.proto`, `MirrorNeuron/proto/job.proto`         | Core serves native runtime control and job RPCs. CLI and REST use the SDK runtime client.                                    |
+| Boundary                   | Owning code                                                                                                                          | Contract                                                                                                                     |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Startup                    | `application.ex`                                                                                                                     | Supervises registries, job/agent supervisors, admission, recovery, cancellation, responses, and native-resource maintenance. |
+| Definition and start       | `runtime/definition/stable_job.ex`, `runtime/definition/stable_job_update.ex`, `runtime/definition/run_start_request.ex`             | Durable Job identity, revision/start gates, service single-run rules, and keyed start reconciliation.                        |
+| Physical capacity          | `scheduler/admission/node_admission.ex`, `scheduler/admission/node_admission_state.ex`, `scheduler/admission/resource_allocation.ex` | Atomic owner-local reservations, durable queue, generation fencing, and verified reclamation.                                |
+| Physical placement         | `scheduler/scheduler.ex`, `scheduler/resources/resource_spec.ex`                                                                     | Resolves admitted workers, devices, ports, and volume requirements on the owner.                                             |
+| Execution lifecycle        | `runtime/job/job_runner.ex`, `runtime/job/job_coordinator.ex`, `runtime/agent/agent_worker.ex`                                       | Per-run supervision, worker delivery, status, and durable transition ownership.                                              |
+| Logical workflow           | `runtime/workflow/workflow_ledger.ex`, `runtime/workflow/workflow_admission.ex`, `runtime/workflow/workflow_message.ex`              | Dependency admission, attempt context, step boundaries, retries, and completion fencing.                                     |
+| Adaptive work              | `runtime/workflow/dynamic_workflow.ex`, `runtime/workflow/child_workflow.ex`                                                         | Bounded graph patches and child rounds within the existing run.                                                              |
+| Progress and action limits | `runtime/workflow/workflow_activity.ex`, `runtime/workflow/workflow_budget.ex`                                                       | Live progress supervision and durable named action allowances.                                                               |
+| Messages                   | `runtime/delivery/delivery.ex`, `runtime/agent/backpressure.ex`, `runtime/delivery/live_input.ex`                                    | Leases, ACK/retry/deduplication, queue pressure, and declared live controls.                                                 |
+| External execution         | `runner/`, `scheduler/execution_pools/lease_manager.ex`, `sandbox/`                                                                  | Host/Docker/OpenShell invocation, local executor slots, staging, and owned cleanup.                                          |
+| Durability and recovery    | `persistence/`, `runtime/recovery/local_recovery.ex`, `runtime/recovery/recovery_safety.ex`, `runtime/recovery/run_retry.ex`         | Fenced Redis state, safe clean attempts, and explicit checkpoint retry.                                                      |
+| Finalization               | `runtime/job/finalization.ex`, `runtime/job/job_cleanup.ex`, `runtime/recovery/cancellation_reconciler.ex`                           | Terminal publication, durable cancellation intent, and retryable cleanup.                                                    |
+| Service health             | `services/check.ex`, `services/monitor.ex`, `services/registry.ex`                                                                   | Runs health checks and publishes service availability.                                                                       |
+| Peer control               | `cluster/federation_client.ex`, `cluster/federation_registry.ex`, `cluster/federation_channels.ex`                                   | Authenticated owner forwarding and cached projections. Horde supervision remains local to a Core.                            |
+| Remote interfaces          | `MirrorNeuron/proto/runtime_control.proto`, `MirrorNeuron/proto/job.proto`                                                           | Core serves native runtime control and job RPCs. CLI and REST use the SDK runtime client.                                    |
 
 ```text
 source package -> SDK validate/compile/prepare -> durable Job on one owner
@@ -250,7 +250,8 @@ DockerWorker and OpenShell buffer command output and do not stream workflow
 beacons. Their node-level beacon timeout is ignored; the task deadline remains authoritative.
 An explicit workflow `control.beacon_timeout_ms` still applies when a separate
 producer supplies beacons. HostLocal node beacon settings are unchanged. See
-`tests/unit/child_workflow_test.exs` and `tests/unit/workflow_ledger_test.exs`.
+`tests/unit/runtime/workflow/child_workflow_test.exs` and
+`tests/unit/runtime/workflow/ledger/`.
 
 ## Admission and execution readiness
 
@@ -620,7 +621,7 @@ Those are good next steps, but the current runtime is already much closer to the
 The focused Core suites for resource allocation, admission state, start
 receipts, activity supervision, workflow budgets, resource specs, and event-only
 services complement the [system test suites](testing.md). Related boundaries are
-covered by `workflow_ledger_test.exs`, `workflow_admission_test.exs`,
+covered by the `tests/unit/runtime/workflow/ledger/` suite, `workflow_admission_test.exs`,
 `workflow_message_test.exs`, `live_input_test.exs`, and
 `submission_readiness_test.exs`. Source/test inspection does not establish live
 Docker/OpenShell behavior, hardware capacity, or installed-version parity.

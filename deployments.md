@@ -5,8 +5,8 @@ deployment controller and its retained manifest policy. It is not a public
 deployment procedure: the current CLI has no `deployment` group, REST v1 has no
 `/deployments`, and `mirrorneuron.job.v1.JobService` exposes durable Job/Run
 operations instead. Use [CLI](cli.md) and [API](api.md) for supported interfaces.
-Sources are `runtime/deployment_policy.ex`, `deployment_controller.ex`, and
-`deployment_policy_test.exs`. The Elixir entry points in
+Core implements this policy in `lib/mirror_neuron/runtime/deployment/` and
+exercises it in `tests/unit/runtime/deployment/deployment_policy_test.exs`. The Elixir entry points in
 `MirrorNeuron/lib/mirror_neuron.ex` delegate to the internal controller.
 Check public availability against CLI registration, OpenAPI, and the API
 contract tests.
@@ -115,16 +115,16 @@ Normal service discovery returns primary passing instances. Canary and candidate
 
 ## Important Code
 
-| Area                                | Files                                                                     |
-| ----------------------------------- | ------------------------------------------------------------------------- |
-| Policy normalization and validation | `MirrorNeuron/lib/mirror_neuron/runtime/deployment_policy.ex`             |
-| Controller and version records      | `MirrorNeuron/lib/mirror_neuron/runtime/deployment_controller.ex`         |
-| Agent replacement messages          | `MirrorNeuron/lib/mirror_neuron/runtime/job_coordinator.ex`               |
-| Service role metadata               | `MirrorNeuron/lib/mirror_neuron/service_registry.ex`                      |
-| Redis deployment storage            | `MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex`               |
-| Current gRPC boundary               | `MirrorNeuron/proto/job.proto` (no deployment operations)                 |
-| Public CLI boundary                 | `mn-cli/mn_cli/main.py` (no deployment group)                             |
-| Public REST boundary                | `mn-api/mn_api/app.py`, route modules, and OpenAPI (no deployment routes) |
+| Area                                | Files                                                                        |
+| ----------------------------------- | ---------------------------------------------------------------------------- |
+| Policy normalization and validation | `MirrorNeuron/lib/mirror_neuron/runtime/deployment/deployment_policy.ex`     |
+| Controller and version records      | `MirrorNeuron/lib/mirror_neuron/runtime/deployment/deployment_controller.ex` |
+| Agent replacement messages          | `MirrorNeuron/lib/mirror_neuron/runtime/job/job_coordinator.ex`              |
+| Service role metadata               | `MirrorNeuron/lib/mirror_neuron/services/registry.ex`                        |
+| Redis deployment storage            | `MirrorNeuron/lib/mirror_neuron/persistence/redis_store.ex`                  |
+| Current gRPC boundary               | `MirrorNeuron/proto/job.proto` (no deployment operations)                    |
+| Public CLI boundary                 | `mn-cli/mn_cli/main.py` (no deployment group)                                |
+| Public REST boundary                | `mn-api/mn_api/app.py`, route modules, and OpenAPI (no deployment routes)    |
 
 ## V1 Limits
 

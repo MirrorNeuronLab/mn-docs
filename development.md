@@ -46,14 +46,14 @@ Read [Runtime Architecture](runtime-architecture.md), [Reliability Guide](reliab
 
 ## Locate the owning code
 
-| Change                                       | Start with                                                                       |
-| -------------------------------------------- | -------------------------------------------------------------------------------- |
-| Runtime configuration and startup validation | `MirrorNeuron/lib/mirror_neuron/config/`                                         |
-| Scheduling, leases, and recovery             | `MirrorNeuron/lib/mirror_neuron/scheduler.ex`, `execution/`, and cluster modules |
-| Job lifecycle and durable state              | `MirrorNeuron/lib/mirror_neuron/runtime/` and persistence modules                |
-| Agent behavior and built-ins                 | `MirrorNeuron/lib/mirror_neuron/agent*` and `builtins/`                          |
-| HostLocal, Docker, or OpenShell execution    | `MirrorNeuron/lib/mirror_neuron/runner/` and `sandbox/`                          |
-| gRPC contract handling                       | `MirrorNeuron/lib/mirror_neuron_grpc/`                                           |
+| Change                                       | Start with                                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Runtime configuration and startup validation | `MirrorNeuron/lib/mirror_neuron/config/`                                             |
+| Scheduling, leases, and recovery             | `MirrorNeuron/lib/mirror_neuron/scheduler/` and `runtime/recovery/`                  |
+| Job lifecycle and durable state              | `MirrorNeuron/lib/mirror_neuron/runtime/` and persistence modules                    |
+| Agent behavior and built-ins                 | `MirrorNeuron/lib/mirror_neuron/runtime/agent/`, `agent_templates/`, and `builtins/` |
+| HostLocal, Docker, or OpenShell execution    | `MirrorNeuron/lib/mirror_neuron/runner/` and `sandbox/`                              |
+| gRPC contract handling                       | `MirrorNeuron/lib/mirror_neuron_grpc/`                                               |
 
 Do not add domain-specific business logic to Core when it belongs in a blueprint payload, skill, or agent template.
 
