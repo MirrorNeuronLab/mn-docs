@@ -11,12 +11,10 @@ healthy cluster hardware, in this order:
 | Tier     | Model                                 | Accelerator memory minimum                 |
 | -------- | ------------------------------------- | ------------------------------------------ |
 | `medium` | Nemotron 3.5 Lightning                | 48 GB VRAM or integrated/shared GPU memory |
-| `small`  | Bonsai2 27B PTQ1_0 (~5.95 GB weights) | 24 GB VRAM or integrated/shared GPU memory |
-| `nano`   | Nemotron 3.5 Bolt E4B Q4_K_M          | 8 GB VRAM or 16 GB unified memory          |
+| `nano`   | MirrorNeuronLab's Nemotron 3.5 Bolt E4B Q4_K_M | 8 GB VRAM or 16 GB unified memory |
 
-`default` selects the first feasible tier: medium → small → nano. CPU RAM alone
-does not qualify as accelerator memory. An operator-selected default takes
-priority over automatic selection.
+`default` tries `medium` and then `nano`. The `small` alias also selects Bolt.
+An operator-selected default takes priority over automatic selection.
 
 Tier thresholds use total hardware capacity. Explicit worker GPU allocations
 still require free memory. On Windows, detection uses
@@ -128,7 +126,7 @@ runtime inventory returned by `mn model list`.
 `--default` is valid for either a DMR reference or a provider JSON file that
 defines exactly one model. The registry stores only that model's ID as the
 operator-selected priority; it never stores resolved provider secrets. Removing
-the selected model restores automatic medium → small → nano selection.
+the selected model restores automatic `medium` to `nano` selection.
 
 DMR adds and blueprint validation block incompatible hardware by default. Use
 `--force` only when you accept slow CPU execution or a partial accelerator
@@ -136,20 +134,21 @@ path.
 
 ## Nemotron 3.5 Bolt E4B on Docker Model Runner
 
-The `nano` tier uses [MirrorNeuronLab’s Q4_K_M GGUF](https://huggingface.co/MirrorNeuronLab/NVIDIA-Nemotron-3.5-Bolt-E4B-GGUF),
-pulled from `hf.co/MirrorNeuronLab/NVIDIA-Nemotron-3.5-Bolt-E4B-GGUF:Q4_K_M`
-and tagged locally as `nemotron-3.5-bolt-e4b:q4_k_m`. It needs a Gemma 4
-compatible llama.cpp backend. The SDK configures and reads back a 32,768-token
+The `nano` and `small` aliases pull and serve
+`hf.co/MirrorNeuronLab/NVIDIA-Nemotron-3.5-Bolt-E4B-GGUF:Q4_K_M` directly.
+Bolt requires a Gemma 4 compatible llama.cpp backend. The SDK configures and
+reads back a 32,768-token
 initial context; the trained maximum is 65,536. Installation caches the artifact
 and leaves generation weights unloaded. If DMR configuration eagerly loads a
 previously cold completion backend, the SDK unloads it before preparation returns;
 a previously resident model stays resident. The embedded NVIDIA template handles chat and thinking;
 structured requests pass `chat_template_kwargs.enable_thinking=false`.
+See the [MirrorNeuronLab Bolt model card](https://huggingface.co/MirrorNeuronLab/NVIDIA-Nemotron-3.5-Bolt-E4B-GGUF).
 
 This release accepts text only. It includes no multimodal projector. The packaged
 default chain contains text-only models; vision workloads must explicitly select
-a compatible multimodal model such as `nemotron3` or configure a vision-capable
-default chain.
+a compatible multimodal model such as `inkling-2-mini` or `nemotron3`, or
+configure a vision-capable default chain.
 
 From any directory with MirrorNeuron and Docker Model Runner installed:
 
@@ -179,13 +178,13 @@ The opt-in test uses temporary SDK state and real Docker commands. It verifies
 streaming, unload/cache preservation and reload. It leaves the downloaded artifact cached
 and inference weights unloaded. Other installed models are preserved.
 
-## Bonsai2 on Docker Model Runner
+## Inkling 2 Mini on Docker Model Runner
 
-The packaged `small` catalog entry uses
-`hf.co/prism-ml/Ternary-Bonsai-2-27B-gguf:PTQ1_0`, tagged locally as
-`bonsai2:ptq1_0`, with a 32,768-token initial context. Its ternary packing requires
-Prism llama.cpp. The catalog declares that customization, and the SDK prepares
-it automatically during normal installation or first use.
+The explicit `inkling-2-mini` alias uses
+`hf.co/MirrorNeuronLab/Inkling-2-Mini-GGUF:Q4_K_M`, tagged locally as
+`inkling-2-mini:q4_k_m`. It accepts text and images, with a 4,096-token initial
+context and a 24 GB accelerator minimum. Model installation or first use prepares
+the catalog's pinned llama.cpp `b12600` backend automatically.
 
 Run from any directory with MirrorNeuron and Docker Desktop/Engine installed.
 The installed Python SDK downloads a prepared native runner from public GAR
@@ -196,19 +195,13 @@ starts a managed host listener: control uses loopback, and container inference
 requires the generated token. Keep runner state and gateway env files private.
 
 ```bash
-mn model add small --local
-mn model probe small
+mn model add inkling-2-mini --local
+mn model probe inkling-2-mini
 ```
 
-Automatic `default` selection uses this same preparation when the selected owner
-has at least 24 GB and less than 48 GB accelerator memory. Blueprint launch
-keeps its lazy installation behavior: actual model use triggers preparation.
-macOS Apple Silicon selects Metal, NVIDIA PCs select CUDA, and AMD/Intel GPUs
-select Vulkan. The catalog also contains explicit HIP assets. Linux ARM64 CUDA
-uses a prepared GAR backend for Spark's GB10 (SM 12.1), Ubuntu 24.04 and NVIDIA
-driver 580+, with CUDA 13 runtime libraries bundled. Windows ARM64 GPU assets
-remain unavailable. Metal runs natively on macOS; Docker's Linux VM cannot
-provide Apple Metal acceleration.
+Blueprint launch keeps preparation lazy until the model's first call. The
+catalog provides native Metal assets for Apple Silicon and CUDA, Vulkan, and
+HIP assets for supported Linux and Windows systems.
 
 Release builds compile the native DMR from a full commit SHA with the SDK's fixed
 managed HTTP, native transport and Prism version-parser patches. The installed SDK
@@ -230,7 +223,7 @@ The catalog contract is `preparation.kind: "dmr_native"`, version 1. Its `runner
 contains an HTTPS GitHub source repository, immutable revision, SDK policy and
 per-platform prepared archives (`name`, public HTTPS `url`, mandatory `sha256`). Its `backend`
 contains a repository, release, commit and per-platform asset lists. For example,
-the packaged Bonsai2 recipe includes:
+the packaged Inkling recipe includes:
 
 ```json
 {
@@ -250,12 +243,15 @@ the packaged Bonsai2 recipe includes:
       }
     },
     "backend": {
-      "repository": "https://github.com/PrismML-Eng/llama.cpp",
-      "release": "prism-b10743-adfffbe",
-      "commit": "adfffbe",
+      "repository": "https://github.com/ggml-org/llama.cpp",
+      "release": "b12600",
+      "commit": "29b52d3",
       "assets": {
         "darwin-arm64-metal": [
-          "llama-prism-b10743-adfffbe-bin-macos-arm64.tar.gz"
+          {
+            "name": "llama-b12600-bin-macos-arm64.tar.gz",
+            "sha256": "9ced6f8cbce915968a865ded7718c2c4d14a69876bf9abf544533aec9b76e975"
+          }
         ]
       }
     }
@@ -281,25 +277,20 @@ Python callers can warm the backend independently of the model artifact:
 ```python
 from mn_sdk import prepare_dmr_model, resolve_model_entry
 
-prepared = prepare_dmr_model(resolve_model_entry("small"))
+prepared = prepare_dmr_model(resolve_model_entry("inkling-2-mini"))
 ```
 
 The deploy `scripts/build-prism-dmr.py` helper calls this same SDK API. Normal
 load/unload and last-job cleanup target the matching runner. Unload releases
 weights from accelerator memory and keeps downloaded artifacts and the backend
-cache; `mn model remove small --local --yes` removes the model installation and
+cache. `mn model remove inkling-2-mini --local --yes` removes the model installation and
 route while preserving the backend cache. Failed archive checksums stop preparation
 before execution; startup failures point to the bundle's launcher log,
 and occupied ports fail without adopting another service.
 
-Verification covers offline selection, safe preparation, cache reuse/restart,
-load/unload and gateway routing. Live acceptance on 2026-10-12 passed native
-inference with all 65/65 model layers on Apple M4 Pro Metal and Spark GB10 CUDA.
-The Mac's normal LiteLLM path passed streaming and JSON-schema probes with Go
-absent from `PATH`. A fresh Spark SDK wheel downloaded and verified the public
-GAR runner/backend, installed and configured Bonsai2, and passed JSON-schema and
-streaming inference with both Go and `nvcc` absent from `PATH`. Windows and Linux x64 binaries are cross-compiled; live
-inference on those platforms remains an opt-in acceptance check.
+The SDK's offline tests cover model selection, runner preparation, cache reuse
+and gateway routing. MirrorNeuronLab validated text and image inference on
+NVIDIA GB10 at a 4,096-token context. See the [Inkling model card and Docker Model Runner validation](https://huggingface.co/MirrorNeuronLab/Inkling-2-Mini-GGUF).
 
 ## Nemotron 3.5 Lightning Compatibility
 
