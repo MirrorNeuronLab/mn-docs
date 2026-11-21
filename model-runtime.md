@@ -8,10 +8,10 @@ the owner's managed LiteLLM gateway.
 Without an operator override, MirrorNeuron selects its built-in default from
 healthy cluster hardware, in this order:
 
-| Tier     | Model                                 | Accelerator memory minimum                 |
-| -------- | ------------------------------------- | ------------------------------------------ |
-| `medium` | Nemotron 3.5 Lightning                | 48 GB VRAM or integrated/shared GPU memory |
-| `nano`   | MirrorNeuronLab's Nemotron 3.5 Bolt E4B Q4_K_M | 8 GB VRAM or 16 GB unified memory |
+| Tier     | Model                                          | Accelerator memory minimum                 |
+| -------- | ---------------------------------------------- | ------------------------------------------ |
+| `medium` | Nemotron 3.5 Lightning                         | 48 GB VRAM or integrated/shared GPU memory |
+| `nano`   | MirrorNeuronLab's Nemotron 3.5 Bolt E4B Q4_K_M | 8 GB VRAM or 16 GB unified memory          |
 
 `default` tries `medium` and then `nano`. The `small` alias also selects Bolt.
 An operator-selected default takes priority over automatic selection.
