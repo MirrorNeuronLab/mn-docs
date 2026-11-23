@@ -42,7 +42,6 @@ The authoritative package metadata is each package's `pyproject.toml`; behavior 
 | `process_map_skill`                  | `mirrorneuron-process-map-skill`                  |
 | `public_research_orchestrator_skill` | `mirrorneuron-public-research-orchestrator-skill` |
 | `scoring_framework_skill`            | `mirrorneuron-scoring-framework-skill`            |
-| `slack_communicate_skill`            | `mirrorneuron-slack-communicate-skill`            |
 | `spreadsheet_analysis_skill`         | `mirrorneuron-spreadsheet-analysis-skill`         |
 | `static_code_analysis_skill`         | `mirrorneuron-static-code-analysis-skill`         |
 | `temporal_graph_skill`               | `mirrorneuron-temporal-graph-skill`               |
