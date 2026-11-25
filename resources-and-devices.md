@@ -365,7 +365,7 @@ command to roll back; it does not install OS resource isolation.
 | Runtime agent context                      | `MirrorNeuron/lib/mirror_neuron/runtime/job/job_coordinator.ex`                                   |
 | Manifest validation                        | `MirrorNeuron/lib/mirror_neuron/manifest.ex`                                                      |
 | CLI commands                               | `mn-cli/mn_cli/commands/resource.py`, `client_management.py`                                      |
-| SDK validation helpers                     | `mn-python-sdk/mn_sdk/blueprints/validation.py`                                                   |
+| SDK validation helpers                     | `mn-python-sdk/packages/contracts/src/mn_sdk_shared/blueprints/validation.py`                     |
 
 ## V1 Limits
 

@@ -138,7 +138,7 @@ not runnable public interfaces.
 | gRPC server surfaces                    | `MirrorNeuron/lib/mirror_neuron_grpc/server.ex`                                                                                                                                                                         |
 | CLI commands                            | `mn-cli/mn_cli/commands/`, `mn-cli/mn_cli/client_management.py`                                                                                                                                                         |
 | Python SDK                              | `mn-python-sdk/mn_sdk/client.py`, `mn-python-sdk/mn_sdk/bundles/`, `mn-python-sdk/mn_sdk/workflows/decorators.py`                                                                                                       |
-| Blueprint validation                    | `mn-python-sdk/mn_sdk/blueprints/validation.py`                                                                                                                                                                         |
+| Blueprint validation                    | `mn-python-sdk/packages/contracts/src/mn_sdk_shared/blueprints/validation.py`                                                                                                                                           |
 
 ## What Is Still Intentionally V1
 

@@ -19,13 +19,15 @@ From the workspace root, create or activate a Python 3.12+ virtual environment:
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/python -m pip install -e mn-python-sdk/packages/common -e 'mn-python-sdk[client,dev]'
+.venv/bin/python -m pip install -e mn-python-sdk/packages/common \
+  -e mn-python-sdk/packages/contracts -e mn-surface \
+  -e 'mn-python-sdk[client,dev]'
 ```
 
-Expected output:
+Verify both the authoring SDK and the Surface client in that environment.
 
-```text
-Successfully installed mirrorneuron-python-sdk
+```bash
+.venv/bin/python -c "from mn_sdk import Client; from mn_surface import RuntimeResources"
 ```
 
 For cross-component tests, use the [workspace test runner](testing.md#common-commands).
@@ -54,7 +56,7 @@ Blueprint authors select runtime capabilities in `dependencies.json`:
 }
 ```
 
-The base SDK depends on the common component. Install additional components
+The base SDK uses the common component and the shared SDK contracts. Install additional components
 with the matching SDK extras or declare them for blueprint workers. The RAG distribution includes
 DuckDB and supports injected parsers, stores and embedders. Each component
 is a separate distribution built and tested from `mn-python-sdk/packages/`.
@@ -113,12 +115,16 @@ The detailed implementation contract and tests live in the RAG component README.
 
 ## Client Usage
 
-After connecting the surface with `mn node add`, use the same private
-`$MN_HOME/client.json` profile from Python. Install `mirrorneuron-python-sdk[client]`
-and run this example with `MN_HOME` set to that surface's installation home:
+CLI, API and remote Python clients use `mirrorneuron-surface`. Runtime nodes
+use `mirrorneuron-runtime` for execution. Both wheels come from the
+`mn-python-sdk` repository and use the same gRPC protocol. Existing integrations
+can keep using `mirrorneuron-python-sdk[client]` and their `mn_sdk` imports.
+
+After connecting the surface with `mn node add`, set `MN_HOME` to its installation
+home to use the saved `client.json` profile with the Surface package.
 
 ```python
-from mn_sdk.runtime_resources import RuntimeResources
+from mn_surface import RuntimeResources
 
 runtime = RuntimeResources()
 print(runtime.items("/jobs"))
