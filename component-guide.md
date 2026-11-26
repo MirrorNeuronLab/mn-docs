@@ -79,7 +79,7 @@ Use the deployment component to install an editable workspace runtime:
 
 ```bash
 cd mn-deploy
-./install.sh --mode local
+./install_dev.sh --mode local
 ```
 
 Then inspect the services before testing a blueprint:

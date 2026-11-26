@@ -12,14 +12,14 @@ This guide covers installation of the application surface, the runtime node, or 
 - **Outcome:** verify the selected installation role and connect a surface to a healthy runtime.
 - **Page type:** installation how-to.
 - **Maturity:** current checkout contract. Use the installer and its matching package pins together.
-- **Sources of truth:** `mn-deploy/install.sh`, `mn-deploy/uninstall.sh`, `mn_runtime.lifecycle`, and `mn_sdk.runtime_connection`.
+- **Sources of truth:** `mn-deploy/install.sh`, `mn-deploy/install_dev.sh`, `mn-deploy/uninstall.sh`, `mn_runtime.lifecycle`, and `mn_sdk.runtime_connection`.
 
 ## Installation modes
 
 | Binary installer command      | Components                                                                    | Default home    |
 | ----------------------------- | ----------------------------------------------------------------------------- | --------------- |
 | `./install.sh`                | CLI/API surface and runtime. The surface attaches locally on first start.     | `~/.mn`         |
-| `./install.sh --no-runtime`   | CLI/API and their Python dependencies. Requires neither Docker nor Redis.     | `~/.mn-client`  |
+| `./install.sh --no-runtime`   | Wasm CLI, API and client support with Wasmtime.                               | `~/.mn`         |
 | `./install.sh --runtime-only` | Core, native runtime, Redis, and selected execution services through Compose. | `~/.mn-runtime` |
 
 The combined and runtime-only modes start their services by default. Use
@@ -30,8 +30,8 @@ serve a blueprint's own UI through the runtime.
 
 Use `MN_HOME` to choose a different home. Reinstall with the same role or use a
 separate directory for a different role. The two role flags are mutually
-exclusive. `--mode local` and `--mode github` print a notice, ignore either flag,
-and install both parts.
+exclusive. The developer installer supports `--no-runtime` for client-only
+builds. Its default installs both parts.
 
 ## Before you begin
 
@@ -71,7 +71,7 @@ The commands below use the default client home. If you set `MN_HOME`, source the
 cd mn-deploy
 ./install.sh --no-runtime
 ./install.sh --no-runtime --detect-only
-source "$HOME/.mn-client/env"
+source "$HOME/.mn/env"
 mn --help
 ```
 
@@ -127,18 +127,23 @@ command and terminal transcript private.
 
 ## Install an editable workspace runtime
 
-Run local mode from the deployment component when you are developing against the current workspace:
+Install Rust with rustup, then run the developer installer from the deployment
+checkout. It builds the sibling sources and prepares the WASI SDK needed to
+compile SQLite for `mn-api` on macOS and Linux, including ARM64 Spark hosts.
 
 ```bash
 cd mn-deploy
-./install.sh --mode local
+./install_dev.sh
 ```
+
+Use `./install_dev.sh --no-runtime` to build only the clients. To prepare the
+toolchain ahead of time, run `./scripts/preapare_dev.sh` from the same directory.
 
 For an explicit Git-based installation, use:
 
 ```bash
 cd mn-deploy
-./install.sh --mode github
+./install_dev.sh --mode github
 ```
 
 Git mode uses component repositories rather than editable paths from this checkout. Do not use it when your goal is to test uncommitted workspace changes.
