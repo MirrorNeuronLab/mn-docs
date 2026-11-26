@@ -625,6 +625,6 @@ covered by the `tests/unit/runtime/workflow/ledger/` suite, `workflow_admission_
 `workflow_message_test.exs`, `live_input_test.exs`, and
 `submission_readiness_test.exs`. Source/test inspection does not establish live
 Docker/OpenShell behavior, hardware capacity, or installed-version parity.
-The surface/runtime release gate is `mn-deploy/scripts/validate-runtime-split.sh`.
+The surface/runtime release gate is `mn-deploy/scripts/release.sh check-runtime`.
 Its `--two-runtimes` mode provisions isolated runtimes to verify attachment,
 federation, job execution, and streams.
